@@ -1,0 +1,22 @@
+﻿<dx:ThemedWindow x:Class="CH.Hurni.AP_MaJ.Dialogs.CreatGridViewDialog"
+                 xmlns:dxlc="http://schemas.devexpress.com/winfx/2008/xaml/layoutcontrol" 
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core" 
+                 xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
+                 Title="CreatGridViewDialog" MinWidth="300" SizeToContent="WidthAndHeight" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <dxlc:LayoutItem Grid.Row="0" Label="Nom de la nouvelle vue" ElementSpace="8">
+            <dxe:TextEdit Name="NewGridViewNameTextEdit"  Validate="TextEdit_Validate"/>
+        </dxlc:LayoutItem>
+        <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right">
+            <Button Name="SaveNewGridViewButton" Content="Save" IsDefault="True" Margin="0 4 2 0" Click="Save_Click"/>
+            <Button Content="Cancel" IsCancel="True" Margin="2 4 0 0" Click="Cancel_Click"/>
+        </StackPanel>
+    </Grid>
+</dx:ThemedWindow>

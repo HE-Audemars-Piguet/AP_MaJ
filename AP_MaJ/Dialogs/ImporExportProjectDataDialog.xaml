@@ -1,0 +1,110 @@
+﻿<dx:ThemedWindow x:Class="Ch.Hurni.AP_MaJ.Dialogs.ImporExportProjectDataDialog"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
+                 xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
+                 xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks" 
+                 Title="ImporExportProjectDataDialog" Height="700" Width="800" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
+    
+    <dx:ThemedWindow.Resources>
+        <Style TargetType="dxg:GridColumn">
+            <Setter Property="Header" Value="{Binding Path=FieldName, RelativeSource={RelativeSource Self}}" />
+        </Style>
+    </dx:ThemedWindow.Resources>
+
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Name="ImportGridOption" Grid.Row="0" Margin="0 0 0 12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Fichier source" Margin="2" VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1" Text="{Binding SourceFileName}" IsReadOnly="True" Margin="2" VerticalAlignment="Center"/>
+            <Button Grid.Column="2" Margin="2" VerticalAlignment="Center" Click="FileOpen_Click" ToolTip="Sélectionner le fichier source">
+                <Button.Content>
+                    <iconPacks:PackIconMaterial Kind="DotsHorizontal"/>
+                </Button.Content>
+            </Button>
+            <StackPanel Grid.Column="3" Name="ExcelSheetSelector" Orientation="Horizontal" Visibility="Collapsed">
+                <TextBlock Text="Feuille à importer" Margin="8 2 2 2" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding ExcelSheets}" Name="ExcelSheetSelectorCombo" SelectedIndex="0" Margin="2" VerticalAlignment="Center" MinWidth="100"/>
+            </StackPanel>
+
+            <Button Grid.Column="5" Margin="2" VerticalAlignment="Center" Click="FileContentLoad_Click" ToolTip="Lire les données">
+                <Button.Content>
+                    <iconPacks:PackIconMaterial Kind="TableArrowLeft" RenderTransformOrigin="0.5,0.5">
+                        <iconPacks:PackIconMaterial.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="-1"/>
+                                <SkewTransform/>
+                                <RotateTransform/>
+                                <TranslateTransform/>
+                            </TransformGroup>
+                        </iconPacks:PackIconMaterial.RenderTransform>
+                    </iconPacks:PackIconMaterial>
+                </Button.Content>
+            </Button>
+        </Grid>
+
+        <Grid Name="ExportGridOption" Grid.Row="1" Margin="0 0 0 12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Fichier cible" Margin="2" VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1" Text="{Binding SourceFileName}" IsReadOnly="True" Margin="2" VerticalAlignment="Center"/>
+            <Button Grid.Column="2" Margin="2" VerticalAlignment="Center" Click="FileSave_Click" ToolTip="Sélectionner le fichier cible">
+                <Button.Content>
+                    <iconPacks:PackIconMaterial Kind="DotsHorizontal"/>
+                </Button.Content>
+            </Button>
+            <StackPanel Grid.Column="3" Name="ExcelSheetName" Orientation="Horizontal" Visibility="Collapsed">
+                <TextBlock Text="Sheet" Margin="8 2 2 2" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding Data.TableName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="2" VerticalAlignment="Center" MinWidth="100"/>
+            </StackPanel>
+        </Grid>
+
+        <dxg:GridControl Grid.Row="2" ItemsSource="{Binding Path=Data, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         AutoGenerateColumns="AddNew" ShowBorder="True" Name="ImportGrid"
+                         HorizontalAlignment="Stretch" SelectionMode="Cell">
+            <dxg:GridControl.View>
+                <dxg:TableView AutoWidth="True" CellValueChanged="MainGridView_CellValueChanged" 
+                               AllowBandMultiRow="False" AllowColumnFiltering="True" AllowConditionalFormattingMenu="True" 
+                               ShowGroupPanel="True" ShowEmptyText="True" ShowIndicator="False" ShowHorizontalLines="True" 
+                               ShowVerticalLines="True" ShowSearchPanelMode="Always" ShowTotalSummary="True"/>
+            </dxg:GridControl.View>
+        </dxg:GridControl>
+
+        <dx:WaitIndicator Grid.Row="2" DeferedVisibility="{Binding IsWaitIndicatorVisible}" Content="Loading file">
+            <dx:WaitIndicator.ContentTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Please Wait" FontSize="20"/>
+                        <TextBlock Text="{Binding}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </dx:WaitIndicator.ContentTemplate>
+        </dx:WaitIndicator>
+
+        
+        <StackPanel Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 8 0 0">
+            <Button Name="ExportButton" Content="Exporter les données" Click="Export_Click" Margin="0 0 4 0" IsDefault="True" IsEnabled="{Binding CanImport}"/>
+            <Button Name="ImportButton" Content="Importer les données" Click="Import_Click" Margin="0 0 4 0" IsDefault="True" IsEnabled="{Binding CanImport}"/>
+            <Button Content="Annuler" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</dx:ThemedWindow>
