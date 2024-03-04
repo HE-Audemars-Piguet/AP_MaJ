@@ -11,7 +11,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
 {
     public class ApplicationOptions : INotifyPropertyChanged
     {
-        public enum StateEnum { Pending = 0, Processing = 1, Completed = 2, Error = 3 }
+        public enum StateEnum { Pending = 0, Processing = 1, Completed = 2, Error = 3, Canceled = 4 }
 
         public enum TaskTypeEnum { Validation = 0, TempChangeState = 1, PurgeProps = 2, Update = 3, SyncProps = 4, PublishBomBlob = 5, WaitForBomBlob = 6, None = 7 }
 

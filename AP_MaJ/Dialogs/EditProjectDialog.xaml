@@ -9,7 +9,7 @@
                  xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
                  xmlns:cnv="clr-namespace:Ch.Hurni.AP_MaJ.Converters"
                  xmlns:system="clr-namespace:System;assembly=mscorlib"
-                 Title="EditProjectDialog" Height="600" Width="600" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
+                 Title="EditProjectDialog" Height="700" Width="800" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
     <dx:ThemedWindow.Resources>
         <cnv:PropertyTypeNameConverter x:Key="PropertyTypeNameConverter"/>
         
@@ -75,10 +75,10 @@
 
     </dx:ThemedWindow.Resources>
     
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
-        <dxlc:LayoutGroup View="Tabs" Orientation="Vertical" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" >
+    <!--<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">-->
+        <dxlc:LayoutGroup View="Tabs" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="4">
             
-            <dxlc:LayoutGroup Header="Options générales" View="Group" Orientation="Vertical" ItemLabelsAlignment="Local" Margin="4" IsCollapsible="True" IsCollapsed="True">
+            <dxlc:LayoutGroup Header="Options générales" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem Label="Nombre de processeur (validation)" ElementSpace="8">
                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
@@ -101,7 +101,7 @@
                 </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 
-            <dxlc:LayoutGroup Header="Option de connection Vault" View="Group" Orientation="Vertical" ItemLabelsAlignment="Local" Margin="4" IsCollapsible="True" IsCollapsed="True">
+            <dxlc:LayoutGroup Header="Option de connection Vault" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem Label="Nom du server Vault" ElementSpace="8">
                     <dxe:TextEdit EditValue="{Binding Path=AppOptions.VaultServer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
@@ -116,7 +116,7 @@
                 </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 
-            <dxlc:LayoutGroup Header="Option Inventor" View="Group" Orientation="Vertical" ItemLabelsAlignment="Local" Margin="4" IsCollapsible="True" IsCollapsed="True">
+            <dxlc:LayoutGroup Header="Option Inventor" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem Label="Visibilité" ElementSpace="8">
                     <dxe:CheckEdit />
                 </dxlc:LayoutItem>
@@ -128,17 +128,16 @@
                 </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 
-            <dxlc:LayoutGroup Header="Mappage des propriétés" View="Group" Orientation="Vertical" ItemLabelsAlignment="Local" Margin="4" IsCollapsible="True" IsCollapsed="False">
+            <dxlc:LayoutGroup Header="Mappage des propriétés" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem ElementSpace="0" LabelPosition="Top">
                     <dxlc:LayoutItem.Label>
-                        <Grid Width="{Binding RelativeSource={RelativeSource AncestorType=dxlc:LayoutGroup, Mode=FindAncestor}, Path=ActualWidth}" Margin="0 0 0 2">
+                        <Grid Width="{Binding RelativeSource={RelativeSource AncestorType=dxlc:LayoutGroup, Mode=FindAncestor}, Path=ActualWidth}" Margin="0 0 0 4">
                             <TextBlock Text="Vault file property mappings" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <Button Grid.Column="0" Content="{iconPacks:Material Kind=TableEdit}" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 24 0"/>
+                            <Button Grid.Column="0" Content="{iconPacks:Material Kind=TableEdit}" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 0 0"/>
                         </Grid>
                     </dxlc:LayoutItem.Label>
                     <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.Mappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" MaxHeight="250"
-                                                    AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True"
-                                                    HorizontalAlignment="Left" Width="Auto">
+                                     AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" HorizontalAlignment="Stretch" >
                         <dxg:GridControl.View>
                             <dxg:TableView AllowBandMultiRow="False" AllowColumnFiltering="False" ShowGroupPanel="False" ShowDataNavigator="False" AllowEditing="False" ShowIndicator="False"/>
                         </dxg:GridControl.View>
@@ -162,5 +161,5 @@
             </dxlc:LayoutGroup>
 
         </dxlc:LayoutGroup>
-    </ScrollViewer>
+    <!--</ScrollViewer>-->
 </dx:ThemedWindow>

@@ -11,11 +11,13 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,8 +37,17 @@ namespace CH.Hurni.AP_MaJ.Dialogs
     /// <summary>
     /// Interaction logic for DataUpdateTaskSeletor.xaml
     /// </summary>
-    public partial class DataUpdateTaskSeletor : ThemedWindow
+    public partial class DataUpdateTaskSeletor : ThemedWindow, INotifyPropertyChanged
     {
+        #region Events
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
+
         public ObservableCollection<MaJTask> MaJTasks { get; set; }
 
         public ObservableCollection<string> MaJToDoTasks { get; set; }
@@ -44,6 +55,20 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         public Progress<TaskProgressReport> TaskProgReport { get; set; }
 
         public Progress<ProcessProgressReport> ProcessProgReport { get; set; }
+
+        public bool IsCloseButtonEnable
+        {
+            get
+            {
+                return _isCloseButtonEnable;
+            }
+            set
+            {
+                _isCloseButtonEnable = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _isCloseButtonEnable = true;
 
         public DataSet Data
         {
@@ -60,6 +85,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         private MaJTask currentTask = null;
         private DispatcherTimer dTimer;
         private DateTime dTimerStartTime;
+        private CancellationTokenSource TaskCancellationTokenSource;
 
         public DataUpdateTaskSeletor(ref DataSet data, ApplicationOptions appOptions)
         {
@@ -70,7 +96,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             MaJTasks = new ObservableCollection<MaJTask>();
 
-            MaJTask FileTask = new MaJTask() { Name = "File", DisplayName = "Taches de mise à jour des fichiers", IsChecked = true, Index = 0 };
+            MaJTask FileTask = new MaJTask() { Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 0 };
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
             FileTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 1, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 2, Parent = FileTask });
@@ -81,7 +107,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 7, Parent = FileTask });
             MaJTasks.Add(FileTask);
 
-            MaJTask ItemTask = new MaJTask() { Name = "Item", DisplayName = "Taches de mise à jour des articles", IsChecked = false, Index = 100 };
+            MaJTask ItemTask = new MaJTask() { Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 100 };
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
             ItemTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 101, Parent = ItemTask });
             ItemTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 102, Parent = ItemTask });
@@ -94,12 +120,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             DataContext = this;
             InitializeComponent();
-
-            TaskProgReport = new Progress<TaskProgressReport>();
-            TaskProgReport.ProgressChanged += ShowTaskProgress;
-
-            ProcessProgReport = new Progress<ProcessProgressReport>();
-            ProcessProgReport.ProgressChanged += ShowProcessProgress;
         }
 
         private void ShowTaskProgress(object sender, TaskProgressReport e)
@@ -108,18 +128,20 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             {
                 if (e.Timer.Equals("Start"))
                 {
+                    dTimerStartTime = DateTime.Now;
+                    currentTask.TaskDuration = "00:00";                    
+                    
                     dTimer = new DispatcherTimer();
-                    dTimer.Interval = TimeSpan.FromSeconds(1);
+                    dTimer.Interval = TimeSpan.FromSeconds(0.1);
                     dTimer.Tick += timer_Tick;
                     
-                    dTimerStartTime = DateTime.Now;
-                    currentTask.TaskDuration = "00:00";
-
                     dTimer.Start();                   
                 }
                 else if (e.Timer.Equals("Stop"))
                 {
                     dTimer.Stop();
+
+                    dTimer.Tick -= timer_Tick;
 
                     currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
                 }
@@ -132,7 +154,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
         private void timer_Tick(object sender, EventArgs e)
         {
-
             currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
         }
 
@@ -160,45 +181,65 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             Page2.Visibility = Visibility.Visible;
             Page3.Visibility = Visibility.Collapsed;
 
-            NextButton.Visibility = Visibility.Collapsed;
-            ExecutButton.Visibility = Visibility.Visible;
-            ExecutButton.IsDefault = true;
-            BackButton.Visibility = Visibility.Visible;
-            FinishButton.Visibility = Visibility.Collapsed;
-            CancelButton.Visibility = Visibility.Visible;
-
             ToDoList.ItemsSource = MaJTasks.SelectMany(x=>x.SubTasks).Where(y => y.IsChecked == true).ToList();
         }
 
         private async void ExecutButton_Click(object sender, RoutedEventArgs e)
         {
-            ButtonsStackPanel.IsEnabled = false;
-
-            foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
+            if(ExecutButton.Tag.ToString().Equals("Run"))
             {
-                currentTask = t;
-                currentTask.ProcessFeedback.Clear();
-                //for (int i = 0; i < appOptions.SimultaniousValidationProcess; i++) currentTask.ProcessFeedback.Add("");
+                BackButton.IsEnabled = false;
+                CancelButton.IsEnabled = false;
+                CancelButton.IsDefault = false;
 
-                currentTask.ProcessingState = StateEnum.Processing;
+                ExecutButton.Tag = "Stop";
+                ExecutButton.Content = "Stop";
+                ExecutButton.IsDefault = false;
 
-                if (currentTask.Parent.Name.Equals("File")) _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport);
+                TaskCancellationTokenSource = new CancellationTokenSource();
+                CancellationToken TaskCancellationToken = TaskCancellationTokenSource.Token;
 
-                currentTask.ProcessingState = StateEnum.Completed;
+                foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
+                {
+                    currentTask = t;
+                    currentTask.ProcessFeedback.Clear();
+
+                    if (TaskCancellationToken.IsCancellationRequested)
+                    {
+                        currentTask.ProcessingState = StateEnum.Canceled;
+                        continue;
+                    }
+
+                    TaskProgReport = new Progress<TaskProgressReport>();
+                    TaskProgReport.ProgressChanged += ShowTaskProgress;
+
+                    ProcessProgReport = new Progress<ProcessProgressReport>();
+                    ProcessProgReport.ProgressChanged += ShowProcessProgress;
+
+                    currentTask.ProcessingState = StateEnum.Processing;
+
+                    if (currentTask.Parent.Name.Equals("File"))
+                    {
+                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                    }
+
+                    if(TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
+                    else currentTask.ProcessingState = StateEnum.Completed;
+
+                    TaskProgReport.ProgressChanged -= ShowTaskProgress;
+                    ProcessProgReport.ProgressChanged -= ShowProcessProgress;
+                }
             }
-
-            ButtonsStackPanel.IsEnabled = true;
+            else
+            {
+                TaskCancellationTokenSource.Cancel();
+            }
 
             Page1.Visibility = Visibility.Collapsed;
             Page2.Visibility = Visibility.Collapsed;
             Page3.Visibility = Visibility.Visible;
 
-            NextButton.Visibility = Visibility.Collapsed;
-            ExecutButton.Visibility = Visibility.Collapsed;
-            BackButton.Visibility = Visibility.Collapsed;
-            FinishButton.Visibility = Visibility.Visible;
-            FinishButton.IsDefault = true;
-            CancelButton.Visibility = Visibility.Collapsed;
+            DoneList.ItemsSource = MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).ToList();
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -206,21 +247,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             Page1.Visibility = Visibility.Visible;
             Page2.Visibility = Visibility.Collapsed;
             Page3.Visibility = Visibility.Collapsed;
-
-            NextButton.Visibility = Visibility.Visible;
-            NextButton.IsDefault = true;
-            ExecutButton.Visibility = Visibility.Collapsed;
-            BackButton.Visibility = Visibility.Collapsed;
-            FinishButton.Visibility = Visibility.Collapsed;
-            CancelButton.Visibility = Visibility.Visible;
         }
 
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
-        private void FinishButton_Click(object sender, RoutedEventArgs e)
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }

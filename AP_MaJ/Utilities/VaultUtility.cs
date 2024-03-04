@@ -19,10 +19,26 @@ namespace AP_MaJ.Utilities
 {
     public class VaultUtility
     {
-        public async Task<DataSet> ProcessFilesAsync(string FileTaskName, DataSet data, ApplicationOptions appOptions,IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport)
+        public string VaultConnection
         {
-            if (FileTaskName.Equals("Validate")) return await ValidateFilesAsync(data, appOptions, taskProgReport, processProgReport);
-            else if (FileTaskName.Equals("ChangeState")) return await TempChangeStateFilesAsync(data, appOptions, taskProgReport, processProgReport);
+            get
+            {
+                return _vaultConnection;
+            }
+            set
+            {
+                _vaultConnection = value;
+            }
+        }
+        private string _vaultConnection = null;
+        
+
+
+
+        public async Task<DataSet> ProcessFilesAsync(string FileTaskName, DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        {
+            if (FileTaskName.Equals("Validate")) return await ValidateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
+            else if (FileTaskName.Equals("ChangeState")) return await TempChangeStateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("PurgeProps")) return data;
             else if (FileTaskName.Equals("Update")) return data;
             else if (FileTaskName.Equals("PropSync")) return data;
@@ -31,25 +47,30 @@ namespace AP_MaJ.Utilities
             else return data;
         }
 
+        private async Task<string> ConnectToVault(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken)
+        {
+            taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault" });
 
-        private async Task<DataSet> ValidateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport)
+            await Task.Run(() => System.Threading.Thread.Sleep(500));
+
+            return "tttt";
+        }
+
+
+
+        private async Task<DataSet> ValidateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
             DataSet ds = data.Copy();
 
-            taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault" });
-            await Task.Run(() => System.Threading.Thread.Sleep(200));
-
             taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la configuration Vault" });
             await Task.Run(() => System.Threading.Thread.Sleep(500));
-
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File")));
 
             int TotalCount = EntitiesStack.Count;
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Validation des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
-
 
             List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State)>> TaskList = new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State)>>();
             for (int i = 0; i < appOptions.SimultaneousValidationProcess; i++)
@@ -80,7 +101,7 @@ namespace AP_MaJ.Utilities
 
                 TaskList.Remove(finished);
 
-                if (EntitiesStack.Count > 0)
+                if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
                 {
                     DataRow PopEntity = EntitiesStack.Pop();
                     TaskList.Add(Task.Run(() => ValidateFile(ProcessId, PopEntity, processProgReport)));
@@ -120,11 +141,10 @@ namespace AP_MaJ.Utilities
         }
 
 
-        private async Task<DataSet> TempChangeStateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<DataSet> TempChangeStateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
-            DataSet ds = data.Copy();
-            
+            DataSet ds = data.Copy(); 
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File")));
             
@@ -162,7 +182,7 @@ namespace AP_MaJ.Utilities
 
                 TaskList.Remove(finished);
 
-                if (EntitiesStack.Count > 0)
+                if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
                 {
                     DataRow PopEntity = EntitiesStack.Pop();
                     TaskList.Add(Task.Run(() => ValidateFile(ProcessId, PopEntity, processProgReport)));
