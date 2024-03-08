@@ -74,11 +74,11 @@
         </DataTemplate>
 
     </dx:ThemedWindow.Resources>
-    
-    <!--<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">-->
-        <dxlc:LayoutGroup View="Tabs" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="4">
-            
-            <dxlc:LayoutGroup Header="Options générales" View="Group" Orientation="Vertical">
+
+    <Grid Margin="4">
+        <dxlc:LayoutGroup View="Tabs" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+
+            <dxlc:LayoutGroup Header="Générales" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem Label="Nombre de processeur (validation)" ElementSpace="8">
                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
@@ -101,7 +101,7 @@
                 </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 
-            <dxlc:LayoutGroup Header="Option de connection Vault" View="Group" Orientation="Vertical">
+            <dxlc:LayoutGroup Header="Vault" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem Label="Nom du server Vault" ElementSpace="8">
                     <dxe:TextEdit EditValue="{Binding Path=AppOptions.VaultServer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
@@ -114,9 +114,49 @@
                 <dxlc:LayoutItem Label="Mot de passe utilisateur" ElementSpace="8">
                     <dxe:PasswordBoxEdit EditValue="{Binding Path=AppOptions.VaultPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
+                
+                <dxlc:LayoutItem ElementSpace="0" LabelPosition="Top" Margin="0 16 0 0">
+                    <dxlc:LayoutItem.Label>
+                        <Grid Width="{Binding RelativeSource={RelativeSource AncestorType=dxlc:LayoutGroup, Mode=FindAncestor}, Path=ActualWidth}" Margin="0 0 0 4">
+                            <TextBlock Text="Vault file property mappings" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <Button Grid.Column="0" Content="{iconPacks:Material Kind=TableEdit}" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 0 0"/>
+                        </Grid>
+                    </dxlc:LayoutItem.Label>
+                    <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.VaultPropertyFieldMappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" MaxHeight="250"
+                                     AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" HorizontalAlignment="Stretch" >
+                        <dxg:GridControl.View>
+                            <dxg:TableView AllowBandMultiRow="False" AllowColumnFiltering="False" ShowGroupPanel="False" ShowDataNavigator="False" AllowEditing="False" ShowIndicator="False"/>
+                        </dxg:GridControl.View>
+
+                        <dxg:GridColumn FieldName="VaultPropertySet" Header="Property source" Width="25" AllowResizing="False">
+                            <dxg:GridColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Image Height="16">
+                                        <Image.Style>
+                                            <Style TargetType="Image">
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Dashboards/New.svg'}"/>
+                                                <Setter Property="ToolTip" Value="Propriété de fichier"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Path=RowData.Row.VaultPropertySet}" Value="Item">
+                                                        <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/ModelEditor_DashboardView.svg'}"/>
+                                                        <Setter Property="ToolTip" Value="Propriété d'article"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Image.Style>
+                                    </Image>
+                                </DataTemplate>
+                            </dxg:GridColumn.CellTemplate>
+                        </dxg:GridColumn>
+                        <dxg:GridColumn FieldName="VaultPropertyDisplayName" Header="Propriété" HeaderToolTip="Nom de la propriété dans Vault" Width="*" MinWidth="100"/>
+                        <dxg:GridColumn FieldName="VaultPropertyType" Header="Type" HeaderToolTip="Type de la propriété dans Vault"  Width="*" MinWidth="100"/>
+                        <dxg:GridColumn FieldName="FieldName" Header="Titre colonne" HeaderToolTip="Nom de la colonne dans le fichier Excel" Width="*" MinWidth="100"/>
+                    </dxg:GridControl>
+
+                </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 
-            <dxlc:LayoutGroup Header="Option Inventor" View="Group" Orientation="Vertical">
+            <dxlc:LayoutGroup Header="Inventor" View="Group" Orientation="Vertical">
                 <dxlc:LayoutItem Label="Visibilité" ElementSpace="8">
                     <dxe:CheckEdit />
                 </dxlc:LayoutItem>
@@ -128,38 +168,6 @@
                 </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 
-            <dxlc:LayoutGroup Header="Mappage des propriétés" View="Group" Orientation="Vertical">
-                <dxlc:LayoutItem ElementSpace="0" LabelPosition="Top">
-                    <dxlc:LayoutItem.Label>
-                        <Grid Width="{Binding RelativeSource={RelativeSource AncestorType=dxlc:LayoutGroup, Mode=FindAncestor}, Path=ActualWidth}" Margin="0 0 0 4">
-                            <TextBlock Text="Vault file property mappings" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <Button Grid.Column="0" Content="{iconPacks:Material Kind=TableEdit}" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 0 0"/>
-                        </Grid>
-                    </dxlc:LayoutItem.Label>
-                    <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.Mappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" MaxHeight="250"
-                                     AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" HorizontalAlignment="Stretch" >
-                        <dxg:GridControl.View>
-                            <dxg:TableView AllowBandMultiRow="False" AllowColumnFiltering="False" ShowGroupPanel="False" ShowDataNavigator="False" AllowEditing="False" ShowIndicator="False"/>
-                        </dxg:GridControl.View>
-
-                        <dxg:GridColumn FieldName="PropertySet" Header="Vault property set" HeaderToolTip="Property set" Width="25" AllowEditing="False" 
-                                                    CellToolTipBinding="{Binding Data.Property.PropertySet}" Binding="{Binding Data.Property.PropertySet, UpdateSourceTrigger=PropertyChanged}"
-                                                    GroupValueTemplate="{StaticResource PropertyGroupValueTemplate}" CellDisplayTemplate="{StaticResource PropertyCellDisplayTemplate}"/>
-
-                        <dxg:GridColumn Binding="{Binding Property.PropertyName, UpdateSourceTrigger=PropertyChanged}" Header="Vault property name" Width="*" MinWidth="100"/>
-                        <dxg:GridColumn Binding="{Binding Property.PropertyTypeName, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PropertyTypeNameConverter}}" 
-                                                    Header="Property type" Width="Auto" MinWidth="50"/>
-
-                        <dxg:GridColumn Header="Mapping direction" HeaderToolTip="Mapping direction" Binding="{Binding MappingDirection, UpdateSourceTrigger=PropertyChanged,Mode=TwoWay}" Width="50"
-                                        CellDisplayTemplate="{StaticResource MappingDirectionItemTemplate}"/>
-
-                        <dxg:GridColumn FieldName="Name" Header="Field name" Validate="FieldName_Validate" Width="*" MinWidth="100" 
-                                                    HeaderToolTip="DataToolkit field name (same as csv file column name)"/>
-                    </dxg:GridControl>
-
-                </dxlc:LayoutItem>
-            </dxlc:LayoutGroup>
-
         </dxlc:LayoutGroup>
-    <!--</ScrollViewer>-->
+    </Grid>
 </dx:ThemedWindow>

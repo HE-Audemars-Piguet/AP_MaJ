@@ -8,14 +8,14 @@ namespace AP_MaJ.Utilities
 {
     public class TaskProgressReport
     {
-        public int TotalEntityCount { get; set; }
-        public string Message { get; set; }
-        public string Timer { get; set; }
+        public int TotalEntityCount { get; set; } = -1;
+        public string Message { get; set; } = string.Empty;
+        public string Timer { get; set; } = "00:00";
     }
     public class ProcessProgressReport
     {
         public int ProcessIndex { get; set; }
-        public string ProcessFeedbackMessage { get; set; }
+        public string ProcessFeedbackMessage { get; set; } = string.Empty;
         public bool? ProcessHasError { get; set; } = null;
     }
 }

@@ -1,11 +1,18 @@
-﻿using System;
+﻿using DevExpress.ClipboardSource.SpreadsheetML;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data;
+using System.Data.Entity.Core.Mapping;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using static DevExpress.XtraPrinting.Native.ExportOptionsPropertiesNames;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Ch.Hurni.AP_MaJ.Classes
 {
@@ -157,6 +164,38 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private string _vaultPassword = string.Empty;
+
+        public ObservableCollection<PropertyFieldMapping> VaultPropertyFieldMappings
+        {
+            get
+            {
+                if (_vaultPropertyFieldMappings == null)
+                {
+                    _vaultPropertyFieldMappings = new ObservableCollection<PropertyFieldMapping>();
+                }
+                return _vaultPropertyFieldMappings;
+            }
+            set
+            {
+                _vaultPropertyFieldMappings = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private ObservableCollection<PropertyFieldMapping> _vaultPropertyFieldMappings = null;
+
+        [JsonIgnore]
+        public DevExpress.Xpf.Core.ThemedWindow Parent
+        {
+            get
+            {
+                return _parent;
+            }
+            set
+            {
+                _parent = value;
+            }
+        }
+        private DevExpress.Xpf.Core.ThemedWindow _parent = null;
         #endregion
 
         #region Constructors
@@ -171,6 +210,208 @@ namespace Ch.Hurni.AP_MaJ.Classes
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        internal void UpdatePropertyMappings(List<PropertyFieldMapping> newPropertyFieldMappings)
+        {
+            //if (!System.IO.File.Exists(BatchEditorDataBasePath)) Data.SaveToSQLite(BatchEditorDataBasePath);
+
+            //for (int i = VaultPropertyFieldMappings.Count - 1; i >= 0; i--)
+            //{
+            //    PropertyFieldMapping EditMapping = newPropertyFieldMappings.Where(x => x.VaultPropertySet == VaultPropertyFieldMappings[i].VaultPropertySet &&
+            //                                                           x.VaultPropertyDisplayName == VaultPropertyFieldMappings[i].VaultPropertyDisplayName).FirstOrDefault();
+
+            //    if (EditMapping == null)
+            //    {
+            //        //SQLiteUtility.DeleteColumn(VaultPropertyFieldMappings[i].FieldName, BatchEditorDataBasePath);
+
+            //        Data.Tables["Props"].Columns.Remove(VaultPropertyFieldMappings[i].Name);
+
+            //        VaultPropertyFieldMappings.RemoveAt(i);
+            //    }
+            //    else if (EditMapping.MappingDirection == VaultPropertyFieldMappings[i].MappingDirection && EditMapping.Name != VaultPropertyFieldMappings[i].Name)
+            //    {
+            //        SQLiteUtility.RenameColumn(VaultPropertyFieldMappings[i].Name, EditMapping.Name, BatchEditorDataBasePath, EditMapping.MappingDirection);
+            //        Data.Tables["Props"].Columns[VaultPropertyFieldMappings[i].Name].ColumnName = EditMapping.Name;
+
+            //        VaultPropertyFieldMappings[i].Name = EditMapping.Name;
+            //        VaultPropertyFieldMappings[i].Property.PropertyTypeName = EditMapping.Property.PropertyTypeName;
+
+            //        newPropertyFieldMappings.Remove(EditMapping);
+            //    }
+            //    else
+            //    {
+            //        newPropertyFieldMappings.Remove(EditMapping);
+            //    }
+            //}
+
+            //foreach (PropertyFieldMapping fm in newPropertyFieldMappings)
+            //{
+            //    SQLiteUtility.AddNewColumn(fm.Name, Type.GetType(fm.Property.PropertyTypeName), BatchEditorDataBasePath, fm.MappingDirection);
+
+            //    Data.Tables["Props"].Columns.Add(new DataColumn() { ColumnName = fm.Name, DataType = Type.GetType(fm.Property.PropertyTypeName), AllowDBNull = true });
+
+            //    VaultPropertyFieldMappings.Add(new FieldMapping()
+            //    {
+            //        Name = fm.Name,
+            //        Property = new SourceProperty()
+            //        {
+            //            PropertySet = fm.Property.PropertySet,
+            //            PropertyName = fm.Property.PropertyName,
+            //            PropertyTypeName = fm.Property.PropertyTypeName
+            //        },
+            //        MappingDirection = fm.MappingDirection,
+            //    });
+            //}
+
+
+            VaultPropertyFieldMappings = new ObservableCollection<PropertyFieldMapping>(newPropertyFieldMappings);
+        }
+
+        #endregion
+    }
+
+    [Serializable]
+    public class PropertyFieldMapping : INotifyPropertyChanged
+    {
+        #region Properties
+        public string FieldName
+        {
+            get
+            {
+                return _fieldName;
+            }
+            set
+            {
+                _fieldName = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _fieldName;
+
+        public string VaultPropertySet
+        {
+            get
+            {
+                return _vaultPropertySet;
+            }
+            set
+            {
+                _vaultPropertySet = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _vaultPropertySet;
+
+        public string VaultPropertyDisplayName
+        {
+            get
+            {
+                return _vaultPropertyDisplayName;
+            }
+            set
+            {
+                _vaultPropertyDisplayName = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _vaultPropertyDisplayName;
+
+        public string VaultPropertyType
+        {
+            get
+            {
+                return _vaultPropertyType;
+            }
+            set
+            {
+                _vaultPropertyType = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _vaultPropertyType;
+
+        [JsonIgnore]
+        public bool? IsSelected
+        {
+            get
+            {
+                return _isSelected;
+            }
+            set
+            {
+                _isSelected = value;
+
+                if (value == true)
+                {
+                    if (string.IsNullOrWhiteSpace(FieldName))
+                    {
+                        var normalizedString = _vaultPropertyDisplayName.Normalize(NormalizationForm.FormD);
+                        var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
+
+                        for (int i = 0; i < normalizedString.Length; i++)
+                        {
+                            char c = normalizedString[i];
+                            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                            {
+                                stringBuilder.Append(c);
+                            }
+                        }
+
+                        FieldName = stringBuilder.ToString().Normalize(NormalizationForm.FormC).Replace(" ", "");
+                    }
+                }
+
+                NotifyPropertyChanged();
+            }
+        }
+        private bool? _isSelected = null;
+
+        [JsonIgnore]
+        public bool? IsValid
+        {
+            get
+            {
+                return _isValid;
+            }
+            set
+            {
+                _isValid = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool? _isValid = null;
+
+        [JsonIgnore]
+        public bool? IsValidFiledName
+        {
+            get
+            {
+                return _isValidFiledName;
+            }
+            set
+            {
+                _isValidFiledName = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool? _isValidFiledName = null;
+        #endregion
+
+
+        #region Constructors
+        public PropertyFieldMapping()
+        {
+        }
+        #endregion
+
+
+        #region Events
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
         #endregion
     }
 }

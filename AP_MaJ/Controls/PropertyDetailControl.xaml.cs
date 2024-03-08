@@ -203,5 +203,21 @@ namespace Ch.Hurni.AP_MaJ.Controls
             //else return val.ToString();
             return val.ToString();
         }
+
+        private void CopyRow_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            if (PropGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
+            {
+                System.Windows.Clipboard.SetText(string.Join(";", (menuInfo.Row.Row as DataRowView).Row.ItemArray.Select(x => x.ToString())));
+            }
+        }
+
+        private void CopyCell_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            if (PropGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
+            {
+                System.Windows.Clipboard.SetText(menuInfo.Row.CellData[menuInfo.Column.ActualVisibleIndex].Value.ToString());
+            }
+        }
     }
 }

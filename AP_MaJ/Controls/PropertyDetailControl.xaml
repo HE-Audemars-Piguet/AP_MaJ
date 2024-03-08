@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:dxg="clr-namespace:DevExpress.Xpf.Grid;assembly=DevExpress.Xpf.Grid.v22.2.Core"             
              xmlns:dxt="clr-namespace:DevExpress.Xpf.Grid;assembly=DevExpress.Xpf.Grid.v22.2" 
-             xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
+             xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core" xmlns:dxb="http://schemas.devexpress.com/winfx/2008/xaml/bars"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300">
 
@@ -22,7 +22,7 @@
                          AutoGenerateColumns="None" SelectionMode="Row" ColumnGeneratorTemplate="{StaticResource DefaultColumnTemplate}" ShowBorder="False"
                          CustomUnboundColumnData="PropGridControl_CustomUnboundColumnData" Loaded="PropGridControl_Loaded">
             <dxt:GridControl.View>
-                <dxt:TableView AutoWidth="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True" ShowHorizontalLines="True" ShowVerticalLines="True"  ShowGroupPanel="False" ShowEmptyText="True" ShowIndicator="False">
+                <dxt:TableView Name="PropGridView" AutoWidth="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True" ShowHorizontalLines="True" ShowVerticalLines="True"  ShowGroupPanel="False" ShowEmptyText="True" ShowIndicator="False">
                     <dxt:TableView.FormatConditions>
                         <dxg:FormatCondition ApplyToRow="true" FieldName="Log_Severity" ValueRule="Equal" Value1="Error">
                             <dx:Format Foreground="#FFFF0000" />
@@ -31,6 +31,11 @@
                             <dx:Format Foreground="#FFF79646" />
                         </dxg:FormatCondition>
                     </dxt:TableView.FormatConditions>
+                    <dxt:TableView.RowCellMenuCustomizations>
+                        <dxb:BarButtonItem Glyph="{dx:DXImage 'SvgImages/RichEdit/SelectTableRow.svg'}" Content="Copier la ligne" ItemClick="CopyRow_Click"/>
+                        <dxb:BarButtonItem Glyph="{dx:DXImage 'SvgImages/RichEdit/SelectTableCell.svg'}" Content="Copier la cellule" ItemClick="CopyCell_Click"/>
+                    </dxt:TableView.RowCellMenuCustomizations>
+                    
                 </dxt:TableView>
             </dxt:GridControl.View>
         </dxt:GridControl>

@@ -648,6 +648,7 @@ namespace Ch.Hurni.AP_MaJ
             IsWaitIndicatorVisible = true;
 
             AppOptions = await Task.Run(() => (ApplicationOptions)JsonSerializer.Deserialize(System.IO.File.ReadAllText(ActiveProjectName), typeof(ApplicationOptions), JsonOptions));
+            AppOptions.Parent = this;
 
             Data = DataSetUtility.CreateDataSet();
 
@@ -733,5 +734,33 @@ namespace Ch.Hurni.AP_MaJ
             else return val.ToString();
         }
         #endregion
+
+        private void CopyRow_Click(object sender, RoutedEventArgs e)
+        {
+            GridCell gridCell = MainGridView.GetSelectedCells().FirstOrDefault();
+            if (gridCell != null) System.Windows.Clipboard.SetText(string.Join(";", (gridCell.Row as DataRowView).Row.ItemArray.Select(x => x.ToString())));
+        }
+
+        private void CopyCell_Click(object sender, RoutedEventArgs e)
+        {
+            GridCell gridCell = MainGridView.GetSelectedCells().FirstOrDefault();
+            if( gridCell != null ) System.Windows.Clipboard.SetText(gridCell.Value.ToString());
+        }
+
+        private void CopyRow_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            if (MainGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
+            {
+               System.Windows.Clipboard.SetText(string.Join(";", (menuInfo.Row.Row as DataRowView).Row.ItemArray.Select(x => x.ToString())));
+            }
+        }
+
+        private void CopyCell_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            if (MainGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
+            {
+                System.Windows.Clipboard.SetText(menuInfo.Row.CellData[menuInfo.Column.ActualVisibleIndex].Value.ToString());
+            }
+        }
     }
 }

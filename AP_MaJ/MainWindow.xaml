@@ -98,7 +98,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <dxb:BarContainerControl>
-
             <dxb:ToolBarControl Caption="Projet" GlyphSize="Small">
                 <dxb:BarButtonItem Name="bNew" ItemClick="NewProject_Click" Content="Nouveau projet" ToolTip="Créer un nouveau projet de mise a jour"
                                    Glyph="{dx:DXImage SvgImages/Outlook Inspired/New.svg}" LargeGlyph="{dx:DXImage SvgImages/Outlook Inspired/New.svg}"/>
@@ -112,9 +111,9 @@
                 <dxb:BarButtonItem Name="bImportData" ItemClick="ImportProjectData_Click" Content="Importer des données" ToolTip="Importer les données de base depuis un fichier CSV ou XLSX"
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/Scheduling/Import.svg}" LargeGlyph="{dx:DXImage SvgImages/Scheduling/Import.svg}"/>
-                <dxb:BarButtonItem Name="bValidate" ItemClick="ValidateProjectData_Click" Content="Valider les données" 
+                <!--<dxb:BarButtonItem Name="bValidate" ItemClick="ValidateProjectData_Click" Content="Valider les données" 
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
-                                   Glyph="{dx:DXImage SvgImages/XAF/Action_Validation_Validate.svg}" LargeGlyph="{dx:DXImage SvgImages/XAF/Action_Validation_Validate.svg}" />
+                                   Glyph="{dx:DXImage SvgImages/XAF/Action_Validation_Validate.svg}" LargeGlyph="{dx:DXImage SvgImages/XAF/Action_Validation_Validate.svg}" />-->
                 <dxb:BarButtonItem Name="bUpdate" ItemClick="ProcessProjectData_Click" Content="Mise à jour des données" 
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/RichEdit/UpdateTableOfContents.svg}" LargeGlyph="{dx:DXImage SvgImages/RichEdit/UpdateTableOfContents.svg}"/>
@@ -123,7 +122,7 @@
                                    Glyph="{dx:DXImage SvgImages/XAF/Action_LocalizationExport.svg}" LargeGlyph="{dx:DXImage SvgImages/XAF/Action_LocalizationExport.svg}"/>
 
                 <dxb:BarItemSeparator/>
-<!--EditValueChanged="ActiveGridView_EditValueChanged"--> 
+
                 <dxb:BarEditItem Content="Vue" EditValue="{Binding ActiveGridView, Mode=TwoWay}" ToolTip="Sélectionner la configuration de la grille"
                                  IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}">
                     <dxb:BarEditItem.EditSettings>
@@ -149,9 +148,9 @@
             </dxb:ToolBarControl>
         </dxb:BarContainerControl>
 
-        <dxg:GridControl Grid.Row="1" Name="MainGridControl" ItemsSource="{Binding Data.Tables[Entities]}" AutoGenerateColumns="None" SelectionMode="Row" ColumnGeneratorTemplate="{StaticResource DefaultColumnTemplate}" 
-                         CustomUnboundColumnData="MainGridControl_CustomUnboundColumnData" AllowInitiallyFocusedRow="False" ShowBorder="True">
-
+        <dxg:GridControl Grid.Row="1" Name="MainGridControl" ItemsSource="{Binding Data.Tables[Entities]}" AutoGenerateColumns="None" SelectionMode="Cell" ColumnGeneratorTemplate="{StaticResource DefaultColumnTemplate}" 
+                         CustomUnboundColumnData="MainGridControl_CustomUnboundColumnData" AllowInitiallyFocusedRow="False" ShowBorder="True" Margin="0 4 0 0">
+            
             <dxg:GridControl.Columns>
                 <dxg:GridColumn FieldName="EntityType"/>
                 <dxg:GridColumn FieldName="Name"/>
@@ -161,9 +160,15 @@
             </dxg:GridControl.Columns>
 
             <dxg:GridControl.View>
-                <dxg:TableView x:Name="MainGridView" AutoWidth="True" 
+                <dxg:TableView x:Name="MainGridView" AutoWidth="True"
                                AllowConditionalFormattingMenu="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True"
                                ShowHorizontalLines="True" ShowVerticalLines="True"  ShowGroupPanel="False" ShowEmptyText="True" ShowIndicator="False">
+                    
+                    <dxg:TableView.RowCellMenuCustomizations>
+                        <dxb:BarButtonItem Glyph="{dx:DXImage 'SvgImages/RichEdit/SelectTableRow.svg'}" Content="Copier la ligne" ItemClick="CopyRow_Click"/>
+                        <dxb:BarButtonItem Glyph="{dx:DXImage 'SvgImages/RichEdit/SelectTableCell.svg'}" Content="Copier la cellule" ItemClick="CopyCell_Click"/>
+                    </dxg:TableView.RowCellMenuCustomizations>
+                    
                 </dxg:TableView>
             </dxg:GridControl.View>
         </dxg:GridControl>
@@ -213,15 +218,6 @@
         <dxb:StatusBarControl Grid.Row="4" ShowSizeGrip="True">
             <dxb:BarButtonItem Name="ActiveProjectBarButtonItem" ItemClick="OpenProjectDir_Click" ToolTip="Ouvre le dossier du projet dans l'explorateur"
                                Glyph="{dx:DXImage 'SvgImages/Actions/Open2.svg'}" IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}">
-                <!--<dxb:BarButtonItem.Style>
-                    <Style TargetType="dxb:BarButtonItem">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ActiveProjectName}" Value="">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </dxb:BarButtonItem.Style>-->
             </dxb:BarButtonItem>
             <dxb:BarItemSeparator/>
             <dxb:BarStaticItem Name="ActiveProjectNameBarButtonItem" >
@@ -243,7 +239,6 @@
                 <dxb:BarStaticItem.SuperTip>
                     <dx:SuperTip>
                         <dx:SuperTipItem Content="Opens a new document in a new tab" >
-                            <!--Provide content template-->
                             <dx:SuperTipItem.ContentTemplate>
                                 <DataTemplate>
                                     <Grid>

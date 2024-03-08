@@ -95,25 +95,31 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             this.vaultUtility = new VaultUtility();
 
             MaJTasks = new ObservableCollection<MaJTask>();
+            MaJTask VaultTask = new MaJTask() { Name = "Vault", DisplayName = "Connexion au Vault", IsChecked = true, Index = 0 };
+            VaultTask.SubTasks = new ObservableCollection<MaJTask>();
+            VaultTask.SubTasks.Add(new MaJTask() { Name = "Connect", DisplayName = "Connexion au Vault", IsChecked = true, Index = 1, Parent = VaultTask });
+            VaultTask.SubTasks.Add(new MaJTask() { Name = "ReadConfig", DisplayName = "Lecture de la configuration Vault", IsChecked = true, Index = 2, Parent = VaultTask });
+            MaJTasks.Add(VaultTask);
 
-            MaJTask FileTask = new MaJTask() { Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 0 };
+
+            MaJTask FileTask = new MaJTask() { Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 100 };
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
-            FileTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 1, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 2, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 3, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 4, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 5, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 6, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 7, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 101, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 102, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 103, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 104, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 106, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 107, Parent = FileTask });
             MaJTasks.Add(FileTask);
 
-            MaJTask ItemTask = new MaJTask() { Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 100 };
+            MaJTask ItemTask = new MaJTask() { Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 200 };
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 101, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 102, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 103, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 104, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 201, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 202, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 203, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 204, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 205, Parent = ItemTask });
             MaJTasks.Add(ItemTask);
 
             MaJToDoTasks = new ObservableCollection<string>();
@@ -146,7 +152,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
                 }
             }
-
 
             currentTask.TotalElementCount = e.TotalEntityCount;
             currentTask.TaskDetail = e.Message;
@@ -218,12 +223,36 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                     currentTask.ProcessingState = StateEnum.Processing;
 
-                    if (currentTask.Parent.Name.Equals("File"))
+                    if (currentTask.Parent.Name.Equals("Vault"))
+                    {
+                        if (currentTask.Name.Equals("Connect"))
+                        {
+                            vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                            if (vaultUtility.VaultConnection == null)
+                            {
+                                currentTask.ProcessingState = StateEnum.Error;
+                                return;
+                            }
+                            else
+                            {
+                                currentTask.ProcessingState = StateEnum.Completed;
+                            }
+                        }
+                        else if (currentTask.Name.Equals("ReadConfig"))
+                        {
+                            vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        }
+                    }
+                    else if (currentTask.Parent.Name.Equals("File"))
                     {
                         _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                     }
+                    else if (currentTask.Parent.Name.Equals("Item"))
+                    {
+                        _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                    }
 
-                    if(TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
+                    if (TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
                     else currentTask.ProcessingState = StateEnum.Completed;
 
                     TaskProgReport.ProgressChanged -= ShowTaskProgress;
@@ -304,7 +333,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                 NotifyPropertyChanged();
             }
         }
-        private long _totalElementCount = 0;
+        private long _totalElementCount = -1;
         
         public long ElementCount
         {
@@ -405,6 +434,8 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             sb.Append(ts.Minutes.ToString("00"));
             sb.Append(":");
             sb.Append(ts.Seconds.ToString("00"));
+            //sb.Append(".");
+            //sb.Append(ts.Milliseconds.ToString("00"));
 
             return sb.ToString();
         }

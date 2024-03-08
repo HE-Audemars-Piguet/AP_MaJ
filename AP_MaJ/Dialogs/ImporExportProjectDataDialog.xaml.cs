@@ -248,6 +248,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             }
 
         }
+
         private void FileOpen_Click(object sender, RoutedEventArgs e)
         {
             System.Windows.Forms.OpenFileDialog openFileDialog = new System.Windows.Forms.OpenFileDialog();
@@ -476,6 +477,5 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 ImportGrid.SetCellValue(rowHandle, column, value);
             }
         }
-
     }
 }

@@ -52,9 +52,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevSchName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevSchId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
 
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevLabel", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevLabel", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
 
             dtEntities.PrimaryKey = new List<DataColumn>() { dtEntities.Columns["Id"] }.ToArray();

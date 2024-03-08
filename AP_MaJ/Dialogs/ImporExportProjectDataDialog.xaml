@@ -33,7 +33,7 @@
             <TextBox Grid.Column="1" Text="{Binding SourceFileName}" IsReadOnly="True" Margin="2" VerticalAlignment="Center"/>
             <Button Grid.Column="2" Margin="2" VerticalAlignment="Center" Click="FileOpen_Click" ToolTip="Sélectionner le fichier source">
                 <Button.Content>
-                    <iconPacks:PackIconMaterial Kind="DotsHorizontal"/>
+                    <Image Source="{dx:DXImage 'SvgImages/Actions/Open.svg'}" Height="16"/>
                 </Button.Content>
             </Button>
             <StackPanel Grid.Column="3" Name="ExcelSheetSelector" Orientation="Horizontal" Visibility="Collapsed">
@@ -43,16 +43,7 @@
 
             <Button Grid.Column="5" Margin="2" VerticalAlignment="Center" Click="FileContentLoad_Click" ToolTip="Lire les données">
                 <Button.Content>
-                    <iconPacks:PackIconMaterial Kind="TableArrowLeft" RenderTransformOrigin="0.5,0.5">
-                        <iconPacks:PackIconMaterial.RenderTransform>
-                            <TransformGroup>
-                                <ScaleTransform ScaleX="-1"/>
-                                <SkewTransform/>
-                                <RotateTransform/>
-                                <TranslateTransform/>
-                            </TransformGroup>
-                        </iconPacks:PackIconMaterial.RenderTransform>
-                    </iconPacks:PackIconMaterial>
+                    <Image Source="{dx:DXImage 'SvgImages/Spreadsheet/InsertSheet.svg'}" Height="16"/>
                 </Button.Content>
             </Button>
         </Grid>
@@ -69,7 +60,7 @@
             <TextBox Grid.Column="1" Text="{Binding SourceFileName}" IsReadOnly="True" Margin="2" VerticalAlignment="Center"/>
             <Button Grid.Column="2" Margin="2" VerticalAlignment="Center" Click="FileSave_Click" ToolTip="Sélectionner le fichier cible">
                 <Button.Content>
-                    <iconPacks:PackIconMaterial Kind="DotsHorizontal"/>
+                    <Image Source="{dx:DXImage 'SvgImages/Actions/Open2.svg'}" Height="16"/>
                 </Button.Content>
             </Button>
             <StackPanel Grid.Column="3" Name="ExcelSheetName" Orientation="Horizontal" Visibility="Collapsed">
