@@ -25,7 +25,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using DevExpress.Xpf.Core.Native;
 using Autodesk.DataManagement.Client.Framework.Internal.ExtensionMethods;
 
-namespace AP_MaJ.Utilities
+namespace Ch.Hurni.AP_MaJ.Utilities
 {
     public class VaultUtility
     {
@@ -226,7 +226,42 @@ namespace AP_MaJ.Utilities
             {
                 try
                 {
-                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.FindLatestFilesByPaths(new string[] { FullVaultName }).FirstOrDefault());
+                    if(FullVaultName.StartsWith("$"))
+                    {
+                        VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.FindLatestFilesByPaths(new string[] { FullVaultName }).FirstOrDefault());
+                    }
+                    else
+                    {
+                        string bookmark = string.Empty;
+                        ACW.SrchStatus status = null;
+
+                        List<SrchCond> SearchList = new List<SrchCond>();
+                        SearchList.Add(new SrchCond()
+                        {
+                            PropDefId = VaultConfig.VaultFilePropertyDefinitionDictionary["Name"].Id,
+                            PropTyp = PropertySearchType.SingleProperty,
+                            SrchOper = 3,
+                            SrchRule = SearchRuleType.Must,
+                            SrchTxt = dr.Field<string>("Name")
+                        });
+
+
+                        File[] files = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.FindFilesBySearchConditions(SearchList.ToArray(), null, null, true, true, ref bookmark, out status));
+                        if (files == null)
+                        {
+                            resultLogs.Add(CreateLog("Error", "Le fichier '" + FullVaultName + "' n'existe pas dans le Vault."));
+                            resultState = StateEnum.Error;
+                        }
+                        else if (files.Length == 1)
+                        {
+                            VaultFile = files.FirstOrDefault();
+                        }
+                        else
+                        {
+                            resultLogs.Add(CreateLog("Error", "Il existe " + files.Length + " fichiers ayant le nom '" + FullVaultName + "' , impossible d'identifier le fichier à traiter."));
+                            resultState = StateEnum.Error;
+                        }
+                    }
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
@@ -358,10 +393,10 @@ namespace AP_MaJ.Utilities
             {
                 LfCycDef CurrentLcDef = VaultConfig.VaultLifeCycleDefinitionList.Where(x => x.Id == vaultFile.FileLfCyc.LfCycDefId).FirstOrDefault();
                 
-                TempLcs = CurrentLcDef.StateArray.Where(x => x.DispName == tempVaultlifeCycleStatName).FirstOrDefault();
+                TempLcs = CurrentLcDef?.StateArray.Where(x => x.DispName == tempVaultlifeCycleStatName).FirstOrDefault() ?? null;
                 if(TempLcs == null)
                 {
-                    resultLogs.Add(CreateLog("Error", "L'état de cycle de vie temporaire '" + tempVaultlifeCycleStatName + "' n'existe pas dans le cycle de vie '" + CurrentLcDef.DispName + "'."));
+                    resultLogs.Add(CreateLog("Error", "L'état de cycle de vie temporaire '" + tempVaultlifeCycleStatName + "' n'existe pas dans le cycle de vie '" + (CurrentLcDef?.DispName ?? "Base") + "'."));
                     resultState = StateEnum.Error;
                     return;
                 }
@@ -540,83 +575,157 @@ namespace AP_MaJ.Utilities
         internal async Task<DataSet> TempChangeStateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
-            DataSet ds = data.Copy(); 
+            DataSet ds = data.Copy();
 
-            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File")));
-            
+            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
+                                                                                                              (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation && x.Field<StateEnum>("State") == StateEnum.Completed) &&
+                                                                                                              x.Field<long?>("VaultMasterId") != null &&
+                                                                                                              (!string.IsNullOrWhiteSpace(x.Field<string>("TempVaultLcsName")) && x.Field<long?>("TempVaultLcsId") != null)));
+
+            foreach(DataRow dr in EntitiesStack)
+            {
+                dr["Task"] = TaskTypeEnum.TempChangeState;
+                dr["State"] = StateEnum.Pending;
+            }
+           
+
             int TotalCount = EntitiesStack.Count;
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Changement d'état temporaire des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
 
+            List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
+                new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
 
-            ////List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State)>> TaskList = new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State)>>();
-            ////for (int i = 0; i < appOptions.SimultaneousChangeStateProcess; i++)
-            ////{
-            ////    int ProcessId = i;
-            ////    DataRow PopEntity = EntitiesStack.Pop();
-            ////    TaskList.Add(Task.Run(() => ValidateFile(ProcessId, PopEntity, processProgReport)));
+            for (int i = 0; i < appOptions.SimultaneousChangeStateProcess; i++)
+            {
+                int ProcessId = i;
+                DataRow PopEntity = EntitiesStack.Pop();
+                TaskList.Add(Task.Run(() => TempChangeStateFile(ProcessId, PopEntity, processProgReport, appOptions)));
 
-            ////    if (EntitiesStack.Count == 0) break;
-            ////}
+                if (EntitiesStack.Count == 0) break;
+            }
 
 
-            ////while (TaskList.Any())
-            ////{
-            ////    Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State)> finished = await Task.WhenAny(TaskList);
+            while (TaskList.Any())
+            {
+                Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> finished = await Task.WhenAny(TaskList);
 
-            ////    int ProcessId = finished.Result.processId;
+                int ProcessId = finished.Result.processId;
 
-            ////    if (finished.Result.State == StateEnum.Completed)
-            ////    {
-            ////        finished.Result.entity["State"] = StateEnum.Completed;
-            ////        finished.Result.entity["Name"] = finished.Result.Result["Name"];
-            ////    }
-            ////    else
-            ////    {
-            ////        finished.Result.entity["State"] = finished.Result.State;
-            ////    }
+                finished.Result.entity["State"] = finished.Result.State;
 
-            ////    TaskList.Remove(finished);
+                foreach (KeyValuePair<string, object> kvp in finished.Result.Result)
+                {
+                    finished.Result.entity[kvp.Key] = kvp.Value;
+                }
 
-            ////    if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
-            ////    {
-            ////        DataRow PopEntity = EntitiesStack.Pop();
-            ////        TaskList.Add(Task.Run(() => ValidateFile(ProcessId, PopEntity, processProgReport)));
-            ////    }
-            ////}
+                foreach (Dictionary<string, object> log in finished.Result.ResultLogs)
+                {
+                    DataRow drLog = ds.Tables["Logs"].NewRow();
+                    drLog["EntityId"] = finished.Result.entity["Id"];
+
+                    foreach (KeyValuePair<string, object> kvp in log)
+                    {
+                        drLog[kvp.Key] = kvp.Value;
+                    }
+
+                    ds.Tables["Logs"].Rows.Add(drLog);
+                }
+
+                TaskList.Remove(finished);
+
+                if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                {
+                    DataRow PopEntity = EntitiesStack.Pop();
+                    TaskList.Add(Task.Run(() => TempChangeStateFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                }
+
+
+
+
+
+                //==========
+                //int ProcessId = finished.Result.processId;
+
+                //if (finished.Result.State == StateEnum.Completed)
+                //{
+                //    finished.Result.entity["State"] = StateEnum.Completed;
+                //    finished.Result.entity["Name"] = finished.Result.Result["Name"];
+                //}
+                //else
+                //{
+                //    finished.Result.entity["State"] = finished.Result.State;
+                //}
+
+                //TaskList.Remove(finished);
+
+                //if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                //{
+                //    DataRow PopEntity = EntitiesStack.Pop();
+                //    TaskList.Add(Task.Run(() => TempChangeStateFile(ProcessId, PopEntity, processProgReport)));
+                //}
+            }
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Changement d'état temporaire des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
 
             return ds;
         }
 
-        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State)> TempChangeStateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> TempChangeStateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
         {
-            StateEnum returnState = StateEnum.Error;
+            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
 
-            Dictionary<string, object> updatedValues = new Dictionary<string, object>();
+            Dictionary<string, object> resultValues = new Dictionary<string, object>();
+            List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
 
-            if(dr == null)
+            StateEnum resultState = StateEnum.Processing;
+
+            if (dr == null)
             {
-                return (processId, dr, updatedValues, StateEnum.Error);
+                if(appOptions.LogError) resultLogs.Add(CreateLog("Error", "La ligne de base de données est 'null', impossible de traiter l'élément."));
+                resultState = StateEnum.Error;
             }
 
-            processProgReport.Report(new ProcessProgressReport() {ProcessIndex = processId, ProcessFeedbackMessage = dr.Field<string>("Name"), ProcessHasError = null });
+            string FullVaultName = string.Empty;
+            ACW.File VaultFile = null;
 
-            await Task.Run(() => System.Threading.Thread.Sleep(10));
-            
-            bool State = true;
+            if (resultState != StateEnum.Error)
+            {
+                FullVaultName = dr.Field<string>("Path");
+                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
+                else FullVaultName += "/" + dr.Field<string>("Name");
 
-            if(!State)
-            { 
-                updatedValues.Add("Name", "New name " + dr.Field<string>("Name"));
-                returnState = StateEnum.Completed;
+                pProgressReport.ProcessFeedbackMessage = FullVaultName;
+                processProgReport.Report(pProgressReport);
+
+                if (string.IsNullOrWhiteSpace(FullVaultName))
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le nom de fichier est vide, impossible de traiter l'élément."));
+                    resultState = StateEnum.Error;
+                }
             }
 
-            processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ProcessFeedbackMessage = dr.Field<string>("Name"), ProcessHasError = State });
-            return (processId, dr, updatedValues, returnState);
+            if (resultState != StateEnum.Error)
+            {
+                try
+                {
+                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleStates(new long[] { dr.Field<long>("VaultMasterId") }, new long[] { dr.Field<long>("TempVaultLcsId") }, "Update state from...").FirstOrDefault());
+                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Changement d'état temporaire de '" + dr.Field<string>("VaultLcsName") + "' à '" + dr.Field<string>("TempVaultLcsName") + "'."));
+                }
+                catch (VaultServiceErrorException VltEx)
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du changement d'état du fichier '" + FullVaultName + "' vers l'état '" + dr.Field<string>("TempVaultLcsName") + "'."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
+            processProgReport.Report(pProgressReport);
+
+            if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            return (processId, dr, resultValues, resultState, resultLogs);
         }
-
         #endregion
 
 

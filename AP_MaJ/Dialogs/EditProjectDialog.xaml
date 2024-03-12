@@ -79,6 +79,24 @@
         <dxlc:LayoutGroup View="Tabs" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 
             <dxlc:LayoutGroup Header="Générales" View="Group" Orientation="Vertical">
+                
+                <dxlc:LayoutItem Label="Enregistrer les log de traitement" ElementSpace="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <dxe:CheckEdit Grid.Column="0" EditValue="{Binding Path=AppOptions.LogError, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Content="Erreur" IsEnabled="False"/>
+                        <dxe:CheckEdit Grid.Column="1" EditValue="{Binding Path=AppOptions.LogWarning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Content="Avertissement"/>
+                        <dxe:CheckEdit Grid.Column="2" EditValue="{Binding Path=AppOptions.LogInfo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Content="Information"/>
+                    </Grid>
+                </dxlc:LayoutItem>
+
+                <dxlc:LayoutItem Label="Comportement en cas d'erreur de traitement" ElementSpace="8">
+                    <dxe:ComboBoxEdit EditValue="{Binding Path=AppOptions.ProcessingBehaviour, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Path=AppOptions.AvailableProcessingBehaviours}"/>
+                </dxlc:LayoutItem>
+       
                 <dxlc:LayoutItem Label="Nombre de processeur (validation)" ElementSpace="8">
                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>

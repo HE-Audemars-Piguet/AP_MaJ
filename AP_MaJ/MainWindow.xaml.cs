@@ -212,78 +212,41 @@ namespace Ch.Hurni.AP_MaJ
                         _gridColumnList.Add(newGridCol);
                     }
 
-                    //foreach (DataColumn dc in Data.Tables["Props"].Columns)
-                    //{
-                    //    if (dc.ColumnName.Equals("FileId") || dc.ColumnName.Equals("ProcessId") || dc.ColumnName.Equals("Selection")) continue;
+                    foreach (DataColumn dc in Data.Tables["NewProps"].Columns)
+                    {
+                        if (dc.ColumnName.Equals("EntityId")) continue;
 
-                    //    newGridCol = new GridColumn() { Header = dc.ColumnName, FieldName = "Prop_" + dc.ColumnName, Visible = false };
+                        newGridCol = new GridColumn() { Header = dc.ColumnName + " (User property)", FieldName = "NewProp_" + dc.ColumnName, Visible = false };
 
-                    //    if (dc.DataType == typeof(DateTime))
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.DateTime;
-                    //        newGridCol.EditSettings = new TextEditSettings() { DisplayFormat = "dd.MM.yyyy HH:mm:ss", MaskUseAsDisplayFormat = true };
-                    //    }
-                    //    else if (dc.DataType.IsEnum)
-                    //    {
-                    //        newGridCol.Tag = "[" + dc.DataType.Name + "]" + "GetChildRows|FileProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.String;
-                    //    }
-                    //    else if (dc.DataType == typeof(bool))
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.Boolean;
-                    //    }
-                    //    else if (dc.DataType == typeof(int) || dc.DataType == typeof(double))
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.Decimal;
-                    //    }
-                    //    else
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.String;
-                    //    }
+                        if (dc.DataType == typeof(DateTime))
+                        {
+                            newGridCol.Tag = dc.ColumnName;
+                            newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.DateTime;
+                            newGridCol.EditSettings = new TextEditSettings() { DisplayFormat = "dd.MM.yyyy HH:mm:ss", MaskUseAsDisplayFormat = true };
+                        }
+                        else if (dc.DataType.IsEnum)
+                        {
+                            newGridCol.Tag = "[" + dc.DataType.Name + "]" + "GetChildRows|EntityNewProp|" + dc.ColumnName;
+                            newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.String;
+                        }
+                        else if (dc.DataType == typeof(bool))
+                        {
+                            newGridCol.Tag = "GetChildRows|EntityNewProp|" + dc.ColumnName;
+                            newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.Boolean;
+                        }
+                        else if (dc.DataType == typeof(int) || dc.DataType == typeof(double))
+                        {
+                            newGridCol.Tag = "GetChildRows|EntityNewProp|" + dc.ColumnName;
+                            newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.Decimal;
+                        }
+                        else
+                        {
+                            newGridCol.Tag = "GetChildRows|EntityNewProp|" + dc.ColumnName;
+                            newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.String;
+                        }
 
-                    //    _gridColumnList.Add(newGridCol);
-                    //}
-
-
-                    //foreach (DataColumn dc in Data.Tables["NewProps"].Columns)
-                    //{
-                    //    if (dc.ColumnName.Equals("FileId")) continue;
-
-                    //    newGridCol = new GridColumn() { Header = dc.ColumnName + " (new value)", FieldName = "NewProp_" + dc.ColumnName, Visible = false };
-
-                    //    if (dc.DataType == typeof(DateTime))
-                    //    {
-                    //        newGridCol.Tag = dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.DateTime;
-                    //        newGridCol.EditSettings = new TextEditSettings() { DisplayFormat = "dd.MM.yyyy HH:mm:ss", MaskUseAsDisplayFormat = true };
-                    //    }
-                    //    else if (dc.DataType.IsEnum)
-                    //    {
-                    //        newGridCol.Tag = "[" + dc.DataType.Name + "]" + "GetChildRows|FileNewProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.String;
-                    //    }
-                    //    else if (dc.DataType == typeof(bool))
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileNewProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.Boolean;
-                    //    }
-                    //    else if (dc.DataType == typeof(int) || dc.DataType == typeof(double))
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileNewProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.Decimal;
-                    //    }
-                    //    else
-                    //    {
-                    //        newGridCol.Tag = "GetChildRows|FileNewProp|" + dc.ColumnName;
-                    //        newGridCol.UnboundType = DevExpress.Data.UnboundColumnType.String;
-                    //    }
-
-                    //    _gridColumnList.Add(newGridCol);
-                    //}
+                        _gridColumnList.Add(newGridCol);
+                    }
                 }
                 return _gridColumnList;
             }
@@ -560,11 +523,6 @@ namespace Ch.Hurni.AP_MaJ
             System.IO.File.WriteAllText(ActiveProjectName, JsonSerializer.Serialize(AppOptions, typeof(ApplicationOptions), JsonOptions));
         }
 
-        private void ValidateProjectData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
-        {
-
-        }
-
         private void ProcessProjectData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
             DataUpdateTaskSeletor UpdateTaskDlg = new DataUpdateTaskSeletor(ref _data, AppOptions);
@@ -583,8 +541,6 @@ namespace Ch.Hurni.AP_MaJ
 
         private void ExportLog_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
-
-
             ImporExportProjectDataDialog ImportExportDlg = new ImporExportProjectDataDialog(Data.Tables["Logs"], ActiveProjectDir);
             ImportExportDlg.Owner = this;
             ImportExportDlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -642,6 +598,25 @@ namespace Ch.Hurni.AP_MaJ
         #endregion
 
 
+        #region ContextMenu
+        private void CopyRow_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            if (MainGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
+            {
+                System.Windows.Clipboard.SetText(string.Join(";", (menuInfo.Row.Row as DataRowView).Row.ItemArray.Select(x => x.ToString())));
+            }
+        }
+
+        private void CopyCell_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            if (MainGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
+            {
+                System.Windows.Clipboard.SetText(menuInfo.Row.CellData[menuInfo.Column.ActualVisibleIndex].Value.ToString());
+            }
+        }
+        #endregion
+
+
         #region PrivateMethod
         private async void OpenProject()
         {
@@ -650,7 +625,7 @@ namespace Ch.Hurni.AP_MaJ
             AppOptions = await Task.Run(() => (ApplicationOptions)JsonSerializer.Deserialize(System.IO.File.ReadAllText(ActiveProjectName), typeof(ApplicationOptions), JsonOptions));
             AppOptions.Parent = this;
 
-            Data = DataSetUtility.CreateDataSet();
+            Data = DataSetUtility.CreateDataSet(AppOptions.VaultPropertyFieldMappings);
 
             if (!System.IO.File.Exists(ActiveProjectDataBase))
             {
@@ -735,32 +710,7 @@ namespace Ch.Hurni.AP_MaJ
         }
         #endregion
 
-        private void CopyRow_Click(object sender, RoutedEventArgs e)
-        {
-            GridCell gridCell = MainGridView.GetSelectedCells().FirstOrDefault();
-            if (gridCell != null) System.Windows.Clipboard.SetText(string.Join(";", (gridCell.Row as DataRowView).Row.ItemArray.Select(x => x.ToString())));
-        }
 
-        private void CopyCell_Click(object sender, RoutedEventArgs e)
-        {
-            GridCell gridCell = MainGridView.GetSelectedCells().FirstOrDefault();
-            if( gridCell != null ) System.Windows.Clipboard.SetText(gridCell.Value.ToString());
-        }
 
-        private void CopyRow_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
-        {
-            if (MainGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
-            {
-               System.Windows.Clipboard.SetText(string.Join(";", (menuInfo.Row.Row as DataRowView).Row.ItemArray.Select(x => x.ToString())));
-            }
-        }
-
-        private void CopyCell_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
-        {
-            if (MainGridView.GridMenu.MenuInfo is GridCellMenuInfo menuInfo && menuInfo.Row != null)
-            {
-                System.Windows.Clipboard.SetText(menuInfo.Row.CellData[menuInfo.Column.ActualVisibleIndex].Value.ToString());
-            }
-        }
     }
 }

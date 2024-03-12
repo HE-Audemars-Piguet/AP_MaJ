@@ -1,5 +1,5 @@
 ﻿using AP_MaJ;
-using AP_MaJ.Utilities;
+using Ch.Hurni.AP_MaJ.Utilities;
 using Ch.Hurni.AP_MaJ.Classes;
 using CH.Hurni.AP_MaJ.Dialogs;
 using DevExpress.Xpf.Core;

@@ -1,4 +1,4 @@
-﻿using AP_MaJ.Utilities;
+﻿using Ch.Hurni.AP_MaJ.Utilities;
 using Ch.Hurni.AP_MaJ.Classes;
 using DevExpress.Internal.WinApi.Windows.UI.Notifications;
 using DevExpress.Xpf.Controls;
@@ -150,6 +150,8 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     dTimer.Tick -= timer_Tick;
 
                     currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
+
+                    if(appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ElementErrorCount > 0) TaskCancellationTokenSource.Cancel();
                 }
             }
 
@@ -176,8 +178,15 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             if (e.ProcessHasError == null) currentTask.ElementCount++;
 
-            if (e.ProcessHasError == false) currentTask.ElementDoneCount++;
-            else if (e.ProcessHasError == true) currentTask.ElementErrorCount++;
+            if (e.ProcessHasError == false)
+            {
+                currentTask.ElementDoneCount++;
+            }
+            else if (e.ProcessHasError == true)
+            {
+                currentTask.ElementErrorCount++;
+                if(appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.Stop) TaskCancellationTokenSource.Cancel();
+            }
         }
 
         private void NextButton_Click(object sender, RoutedEventArgs e)
@@ -253,6 +262,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     }
 
                     if (TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
+                    else if (currentTask.ElementErrorCount > 0) currentTask.ProcessingState = StateEnum.Error;
                     else currentTask.ProcessingState = StateEnum.Completed;
 
                     TaskProgReport.ProgressChanged -= ShowTaskProgress;

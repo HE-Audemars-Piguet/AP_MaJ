@@ -17,7 +17,7 @@ using System.Windows.Shapes;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using DevExpress.Xpf.Grid;
-using AP_MaJ.Utilities;
+using Ch.Hurni.AP_MaJ.Utilities;
 using GenericParsing;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -79,22 +79,38 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                             string sConnection = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + _sourceFileName + ";Extended Properties=\"Excel 12.0;HDR=Yes;IMEX=1\"";
 
                             OleDbConnection oleExcelConnection = new OleDbConnection(sConnection);
-                            oleExcelConnection.Open();
-
-                            DataTable dtTablesList = oleExcelConnection.GetSchema("Tables");
-
-                            foreach (string ExcelSheet in dtTablesList.AsEnumerable().Select(x => x.Field<string>("TABLE_NAME")))
+                            try
                             {
-                                ExcelSheets.Add(ExcelSheet);
+                                oleExcelConnection.Open();
+                                
+                                DataTable dtTablesList = oleExcelConnection.GetSchema("Tables");
+
+                                foreach (string ExcelSheet in dtTablesList.AsEnumerable().Where(x => x.Field<string>("TABLE_NAME").EndsWith("$")).Select(x => x.Field<string>("TABLE_NAME").TrimEnd(new char[] {'$'})))
+                                {
+                                    ExcelSheets.Add(ExcelSheet);
+                                }
+
+                                oleExcelConnection.Close();
+
+                                ExcelSheetSelector.Visibility = Visibility.Visible;
+
+                                if (ExcelSheets.Count > 0)
+                                {
+                                    ExcelSheetSelectorCombo.SelectedIndex = 0;
+                                }
                             }
-
-                            oleExcelConnection.Close();
-
-                            ExcelSheetSelector.Visibility = Visibility.Visible;
-
-                            if (ExcelSheets.Count > 0)
+                            catch(Exception Ex)
                             {
-                                ExcelSheetSelectorCombo.SelectedIndex = 0;
+                                ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Error.GetMessageBoxIcon())
+                                {
+                                    Owner = this,
+                                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                                    AllowTextSelection = true
+                                };
+
+                                MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Erreur de lecture du fichier",
+                                                                                          Ex.Message.Replace("''.", "'" + _sourceFileName + "'."),
+                                                                                          MessageBoxButton.OK, MessageBoxResult.OK, msgBoxParam);
                             }
                         }
                     }
@@ -246,7 +262,6 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 if (!string.IsNullOrWhiteSpace(_defaultDir) && !string.IsNullOrWhiteSpace(_defaultFileName)) SourceFileName = System.IO.Path.Combine(_defaultDir, _defaultFileName + ".xlsx");
                 if (string.IsNullOrWhiteSpace(Data.TableName)) Data.TableName = "Sheet1";
             }
-
         }
 
         private void FileOpen_Click(object sender, RoutedEventArgs e)
@@ -374,7 +389,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 {
                     oleExcelConnection.Open();
 
-                    OleDbDataAdapter da = new OleDbDataAdapter("Select * From [" + ExcelSheetName + "]", oleExcelConnection);
+                    OleDbDataAdapter da = new OleDbDataAdapter("Select * From [" + ExcelSheetName + "$]", oleExcelConnection);
                     da.Fill(dt);
 
                     oleExcelConnection.Close();

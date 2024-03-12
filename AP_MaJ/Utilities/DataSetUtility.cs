@@ -1,6 +1,8 @@
 ﻿using AP_MaJ.Properties;
+using Ch.Hurni.AP_MaJ.Classes;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SQLite;
 using System.Linq;
@@ -13,7 +15,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 {
     public static class DataSetUtility
     {
-        internal static DataSet CreateDataSet()
+
+        private const string ConnectionString = "Data Source={0}; FailIfMissing=False";
+        
+        internal static DataSet CreateDataSet(ObservableCollection<PropertyFieldMapping> vaultPropertyFieldMappings)
         {
             DataSet ds = new DataSet();
 
@@ -21,7 +26,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Id", DataType = typeof(long), AutoIncrement = true, AutoIncrementSeed = 1, AutoIncrementStep = 1, AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Task", DataType = typeof(TaskTypeEnum), AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "State", DataType = typeof(StateEnum), AllowDBNull = false });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultMasterId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultMasterId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "EntityType", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Name", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
@@ -31,31 +36,31 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultPath", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultCatName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultCatId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultCatId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultCatName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultCatId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultCatId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcsName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcsId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcsId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TempVaultLcsName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TempVaultLcsId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TempVaultLcsId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcsName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcsId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcsId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevSchName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevSchId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevSchId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevSchName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevSchId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevSchId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevLabel", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            //dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevLabel", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            //dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
 
             dtEntities.PrimaryKey = new List<DataColumn>() { dtEntities.Columns["Id"] }.ToArray();
             ds.Tables.Add(dtEntities);
@@ -63,15 +68,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             DataTable dtNewProps = new DataTable("NewProps");
             dtNewProps.Columns.Add(new DataColumn() { ColumnName = "EntityId", DataType = typeof(long), AllowDBNull = false });
-            dtNewProps.Columns.Add(new DataColumn() { ColumnName = "NoPiece", DataType = typeof(string), AllowDBNull = true });
-            dtNewProps.Columns.Add(new DataColumn() { ColumnName = "Matiere", DataType = typeof(string), AllowDBNull = true });
-            dtNewProps.Columns.Add(new DataColumn() { ColumnName = "CompositionMatiere", DataType = typeof(string), AllowDBNull = true });
-            dtNewProps.Columns.Add(new DataColumn() { ColumnName = "DureteMatiere", DataType = typeof(string), AllowDBNull = true });
-            dtNewProps.Columns.Add(new DataColumn() { ColumnName = "Description", DataType = typeof(string), AllowDBNull = true });
-            //foreach (FieldMapping fm in Settings.InventorFieldMappings.Where(x => x.MappingDirection != FieldMappingDirectionEnum.Read))
-            //{
-            //    dtNewProps.Columns.Add(new DataColumn() { ColumnName = fm.Name, DataType = typeof(string), AllowDBNull = true });
-            //}
+            foreach (string Field in vaultPropertyFieldMappings.Select(x => x.FieldName).Distinct())
+            {
+                dtNewProps.Columns.Add(new DataColumn() { ColumnName = Field, DataType = typeof(string), AllowDBNull = true });
+            }
 
             dtNewProps.PrimaryKey = new List<DataColumn>() { dtNewProps.Columns["EntityId"] }.ToArray();
             ds.Tables.Add(dtNewProps);
@@ -90,9 +90,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             return ds;
         }
-
-
-        private const string ConnectionString = "Data Source={0}; FailIfMissing=False";
 
         public static void ReadFromSQLite(this DataSet ds, string dbFilePath)
         {
@@ -126,7 +123,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             using (SQLiteConnection Conn = new SQLiteConnection(string.Format(ConnectionString, dbFilePath)))
             {
                 Conn.Open();
-                //SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'
 
                 SQLiteDataAdapter DtA = new SQLiteDataAdapter();
 
@@ -147,40 +143,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             return ReturnDataSet;
         }
-
-        //public static async Task ReadFromSQLiteAsync(this DataSet ds, string dbFilePath)
-        //{
-        //    ds = await Task.Run(() => Read(ds, dbFilePath));
-
-        //    ds.AcceptChanges();
-        //}
-
-        //private static DataSet Read(DataSet ds, string dbFilePath)
-        //{
-        //    DataSet readDs = ds.Clone();
-
-        //    using (SQLiteConnection Conn = new SQLiteConnection(string.Format(ConnectionString, dbFilePath)))
-        //    {
-        //        Conn.Open();
-        //        //SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'
-
-        //        SQLiteDataAdapter DtA = new SQLiteDataAdapter();
-
-        //        foreach (DataTable dt in readDs.Tables)
-        //        {
-        //            SQLiteCommand Cmd = new SQLiteCommand("SELECT name FROM sqlite_master WHERE type='table' AND name='" + dt.TableName + "'", Conn);
-        //            if (Cmd.ExecuteScalar() != null)
-        //            {
-        //                DtA.SelectCommand = new SQLiteCommand("SELECT * FROM [" + dt.TableName + "]", Conn);
-        //                DtA.Fill(dt);
-        //            }
-        //        }
-
-        //        Conn.Close();
-        //    }
-
-        //    return readDs;
-        //}
 
         public static void SaveToSQLite(this DataSet ds, string dbFilePath)
         {
@@ -307,5 +269,110 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             else if (dataType.IsEnum) return DbType.Int32;
             return DbType.Object;
         }
+
+        public static void AddNewColumn(string ColumnName, Type dataType, string dbFilePath)
+        {
+            using (SQLiteConnection Conn = new SQLiteConnection(string.Format(ConnectionString, dbFilePath)))
+            {
+                string SqlQuery = "PRAGMA foreign_keys = 0;" + Environment.NewLine;
+
+                SqlQuery += "ALTER TABLE [NewProps] ADD COLUMN [" + ColumnName + "] " + DataSetUtility.ConvertToSQLiteDbType(dataType) + " NULL;" + Environment.NewLine;
+
+                SqlQuery += "PRAGMA foreign_keys = 1";
+
+                Conn.Open();
+                using (SQLiteTransaction Transaction = Conn.BeginTransaction())
+                {
+                    SQLiteCommand Cmd = new SQLiteCommand(SqlQuery, Conn);
+                    Cmd.ExecuteNonQuery();
+
+                    Transaction.Commit();
+                }
+                Conn.Close();
+            }
+        }
+
+        public static void DeleteColumn(string DeletedColumnName, string dbFilePath)
+        {
+            List<string> PropsFieldNames = new List<string>();
+            List<string> PropsFieldNamesAndType = new List<string>();
+            List<(int index, string col)> PropsPrimaryFields = new List<(int index, string col)>();
+            List<string> NewPropsFieldNames = new List<string>();
+            List<string> NewPropsFieldNamesAndType = new List<string>();
+            List<(int index, string col)> NewPropsPrimaryFields = new List<(int index, string col)>();
+
+            using (SQLiteConnection Conn = new SQLiteConnection(string.Format(ConnectionString, dbFilePath)))
+            {
+                Conn.Open();
+
+                string SqlQuery = "";
+                SQLiteCommand Cmd;
+
+                SqlQuery = "PRAGMA table_info([NewProps]);";
+
+                Cmd = new SQLiteCommand(SqlQuery, Conn);
+                SQLiteDataReader Reader = Cmd.ExecuteReader();
+                while (Reader.Read())
+                {
+                    if (Reader["name"].ToString().Equals(DeletedColumnName)) continue;
+
+                    PropsFieldNames.Add(Reader["name"].ToString());
+
+                    string Val = Reader["name"].ToString() + " " + Reader["type"].ToString();
+                    if (Reader["notnull"].ToString().Equals("1")) Val += " NOT NULL";
+
+                    if ((long)Reader["pk"] > 0) PropsPrimaryFields.Add((int.Parse(Reader["pk"].ToString()), Reader["name"].ToString()));
+
+                    PropsFieldNamesAndType.Add(Val);
+                }
+                Reader.Close();
+
+                string PropsPrimary = "";
+                if (PropsPrimaryFields.Count > 0) PropsPrimary = ", PRIMARY KEY (" + string.Join(",", PropsPrimaryFields.OrderBy(x => x.index).Select(x => x.col)) + ")";
+
+
+                SqlQuery = "PRAGMA table_info([NewProps]);";
+                Cmd = new SQLiteCommand(SqlQuery, Conn);
+                Reader = Cmd.ExecuteReader();
+                while (Reader.Read())
+                {
+                    if (Reader["name"].ToString().Equals(DeletedColumnName)) continue;
+
+                    NewPropsFieldNames.Add(Reader["name"].ToString());
+
+                    string Val = Reader["name"].ToString() + " " + Reader["type"].ToString();
+                    if (Reader["notnull"].ToString().Equals("1")) Val += " NOT NULL";
+
+                    if ((long)Reader["pk"] > 0) NewPropsPrimaryFields.Add((int.Parse(Reader["pk"].ToString()), Reader["name"].ToString()));
+
+                    NewPropsFieldNamesAndType.Add(Val);
+                }
+                Reader.Close();
+
+                string NewPropsPrimary = "";
+                if (NewPropsPrimaryFields.Count > 0) NewPropsPrimary = ", PRIMARY KEY (" + string.Join(",", NewPropsPrimaryFields.OrderBy(x => x.index).Select(x => x.col)) + ")";
+
+
+                SqlQuery = "PRAGMA foreign_keys = 0;" + Environment.NewLine;
+
+                SqlQuery += "CREATE TABLE dtk_temp_table_NewProps AS SELECT * FROM NewProps;" + Environment.NewLine;
+                SqlQuery += "DROP TABLE NewProps;" + Environment.NewLine;
+                SqlQuery += "CREATE TABLE NewProps (" + string.Join(",", NewPropsFieldNamesAndType) + NewPropsPrimary + ");" + Environment.NewLine;
+                SqlQuery += "INSERT INTO NewProps (" + string.Join(",", NewPropsFieldNames) + ") SELECT " + string.Join(",", NewPropsFieldNames) + " FROM dtk_temp_table_NewProps;" + Environment.NewLine;
+                SqlQuery += "DROP TABLE dtk_temp_table_NewProps;" + Environment.NewLine;
+                    
+                SqlQuery += "PRAGMA foreign_keys = 1;";
+
+                using (SQLiteTransaction Transaction = Conn.BeginTransaction())
+                {
+                    Cmd = new SQLiteCommand(SqlQuery, Conn);
+                    Cmd.ExecuteNonQuery();
+
+                    Transaction.Commit();
+                }
+                Conn.Close();
+            }
+        }
+
     }
 }

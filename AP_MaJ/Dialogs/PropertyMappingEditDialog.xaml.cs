@@ -1,4 +1,4 @@
-﻿using AP_MaJ.Utilities;
+﻿using Ch.Hurni.AP_MaJ.Utilities;
 using Ch.Hurni.AP_MaJ.Classes;
 using DevExpress.Xpf.Core;
 using System;

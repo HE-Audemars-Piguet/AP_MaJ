@@ -14,81 +14,14 @@
         <Style TargetType="dxg:GridColumn">
             <Setter Property="Header" Value="{Binding Path=FieldName, RelativeSource={RelativeSource Self}}" />
         </Style>
-        
 
         <DataTemplate x:Key="DefaultColumnTemplate">
             <ContentControl>
                 <dxg:GridColumn Visible="False"/>
             </ContentControl>
         </DataTemplate>
-        
-        <DataTemplate x:Key="Project">
-            <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconMaterial Kind="DatabaseOutline" VerticalAlignment="Center" Height="28" Width="28"/>
-                <TextBlock Text="{Binding}" FontSize="16" VerticalAlignment="Center" Margin="8 0 0 0"/>
-            </StackPanel>
-        </DataTemplate>
-        
-        <DataTemplate x:Key="CreateNewProjectLarge">
-            <iconPacks:PackIconMaterial Kind="DatabasePlusOutline" Height="28" Width="28" Margin="2"/>
-        </DataTemplate>
-        <DataTemplate x:Key="EditProjectLarge">
-            <iconPacks:PackIconMaterial Kind="DatabaseEditOutline" Height="28" Width="28" Margin="2"/>
-        </DataTemplate>
-
-        <DataTemplate x:Key="ImportDataLarge">
-            <iconPacks:PackIconMaterial Kind="FileImportOutline" Height="28" Width="28" Margin="2"/>
-        </DataTemplate>
-
-        <DataTemplate x:Key="ExportDataLarge">
-            <iconPacks:PackIconMaterial Kind="FileExportOutline" Height="28" Width="28" Margin="2"/>
-        </DataTemplate>
-        
-        <DataTemplate x:Key="ValidateDataLarge">
-            <Grid>
-                <iconPacks:PackIconMaterial Kind="SafeSquareOutline" Height="26" Width="26" Margin="2 2 4 4"/>
-                <iconPacks:PackIconMaterial Kind="CheckboxBlankCircle" Foreground="White" Height="16" Width="16" Margin="14 14 2 2"/>
-                <iconPacks:PackIconMaterial Kind="CheckCircleOutline" Height="14" Width="14" Margin="15 15 3 3"/>
-            </Grid>
-        </DataTemplate>
-
-        <DataTemplate x:Key="UpdateDataLarge">
-            <Grid>
-                <iconPacks:PackIconMaterial Kind="SafeSquareOutline" Height="26" Width="26" Margin="2 2 4 4"/>
-                <iconPacks:PackIconMaterial Kind="CheckboxBlankCircle" Foreground="White" Height="16" Width="16" Margin="14 14 2 2"/>
-                <iconPacks:PackIconMaterial Kind="Cached" Height="14" Width="14" Margin="15 15 3 3"/>
-            </Grid>
-        </DataTemplate>
-
-        <DataTemplate x:Key="GridView">
-            <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconMaterial Kind="TableLarge" VerticalAlignment="Center" Height="18" Width="18"/>
-                <TextBlock Text="{Binding}" FontSize="16" VerticalAlignment="Center" Margin="8 0 0 0"/>
-            </StackPanel>
-        </DataTemplate>
-
-        <DataTemplate x:Key="GridViewSaveLarge">
-            <Grid>
-                <iconPacks:PackIconMaterial Kind="TableLarge" Height="26" Width="26" Margin="2 2 4 4"/>
-                <iconPacks:PackIconMaterial Kind="Square" Foreground="White" Height="16" Width="16" Margin="14 14 2 2"/>
-                <iconPacks:PackIconMaterial Kind="ContentSaveOutline" Height="14" Width="14" Margin="15 15 3 3"/>
-            </Grid>
-        </DataTemplate>
-
-        <DataTemplate x:Key="GridViewSaveAsLarge">
-            <Grid>
-                <iconPacks:PackIconMaterial Kind="TableLarge" Height="26" Width="26" Margin="2 2 4 4"/>
-                <iconPacks:PackIconMaterial Kind="Square" Foreground="White" Height="16" Width="16" Margin="14 14 2 2"/>
-                <iconPacks:PackIconMaterial Kind="ContentSaveAllOutline" Height="14" Width="14" Margin="15 15 3 3"/>
-            </Grid>
-        </DataTemplate>
-
-
-        <DataTemplate x:Key="OpenProjectDir">
-            <iconPacks:PackIconMaterial Kind="FolderOpenOutline"/>
-        </DataTemplate>
-        
     </dx:ThemedWindow.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -111,9 +44,6 @@
                 <dxb:BarButtonItem Name="bImportData" ItemClick="ImportProjectData_Click" Content="Importer des données" ToolTip="Importer les données de base depuis un fichier CSV ou XLSX"
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/Scheduling/Import.svg}" LargeGlyph="{dx:DXImage SvgImages/Scheduling/Import.svg}"/>
-                <!--<dxb:BarButtonItem Name="bValidate" ItemClick="ValidateProjectData_Click" Content="Valider les données" 
-                                   IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
-                                   Glyph="{dx:DXImage SvgImages/XAF/Action_Validation_Validate.svg}" LargeGlyph="{dx:DXImage SvgImages/XAF/Action_Validation_Validate.svg}" />-->
                 <dxb:BarButtonItem Name="bUpdate" ItemClick="ProcessProjectData_Click" Content="Mise à jour des données" 
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/RichEdit/UpdateTableOfContents.svg}" LargeGlyph="{dx:DXImage SvgImages/RichEdit/UpdateTableOfContents.svg}"/>
@@ -161,8 +91,9 @@
 
             <dxg:GridControl.View>
                 <dxg:TableView x:Name="MainGridView" AutoWidth="True"
-                               AllowConditionalFormattingMenu="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True"
-                               ShowHorizontalLines="True" ShowVerticalLines="True"  ShowGroupPanel="False" ShowEmptyText="True" ShowIndicator="False">
+                               AllowConditionalFormattingMenu="True" AllowColumnFiltering="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True"
+                               ShowHorizontalLines="True" ShowVerticalLines="True" ShowEmptyText="True" ShowGroupPanel="True" ShowIndicator="False"
+                               ShowSearchPanelMode="Always">
                     
                     <dxg:TableView.RowCellMenuCustomizations>
                         <dxb:BarButtonItem Glyph="{dx:DXImage 'SvgImages/RichEdit/SelectTableRow.svg'}" Content="Copier la ligne" ItemClick="CopyRow_Click"/>

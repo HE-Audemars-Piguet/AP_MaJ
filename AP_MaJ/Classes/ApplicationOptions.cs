@@ -1,4 +1,5 @@
-﻿using DevExpress.ClipboardSource.SpreadsheetML;
+﻿using Ch.Hurni.AP_MaJ.Utilities;
+using DevExpress.ClipboardSource.SpreadsheetML;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,6 +25,8 @@ namespace Ch.Hurni.AP_MaJ.Classes
 
         public enum SeverityEnum { Info, Warning, Error }
 
+        public enum ProcessingBehaviourEnum { Stop, FinishTask, Continue }
+
         #region Properties
         public string ImportedDataFile
         {
@@ -38,6 +41,65 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private string _importedDataFile = string.Empty;
+
+        public bool LogError
+        {
+            get
+            {
+                return _logError;
+            }
+            set
+            {
+                _logError = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _logError = true;
+
+        public bool LogWarning
+        {
+            get
+            {
+                return _logWarning;
+            }
+            set
+            {
+                _logWarning = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _logWarning = true;
+
+        public bool LogInfo
+        {
+            get
+            {
+                return _logInfo;
+            }
+            set
+            {
+                _logInfo = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _logInfo = true;
+
+        [JsonIgnore]
+        public List<ProcessingBehaviourEnum> AvailableProcessingBehaviours { get; set; } = new List<ProcessingBehaviourEnum>() { ProcessingBehaviourEnum.Stop, ProcessingBehaviourEnum.FinishTask , ProcessingBehaviourEnum.Continue };
+
+        public ProcessingBehaviourEnum ProcessingBehaviour
+        {
+            get
+            {
+                return _processingBehaviour;
+            }
+            set
+            {
+                _processingBehaviour = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private ProcessingBehaviourEnum _processingBehaviour = ProcessingBehaviourEnum.FinishTask;
 
         public int SimultaneousValidationProcess
         {
@@ -151,6 +213,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private string _vaultuserr = string.Empty;
 
+        [JsonConverter(typeof(JsonStringEncription))]
         public string VaultPassword
         {
             get
@@ -212,56 +275,31 @@ namespace Ch.Hurni.AP_MaJ.Classes
 
         internal void UpdatePropertyMappings(List<PropertyFieldMapping> newPropertyFieldMappings)
         {
+            List<string> AddedProperties = new List<string>();
+            List<string> DeletedProperties = new List<string>();
+
             //if (!System.IO.File.Exists(BatchEditorDataBasePath)) Data.SaveToSQLite(BatchEditorDataBasePath);
 
-            //for (int i = VaultPropertyFieldMappings.Count - 1; i >= 0; i--)
-            //{
-            //    PropertyFieldMapping EditMapping = newPropertyFieldMappings.Where(x => x.VaultPropertySet == VaultPropertyFieldMappings[i].VaultPropertySet &&
-            //                                                           x.VaultPropertyDisplayName == VaultPropertyFieldMappings[i].VaultPropertyDisplayName).FirstOrDefault();
+            bool NeedDbSave = false;
 
-            //    if (EditMapping == null)
-            //    {
-            //        //SQLiteUtility.DeleteColumn(VaultPropertyFieldMappings[i].FieldName, BatchEditorDataBasePath);
+            DeletedProperties = VaultPropertyFieldMappings.Select(x => x.FieldName).Distinct().ToList().Except(newPropertyFieldMappings.Select(x => x.FieldName).Distinct()).ToList();
+            foreach(string Field in DeletedProperties)
+            {
+                NeedDbSave = true;
 
-            //        Data.Tables["Props"].Columns.Remove(VaultPropertyFieldMappings[i].Name);
+                DataSetUtility.DeleteColumn(Field, (Parent as MainWindow).ActiveProjectDataBase);
+                (Parent as MainWindow).Data.Tables["NewProps"].Columns.Remove(Field);
+            }
 
-            //        VaultPropertyFieldMappings.RemoveAt(i);
-            //    }
-            //    else if (EditMapping.MappingDirection == VaultPropertyFieldMappings[i].MappingDirection && EditMapping.Name != VaultPropertyFieldMappings[i].Name)
-            //    {
-            //        SQLiteUtility.RenameColumn(VaultPropertyFieldMappings[i].Name, EditMapping.Name, BatchEditorDataBasePath, EditMapping.MappingDirection);
-            //        Data.Tables["Props"].Columns[VaultPropertyFieldMappings[i].Name].ColumnName = EditMapping.Name;
 
-            //        VaultPropertyFieldMappings[i].Name = EditMapping.Name;
-            //        VaultPropertyFieldMappings[i].Property.PropertyTypeName = EditMapping.Property.PropertyTypeName;
+            AddedProperties = newPropertyFieldMappings.Select(x => x.FieldName).Distinct().ToList().Except(VaultPropertyFieldMappings.Select(x => x.FieldName).Distinct()).ToList();
+            foreach (string Field in AddedProperties)
+            {
+                NeedDbSave = true;
 
-            //        newPropertyFieldMappings.Remove(EditMapping);
-            //    }
-            //    else
-            //    {
-            //        newPropertyFieldMappings.Remove(EditMapping);
-            //    }
-            //}
-
-            //foreach (PropertyFieldMapping fm in newPropertyFieldMappings)
-            //{
-            //    SQLiteUtility.AddNewColumn(fm.Name, Type.GetType(fm.Property.PropertyTypeName), BatchEditorDataBasePath, fm.MappingDirection);
-
-            //    Data.Tables["Props"].Columns.Add(new DataColumn() { ColumnName = fm.Name, DataType = Type.GetType(fm.Property.PropertyTypeName), AllowDBNull = true });
-
-            //    VaultPropertyFieldMappings.Add(new FieldMapping()
-            //    {
-            //        Name = fm.Name,
-            //        Property = new SourceProperty()
-            //        {
-            //            PropertySet = fm.Property.PropertySet,
-            //            PropertyName = fm.Property.PropertyName,
-            //            PropertyTypeName = fm.Property.PropertyTypeName
-            //        },
-            //        MappingDirection = fm.MappingDirection,
-            //    });
-            //}
-
+                DataSetUtility.AddNewColumn(Field, typeof(string), (Parent as MainWindow).ActiveProjectDataBase);
+                (Parent as MainWindow).Data.Tables["NewProps"].Columns.Add(new DataColumn() { ColumnName = Field, DataType = typeof(string), AllowDBNull = true });
+            }
 
             VaultPropertyFieldMappings = new ObservableCollection<PropertyFieldMapping>(newPropertyFieldMappings);
         }

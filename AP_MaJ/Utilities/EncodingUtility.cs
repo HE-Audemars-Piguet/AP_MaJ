@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AP_MaJ.Utilities
+namespace Ch.Hurni.AP_MaJ.Utilities
 {
     public static class EncodingUtility
     {

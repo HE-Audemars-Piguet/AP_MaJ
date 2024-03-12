@@ -76,7 +76,7 @@
                 <dxg:TableView AutoWidth="True" CellValueChanged="MainGridView_CellValueChanged" 
                                AllowBandMultiRow="False" AllowColumnFiltering="True" AllowConditionalFormattingMenu="True" 
                                ShowGroupPanel="True" ShowEmptyText="True" ShowIndicator="False" ShowHorizontalLines="True" 
-                               ShowVerticalLines="True" ShowSearchPanelMode="Always" ShowTotalSummary="True"/>
+                               ShowVerticalLines="True" ShowSearchPanelMode="Always" ShowTotalSummary="False"/>
             </dxg:GridControl.View>
         </dxg:GridControl>
 

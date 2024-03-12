@@ -3,7 +3,7 @@ using Autodesk.DataManagement.Client.Framework.Vault.Currency.Entities;
 using System.Collections.Generic;
 using VDF = Autodesk.DataManagement.Client.Framework;
 
-namespace AP_MaJ.Utilities
+namespace Ch.Hurni.AP_MaJ.Utilities
 {
 
     public class VaultConfig
