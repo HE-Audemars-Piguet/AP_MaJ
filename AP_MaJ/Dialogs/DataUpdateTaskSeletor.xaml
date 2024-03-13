@@ -76,10 +76,10 @@
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/State_Validation_Valid.svg'}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ProcessingState}" Value="Error">
-                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Icon Builder/Security_WarningCircled1.svg'}"/>
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/State_Validation_Invalid.svg'}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ProcessingState}" Value="Canceled">
-                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/State_Validation_Invalid.svg'}"/>
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/Action_ParametrizedAction_Clear.svg'}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -269,10 +269,10 @@
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/State_Validation_Valid.svg'}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ProcessingState}" Value="Error">
-                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Icon Builder/Security_WarningCircled1.svg'}"/>
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/State_Validation_Invalid.svg'}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ProcessingState}" Value="Canceled">
-                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/State_Validation_Invalid.svg'}"/>
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/Action_ParametrizedAction_Clear.svg'}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

@@ -68,11 +68,9 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
         private async void Mapping_Edit_Click(object sender, RoutedEventArgs e)
         {
-            this.IsEnabled = false;
-            //App.AppProgressSplash.Show(this);
+            IsEnabled = false;
 
-
-            this.vaultUtility = new VaultUtility();
+            vaultUtility = new VaultUtility();
 
             TaskCancellationTokenSource = new CancellationTokenSource();
             CancellationToken TaskCancellationToken = TaskCancellationTokenSource.Token;
@@ -82,8 +80,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
             PropertyMappingEditDialog PropMappingEdit = new PropertyMappingEditDialog(AppOptions.VaultPropertyFieldMappings, vaultUtility.VaultConfig);
 
-            //App.AppProgressSplash.Close();
-            this.IsEnabled = true;
+            IsEnabled = true;
 
             PropMappingEdit.Owner = this;
             PropMappingEdit.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -93,9 +90,6 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             if (PropMappingEdit.DialogResult == true)
             {
                 AppOptions.UpdatePropertyMappings(PropMappingEdit.Mappings.Where(x => x.IsSelected == true).ToList());
-                
-
-                //ApplicationOptions.RootWindow.BatchEditorControl.RefreshGridColumns(AppOptions.BatchEditor.BatchEditorGridCustomColumns);
             }
         }
     }

@@ -93,30 +93,71 @@
                     </Grid>
                 </dxlc:LayoutItem>
 
-                <dxlc:LayoutItem Label="Comportement en cas d'erreur de traitement" ElementSpace="8">
+                <dxlc:LayoutItem Label="Comportement en cas d'erreur de traitement" ElementSpace="8" Margin="0 8 0 0">
                     <dxe:ComboBoxEdit EditValue="{Binding Path=AppOptions.ProcessingBehaviour, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Path=AppOptions.AvailableProcessingBehaviours}"/>
                 </dxlc:LayoutItem>
-       
-                <dxlc:LayoutItem Label="Nombre de processeur (validation)" ElementSpace="8">
-                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+            </dxlc:LayoutGroup>
+            
+            <dxlc:LayoutGroup Header="Taches" View="Group" Orientation="Vertical">
+                <dxlc:LayoutGroup Header="Options des taches de mise à jour des fichiers" View="GroupBox" Orientation="Vertical">
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la validation des fichiers" ElementSpace="8" Margin="0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FileValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                      EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors du changement d'état temporaire des fichiers" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FileTempChangeStateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                      EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la purge des propriétés des fichiers" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePurgePropsProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
-                </dxlc:LayoutItem>
-                <dxlc:LayoutItem Label="Nombre de processeur (changement d'état)" ElementSpace="8">
-                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousChangeStateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                    </dxlc:LayoutItem>
+                    <dxlc:LayoutItem Label="Mode de purge des propriétés des fichiers avec les propriétés de la catégorie" ElementSpace="8" >
+                        <dxe:ComboBoxEdit EditValue="{Binding Path=AppOptions.FilePropertySyncMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Path=AppOptions.PropertySyncModes}"/>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la mise à jour des fichiers" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FileUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
-                </dxlc:LayoutItem>
-                <dxlc:LayoutItem Label="Nombre de processeur (purge des propriétés)" ElementSpace="8">
-                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousPurgePropsProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la synchronisation des propriétés des fichiers" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePropSyncProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
-                </dxlc:LayoutItem>
-                <dxlc:LayoutItem Label="Nombre de processeur (mise à jour)" ElementSpace="8">
-                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                    </dxlc:LayoutItem>
+                </dxlc:LayoutGroup>
+
+                <dxlc:LayoutGroup Header="Options des taches de mise à jour des articles" View="GroupBox" Orientation="Vertical">
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la validation des articles" ElementSpace="8" Margin="0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                      EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors du changement d'état temporaire des articles" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemTempChangeStateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                      EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la purge des propriétés des articles" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemPurgePropsProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
-                </dxlc:LayoutItem>
-                <dxlc:LayoutItem Label="Nombre de processeur (synchronisation des propriétés)" ElementSpace="8">
-                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.SimultaneousPropSyncProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                    </dxlc:LayoutItem>
+                    <dxlc:LayoutItem Label="Mode de purge des propriétés des articles avec les propriétés de la catégorie" ElementSpace="8" >
+                        <dxe:ComboBoxEdit EditValue="{Binding Path=AppOptions.ItemPropertySyncMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Path=AppOptions.PropertySyncModes}"/>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la mise à jour des articles" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
-                </dxlc:LayoutItem>
+                    </dxlc:LayoutItem>
+
+                    <dxlc:LayoutItem Label="Nombre de processeur lors de la synchronisation des propriétés des articles" ElementSpace="8" Margin="0 8 0 0">
+                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemPropSyncProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                  EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
+                    </dxlc:LayoutItem>
+                </dxlc:LayoutGroup>
             </dxlc:LayoutGroup>
 
             <dxlc:LayoutGroup Header="Vault" View="Group" Orientation="Vertical">
@@ -130,7 +171,7 @@
                     <dxe:TextEdit EditValue="{Binding Path=AppOptions.VaultUser, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
                 <dxlc:LayoutItem Label="Mot de passe utilisateur" ElementSpace="8">
-                    <dxe:PasswordBoxEdit EditValue="{Binding Path=AppOptions.VaultPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <dxe:PasswordBoxEdit EditValue="{Binding Path=AppOptions.VaultPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ShowPasswordButtonVisibility="Auto"/>
                 </dxlc:LayoutItem>
                 
                 <dxlc:LayoutItem ElementSpace="0" LabelPosition="Top" Margin="0 16 0 0">
@@ -140,8 +181,8 @@
                             <Button Grid.Column="0" Content="{iconPacks:Material Kind=TableEdit}" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 0 0"/>
                         </Grid>
                     </dxlc:LayoutItem.Label>
-                    <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.VaultPropertyFieldMappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" MaxHeight="250"
-                                     AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" HorizontalAlignment="Stretch" >
+                    <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.VaultPropertyFieldMappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="100" MaxHeight="250"
+                                     AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" HorizontalAlignment="Stretch">
                         <dxg:GridControl.View>
                             <dxg:TableView AllowBandMultiRow="False" AllowColumnFiltering="False" ShowGroupPanel="False" ShowDataNavigator="False" AllowEditing="False" ShowIndicator="False"/>
                         </dxg:GridControl.View>

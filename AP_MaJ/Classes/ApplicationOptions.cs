@@ -27,6 +27,9 @@ namespace Ch.Hurni.AP_MaJ.Classes
 
         public enum ProcessingBehaviourEnum { Stop, FinishTask, Continue }
 
+        public enum PropertySyncModeEnum { PurgeAndAdd, Purge, Add }
+
+
         #region Properties
         public string ImportedDataFile
         {
@@ -101,75 +104,177 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private ProcessingBehaviourEnum _processingBehaviour = ProcessingBehaviourEnum.FinishTask;
 
-        public int SimultaneousValidationProcess
-        {
-            get
-            {
-                return _simultaneousValidationProcess;
-            }
-            set
-            {
-                _simultaneousValidationProcess = value;
-                NotifyPropertyChanged();
-            }
-        }
-        private int _simultaneousValidationProcess = 1;
+        [JsonIgnore]
+        public List<PropertySyncModeEnum> PropertySyncModes { get; set; } = new List<PropertySyncModeEnum>() { PropertySyncModeEnum.PurgeAndAdd, PropertySyncModeEnum.Purge, PropertySyncModeEnum.Add };
 
-        public int SimultaneousChangeStateProcess
+        public PropertySyncModeEnum FilePropertySyncMode
         {
             get
             {
-                return _simultaneousChangeStateProcess;
+                return _filePropertySyncMode;
             }
             set
             {
-                _simultaneousChangeStateProcess = value;
+                _filePropertySyncMode = value;
                 NotifyPropertyChanged();
             }
         }
-        private int _simultaneousChangeStateProcess = 1;
+        private PropertySyncModeEnum _filePropertySyncMode = PropertySyncModeEnum.PurgeAndAdd;
 
-        public int SimultaneousPurgePropsProcess
+        public int FileValidationProcess
         {
             get
             {
-                return _simultaneousPurgePropsProcess;
+                return _fileValidationProcess;
             }
             set
             {
-                _simultaneousPurgePropsProcess = value;
+                _fileValidationProcess = value;
                 NotifyPropertyChanged();
             }
         }
-        private int _simultaneousPurgePropsProcess = 1;
+        private int _fileValidationProcess = 1;
 
-        public int SimultaneousUpdateProcess
+        public int FileTempChangeStateProcess
         {
             get
             {
-                return _simultaneousUpdateProcess;
+                return _fileTempChangeStateProcess;
             }
             set
             {
-                _simultaneousUpdateProcess = value;
+                _fileTempChangeStateProcess = value;
                 NotifyPropertyChanged();
             }
         }
-        private int _simultaneousUpdateProcess = 1;
+        private int _fileTempChangeStateProcess = 1;
 
-        public int SimultaneousPropSyncProcess
+        public int FilePurgePropsProcess
         {
             get
             {
-                return _simultaneousPropSyncProcess;
+                return _filePurgePropsProcess;
             }
             set
             {
-                _simultaneousPropSyncProcess = value;
+                _filePurgePropsProcess = value;
                 NotifyPropertyChanged();
             }
         }
-        private int _simultaneousPropSyncProcess = 1;
+        private int _filePurgePropsProcess = 1;
+
+        public int FileUpdateProcess
+        {
+            get
+            {
+                return _fileUpdateProcess;
+            }
+            set
+            {
+                _fileUpdateProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _fileUpdateProcess = 1;
+
+        public int FilePropSyncProcess
+        {
+            get
+            {
+                return _filePropSyncProcess;
+            }
+            set
+            {
+                _filePropSyncProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _filePropSyncProcess = 1;
+
+        public PropertySyncModeEnum ItemPropertySyncMode
+        {
+            get
+            {
+                return _itemPropertySyncMode;
+            }
+            set
+            {
+                _itemPropertySyncMode = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private PropertySyncModeEnum _itemPropertySyncMode = PropertySyncModeEnum.PurgeAndAdd;
+
+        public int ItemValidationProcess
+        {
+            get
+            {
+                return _itemValidationProcess;
+            }
+            set
+            {
+                _itemValidationProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _itemValidationProcess = 1;
+
+        public int ItemTempChangeStateProcess
+        {
+            get
+            {
+                return _itemTempChangeStateProcess;
+            }
+            set
+            {
+                _itemTempChangeStateProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _itemTempChangeStateProcess = 1;
+
+        public int ItemPurgePropsProcess
+        {
+            get
+            {
+                return _itemPurgePropsProcess;
+            }
+            set
+            {
+                _itemPurgePropsProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _itemPurgePropsProcess = 1;
+
+        public int ItemUpdateProcess
+        {
+            get
+            {
+                return _itemUpdateProcess;
+            }
+            set
+            {
+                _itemUpdateProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _itemUpdateProcess = 1;
+
+        public int ItemPropSyncProcess
+        {
+            get
+            {
+                return _itemPropSyncProcess;
+            }
+            set
+            {
+                _itemPropSyncProcess = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _itemPropSyncProcess = 1;
+
 
         public string VaultServer
         {

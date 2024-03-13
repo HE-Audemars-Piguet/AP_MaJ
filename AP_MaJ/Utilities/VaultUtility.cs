@@ -115,10 +115,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         {
             if (FileTaskName.Equals("Validate")) return await ValidateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("ChangeState")) return await TempChangeStateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
-            else if (FileTaskName.Equals("PurgeProps")) return data;
+            else if (FileTaskName.Equals("PurgeProps")) return await PurgePropertyFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("Update")) return data;
             else if (FileTaskName.Equals("PropSync")) return data;
-            else if (FileTaskName.Equals("CreateBomBlob")) return data;
+            else if (FileTaskName.Equals("CreateBomBlob"))return await BomBlobCreationFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("WaitForBomBlob")) return data;
             else return data;
         }
@@ -138,7 +138,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList = 
                 new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
 
-            for (int i = 0; i < appOptions.SimultaneousValidationProcess; i++)
+            for (int i = 0; i < appOptions.FileValidationProcess; i++)
             {
                 int ProcessId = i;
                 DataRow PopEntity = EntitiesStack.Pop();
@@ -213,7 +213,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 else FullVaultName += "/" + dr.Field<string>("Name");
                 
                 pProgressReport.ProcessFeedbackMessage = FullVaultName;
-                processProgReport.Report(pProgressReport);
+                //processProgReport.Report(pProgressReport);
 
                 if (string.IsNullOrWhiteSpace(FullVaultName))
                 {
@@ -571,7 +571,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         #endregion
 
-
+        #region FileTempChangeState
         internal async Task<DataSet> TempChangeStateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
@@ -587,7 +587,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 dr["Task"] = TaskTypeEnum.TempChangeState;
                 dr["State"] = StateEnum.Pending;
             }
-           
 
             int TotalCount = EntitiesStack.Count;
 
@@ -596,7 +595,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
                 new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
 
-            for (int i = 0; i < appOptions.SimultaneousChangeStateProcess; i++)
+            for (int i = 0; i < appOptions.FileTempChangeStateProcess; i++)
             {
                 int ProcessId = i;
                 DataRow PopEntity = EntitiesStack.Pop();
@@ -639,31 +638,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     DataRow PopEntity = EntitiesStack.Pop();
                     TaskList.Add(Task.Run(() => TempChangeStateFile(ProcessId, PopEntity, processProgReport, appOptions)));
                 }
-
-
-
-
-
-                //==========
-                //int ProcessId = finished.Result.processId;
-
-                //if (finished.Result.State == StateEnum.Completed)
-                //{
-                //    finished.Result.entity["State"] = StateEnum.Completed;
-                //    finished.Result.entity["Name"] = finished.Result.Result["Name"];
-                //}
-                //else
-                //{
-                //    finished.Result.entity["State"] = finished.Result.State;
-                //}
-
-                //TaskList.Remove(finished);
-
-                //if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
-                //{
-                //    DataRow PopEntity = EntitiesStack.Pop();
-                //    TaskList.Add(Task.Run(() => TempChangeStateFile(ProcessId, PopEntity, processProgReport)));
-                //}
             }
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Changement d'état temporaire des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
@@ -696,7 +670,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 else FullVaultName += "/" + dr.Field<string>("Name");
 
                 pProgressReport.ProcessFeedbackMessage = FullVaultName;
-                processProgReport.Report(pProgressReport);
+                //processProgReport.Report(pProgressReport);
 
                 if (string.IsNullOrWhiteSpace(FullVaultName))
                 {
@@ -728,6 +702,556 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         #endregion
 
+        #region FilePurgeProperties
+        internal async Task<DataSet> PurgePropertyFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        {
+            taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
+            DataSet ds = data.Copy();
+
+            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
+                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState) && 
+                                                                                                              x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                                              x.Field<long?>("VaultMasterId") != null));
+
+            foreach (DataRow dr in EntitiesStack)
+            {
+                dr["Task"] = TaskTypeEnum.PurgeProps;
+                dr["State"] = StateEnum.Pending;
+            }
+
+            int TotalCount = EntitiesStack.Count;
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Purge des propriétés des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
+
+            List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
+                new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
+
+            for (int i = 0; i < appOptions.FilePurgePropsProcess; i++)
+            {
+                int ProcessId = i;
+                DataRow PopEntity = EntitiesStack.Pop();
+                TaskList.Add(Task.Run(() => PurgePropertyFile(ProcessId, PopEntity, processProgReport, appOptions)));
+
+                if (EntitiesStack.Count == 0) break;
+            }
+
+
+            while (TaskList.Any())
+            {
+                Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> finished = await Task.WhenAny(TaskList);
+
+                int ProcessId = finished.Result.processId;
+
+                finished.Result.entity["State"] = finished.Result.State;
+
+                foreach (KeyValuePair<string, object> kvp in finished.Result.Result)
+                {
+                    finished.Result.entity[kvp.Key] = kvp.Value;
+                }
+
+                foreach (Dictionary<string, object> log in finished.Result.ResultLogs)
+                {
+                    DataRow drLog = ds.Tables["Logs"].NewRow();
+                    drLog["EntityId"] = finished.Result.entity["Id"];
+
+                    foreach (KeyValuePair<string, object> kvp in log)
+                    {
+                        drLog[kvp.Key] = kvp.Value;
+                    }
+
+                    ds.Tables["Logs"].Rows.Add(drLog);
+                }
+
+                TaskList.Remove(finished);
+
+                if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                {
+                    DataRow PopEntity = EntitiesStack.Pop();
+                    TaskList.Add(Task.Run(() => PurgePropertyFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                }
+            }
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Purge des propriétés des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
+
+            return ds;
+        }
+
+        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> PurgePropertyFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
+        {
+            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
+
+            Dictionary<string, object> resultValues = new Dictionary<string, object>();
+            List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
+
+            StateEnum resultState = StateEnum.Processing;
+
+            if (dr == null)
+            {
+                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "La ligne de base de données est 'null', impossible de traiter l'élément."));
+                resultState = StateEnum.Error;
+            }
+
+            string FullVaultName = string.Empty;
+            ACW.File VaultFile = null;
+
+            if (resultState != StateEnum.Error)
+            {
+                FullVaultName = dr.Field<string>("Path");
+                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
+                else FullVaultName += "/" + dr.Field<string>("Name");
+
+                pProgressReport.ProcessFeedbackMessage = FullVaultName;
+
+                if (string.IsNullOrWhiteSpace(FullVaultName))
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le nom de fichier est vide, impossible de traiter l'élément."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            if (resultState != StateEnum.Error)
+            {
+                try
+                {
+                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId")));
+
+                    List<long> VaultFilePropIds = await Task.Run(() => VaultConnection.WebServiceManager.PropertyService.GetPropertiesByEntityIds(VDF.Vault.Currency.Entities.EntityClassIds.Files, new long[] { VaultFile.Id }).Select(x => x.PropDefId).ToList());
+                    List<long> VaultFileUdpIds = VaultFilePropIds.Where(x => VaultConfig.VaultFilePropertyDefinitionDictionary.Where(y => !y.Value.IsSystem && !y.Value.IsCalculated).Select(y => y.Value.Id).Contains(x)).ToList();
+
+                    long CatId = dr.Field<long>("VaultCatId");
+                    if(dr.Field<long?>("TargetVaultCatId") != null) CatId = dr.Field<long>("TargetVaultCatId");
+
+                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == CatId).FirstOrDefault();
+                    
+                    List<long> CatPropIds = new List<long>();
+                    BhvCfg BhvUdps = null;
+                    if (catCfg != null)
+                    {
+                        BhvUdps = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
+                        if(BhvUdps != null) CatPropIds = BhvUdps.BhvArray.Select(x => x).Select(x => x.Id).ToList();
+                    }
+
+                    List<long> RemoveUdpIds = VaultFileUdpIds.Except(CatPropIds).ToList();
+                    List<string> RemoveUdpNames = VaultConfig.VaultFilePropertyDefinitionDictionary.Where(x => RemoveUdpIds.Contains(x.Value.Id)).Select(y => y.Value.DisplayName).ToList();
+                    
+                    List<long> AddUdpIds = CatPropIds.Except(VaultFileUdpIds).ToList();
+                    List<string> AddUdpNames = VaultConfig.VaultFilePropertyDefinitionDictionary.Where(x => AddUdpIds.Contains(x.Value.Id)).Select(y => y.Value.DisplayName).ToList();
+
+                    long[] RemoveUdpIdsArray = null;
+                    long[] AddUdpIdsArray = null;
+
+                    if(appOptions.FilePropertySyncMode == PropertySyncModeEnum.Purge)
+                    {
+                        if (RemoveUdpIds.Count > 0) RemoveUdpIdsArray = RemoveUdpIds.ToArray();
+                    }
+                    else if(appOptions.FilePropertySyncMode == PropertySyncModeEnum.Add)
+                    {
+                        if (AddUdpIds.Count > 0) AddUdpIdsArray = AddUdpIds.ToArray();
+                    }
+                    else if(appOptions.FilePropertySyncMode == PropertySyncModeEnum.PurgeAndAdd)
+                    {
+                        if (RemoveUdpIds.Count > 0) RemoveUdpIdsArray = RemoveUdpIds.ToArray();
+                        if (AddUdpIds.Count > 0) AddUdpIdsArray = AddUdpIds.ToArray();
+                    }
+
+                    if (RemoveUdpIdsArray != null || AddUdpIdsArray != null)
+                    {
+                        VaultConnection.WebServiceManager.DocumentService.UpdateFilePropertyDefinitions(new long[] { VaultFile.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "Purge properties");
+
+                        if (appOptions.LogInfo && AddUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", AddUdpNames) + "' ont été ajoutées."));
+                        if (appOptions.LogInfo && RemoveUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", RemoveUdpNames) + "' ont été purgées."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Pas de purge/ajout de propriétés nécessaire."));
+                    }
+                }
+                catch (VaultServiceErrorException VltEx)
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
+            processProgReport.Report(pProgressReport);
+
+            if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            return (processId, dr, resultValues, resultState, resultLogs);
+        }
+        #endregion
+
+        #region FileUpdate
+        internal async Task<DataSet> UpdateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        {
+            taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
+            DataSet ds = data.Copy();
+
+            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
+                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState) &&
+                                                                                                              x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                                              x.Field<long?>("VaultMasterId") != null));
+
+            foreach (DataRow dr in EntitiesStack)
+            {
+                dr["Task"] = TaskTypeEnum.PurgeProps;
+                dr["State"] = StateEnum.Pending;
+            }
+
+            int TotalCount = EntitiesStack.Count;
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
+
+            List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
+                new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
+
+            for (int i = 0; i < appOptions.FilePurgePropsProcess; i++)
+            {
+                int ProcessId = i;
+                DataRow PopEntity = EntitiesStack.Pop();
+                TaskList.Add(Task.Run(() => UpdateFile(ProcessId, PopEntity, processProgReport, appOptions)));
+
+                if (EntitiesStack.Count == 0) break;
+            }
+
+
+            while (TaskList.Any())
+            {
+                Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> finished = await Task.WhenAny(TaskList);
+
+                int ProcessId = finished.Result.processId;
+
+                finished.Result.entity["State"] = finished.Result.State;
+
+                foreach (KeyValuePair<string, object> kvp in finished.Result.Result)
+                {
+                    finished.Result.entity[kvp.Key] = kvp.Value;
+                }
+
+                foreach (Dictionary<string, object> log in finished.Result.ResultLogs)
+                {
+                    DataRow drLog = ds.Tables["Logs"].NewRow();
+                    drLog["EntityId"] = finished.Result.entity["Id"];
+
+                    foreach (KeyValuePair<string, object> kvp in log)
+                    {
+                        drLog[kvp.Key] = kvp.Value;
+                    }
+
+                    ds.Tables["Logs"].Rows.Add(drLog);
+                }
+
+                TaskList.Remove(finished);
+
+                if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                {
+                    DataRow PopEntity = EntitiesStack.Pop();
+                    TaskList.Add(Task.Run(() => UpdateFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                }
+            }
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
+
+            return ds;
+        }
+
+        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
+        {
+            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
+
+            Dictionary<string, object> resultValues = new Dictionary<string, object>();
+            List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
+
+            StateEnum resultState = StateEnum.Processing;
+
+            if (dr == null)
+            {
+                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "La ligne de base de données est 'null', impossible de traiter l'élément."));
+                resultState = StateEnum.Error;
+            }
+
+            string FullVaultName = string.Empty;
+            ACW.File VaultFile = null;
+
+            if (resultState != StateEnum.Error)
+            {
+                FullVaultName = dr.Field<string>("Path");
+                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
+                else FullVaultName += "/" + dr.Field<string>("Name");
+
+                pProgressReport.ProcessFeedbackMessage = FullVaultName;
+
+                if (string.IsNullOrWhiteSpace(FullVaultName))
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le nom de fichier est vide, impossible de traiter l'élément."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            if (resultState != StateEnum.Error)
+            {
+                try
+                {
+                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId")));
+
+                    List<long> VaultFilePropIds = await Task.Run(() => VaultConnection.WebServiceManager.PropertyService.GetPropertiesByEntityIds(VDF.Vault.Currency.Entities.EntityClassIds.Files, new long[] { VaultFile.Id }).Select(x => x.PropDefId).ToList());
+                    List<long> VaultFileUdpIds = VaultFilePropIds.Where(x => VaultConfig.VaultFilePropertyDefinitionDictionary.Where(y => !y.Value.IsSystem && !y.Value.IsCalculated).Select(y => y.Value.Id).Contains(x)).ToList();
+
+                    long CatId = dr.Field<long>("VaultCatId");
+                    if (dr.Field<long?>("TargetVaultCatId") != null) CatId = dr.Field<long>("TargetVaultCatId");
+
+                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == CatId).FirstOrDefault();
+
+                    List<long> CatPropIds = new List<long>();
+                    BhvCfg BhvUdps = null;
+                    if (catCfg != null)
+                    {
+                        BhvUdps = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
+                        if (BhvUdps != null) CatPropIds = BhvUdps.BhvArray.Select(x => x).Select(x => x.Id).ToList();
+                    }
+
+                    List<long> RemoveUdpIds = VaultFileUdpIds.Except(CatPropIds).ToList();
+                    List<string> RemoveUdpNames = VaultConfig.VaultFilePropertyDefinitionDictionary.Where(x => RemoveUdpIds.Contains(x.Value.Id)).Select(y => y.Value.DisplayName).ToList();
+
+                    List<long> AddUdpIds = CatPropIds.Except(VaultFileUdpIds).ToList();
+                    List<string> AddUdpNames = VaultConfig.VaultFilePropertyDefinitionDictionary.Where(x => AddUdpIds.Contains(x.Value.Id)).Select(y => y.Value.DisplayName).ToList();
+
+                    long[] RemoveUdpIdsArray = null;
+                    long[] AddUdpIdsArray = null;
+
+                    if (appOptions.FilePropertySyncMode == PropertySyncModeEnum.Purge)
+                    {
+                        if (RemoveUdpIds.Count > 0) RemoveUdpIdsArray = RemoveUdpIds.ToArray();
+                    }
+                    else if (appOptions.FilePropertySyncMode == PropertySyncModeEnum.Add)
+                    {
+                        if (AddUdpIds.Count > 0) AddUdpIdsArray = AddUdpIds.ToArray();
+                    }
+                    else if (appOptions.FilePropertySyncMode == PropertySyncModeEnum.PurgeAndAdd)
+                    {
+                        if (RemoveUdpIds.Count > 0) RemoveUdpIdsArray = RemoveUdpIds.ToArray();
+                        if (AddUdpIds.Count > 0) AddUdpIdsArray = AddUdpIds.ToArray();
+                    }
+
+                    if (RemoveUdpIdsArray != null || AddUdpIdsArray != null)
+                    {
+                        VaultConnection.WebServiceManager.DocumentService.UpdateFilePropertyDefinitions(new long[] { VaultFile.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "Purge properties");
+
+                        if (appOptions.LogInfo && AddUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", AddUdpNames) + "' ont été ajoutées."));
+                        if (appOptions.LogInfo && RemoveUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", RemoveUdpNames) + "' ont été purgées."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Pas de purge/ajout de propriétés nécessaire."));
+                    }
+                }
+                catch (VaultServiceErrorException VltEx)
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
+            processProgReport.Report(pProgressReport);
+
+            if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            return (processId, dr, resultValues, resultState, resultLogs);
+        }
+        #endregion
+
+        #region FileSyncProperties
+        // A faire dans le UpdateFile (en avant dernier)
+        #endregion
+
+        #region FileCreateBomBlob
+        // A faire dans le UpdateFile (en dernier)
+        #endregion
+
+        #region FileWaitForBomBlob
+        internal async Task<DataSet> BomBlobCreationFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        {
+            taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
+            DataSet ds = data.Copy();
+
+            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
+                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState) &&
+                                                                                                              x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                                              x.Field<long?>("VaultMasterId") != null));
+
+            foreach (DataRow dr in EntitiesStack)
+            {
+                dr["Task"] = TaskTypeEnum.PurgeProps;
+                dr["State"] = StateEnum.Pending;
+            }
+
+            int TotalCount = EntitiesStack.Count;
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Création des information de nomenclature des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
+
+            List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
+                new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
+
+            for (int i = 0; i < appOptions.FilePurgePropsProcess; i++)
+            {
+                int ProcessId = i;
+                DataRow PopEntity = EntitiesStack.Pop();
+                TaskList.Add(Task.Run(() => BomBlobCreationFile(ProcessId, PopEntity, processProgReport, appOptions)));
+
+                if (EntitiesStack.Count == 0) break;
+            }
+
+
+            while (TaskList.Any())
+            {
+                Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> finished = await Task.WhenAny(TaskList);
+
+                int ProcessId = finished.Result.processId;
+
+                finished.Result.entity["State"] = finished.Result.State;
+
+                foreach (KeyValuePair<string, object> kvp in finished.Result.Result)
+                {
+                    finished.Result.entity[kvp.Key] = kvp.Value;
+                }
+
+                foreach (Dictionary<string, object> log in finished.Result.ResultLogs)
+                {
+                    DataRow drLog = ds.Tables["Logs"].NewRow();
+                    drLog["EntityId"] = finished.Result.entity["Id"];
+
+                    foreach (KeyValuePair<string, object> kvp in log)
+                    {
+                        drLog[kvp.Key] = kvp.Value;
+                    }
+
+                    ds.Tables["Logs"].Rows.Add(drLog);
+                }
+
+                TaskList.Remove(finished);
+
+                if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                {
+                    DataRow PopEntity = EntitiesStack.Pop();
+                    TaskList.Add(Task.Run(() => BomBlobCreationFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                }
+            }
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Création des information de nomenclature des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
+
+            return ds;
+        }
+
+        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> BomBlobCreationFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
+        {
+            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
+
+            Dictionary<string, object> resultValues = new Dictionary<string, object>();
+            List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
+
+            StateEnum resultState = StateEnum.Processing;
+
+            if (dr == null)
+            {
+                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "La ligne de base de données est 'null', impossible de traiter l'élément."));
+                resultState = StateEnum.Error;
+            }
+
+            string FullVaultName = string.Empty;
+            ACW.File VaultFile = null;
+
+            if (resultState != StateEnum.Error)
+            {
+                FullVaultName = dr.Field<string>("Path");
+                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
+                else FullVaultName += "/" + dr.Field<string>("Name");
+
+                pProgressReport.ProcessFeedbackMessage = FullVaultName;
+
+                if (string.IsNullOrWhiteSpace(FullVaultName))
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le nom de fichier est vide, impossible de traiter l'élément."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            if (resultState != StateEnum.Error)
+            {
+                try
+                {
+                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId")));
+
+                    List<long> VaultFilePropIds = await Task.Run(() => VaultConnection.WebServiceManager.PropertyService.GetPropertiesByEntityIds(VDF.Vault.Currency.Entities.EntityClassIds.Files, new long[] { VaultFile.Id }).Select(x => x.PropDefId).ToList());
+                    List<long> VaultFileUdpIds = VaultFilePropIds.Where(x => VaultConfig.VaultFilePropertyDefinitionDictionary.Where(y => !y.Value.IsSystem && !y.Value.IsCalculated).Select(y => y.Value.Id).Contains(x)).ToList();
+
+                    long CatId = dr.Field<long>("VaultCatId");
+                    if (dr.Field<long?>("TargetVaultCatId") != null) CatId = dr.Field<long>("TargetVaultCatId");
+
+                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == CatId).FirstOrDefault();
+
+                    List<long> CatPropIds = new List<long>();
+                    BhvCfg BhvUdps = null;
+                    if (catCfg != null)
+                    {
+                        BhvUdps = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
+                        if (BhvUdps != null) CatPropIds = BhvUdps.BhvArray.Select(x => x).Select(x => x.Id).ToList();
+                    }
+
+                    List<long> RemoveUdpIds = VaultFileUdpIds.Except(CatPropIds).ToList();
+                    List<string> RemoveUdpNames = VaultConfig.VaultFilePropertyDefinitionDictionary.Where(x => RemoveUdpIds.Contains(x.Value.Id)).Select(y => y.Value.DisplayName).ToList();
+
+                    List<long> AddUdpIds = CatPropIds.Except(VaultFileUdpIds).ToList();
+                    List<string> AddUdpNames = VaultConfig.VaultFilePropertyDefinitionDictionary.Where(x => AddUdpIds.Contains(x.Value.Id)).Select(y => y.Value.DisplayName).ToList();
+
+                    long[] RemoveUdpIdsArray = null;
+                    long[] AddUdpIdsArray = null;
+
+                    if (appOptions.FilePropertySyncMode == PropertySyncModeEnum.Purge)
+                    {
+                        if (RemoveUdpIds.Count > 0) RemoveUdpIdsArray = RemoveUdpIds.ToArray();
+                    }
+                    else if (appOptions.FilePropertySyncMode == PropertySyncModeEnum.Add)
+                    {
+                        if (AddUdpIds.Count > 0) AddUdpIdsArray = AddUdpIds.ToArray();
+                    }
+                    else if (appOptions.FilePropertySyncMode == PropertySyncModeEnum.PurgeAndAdd)
+                    {
+                        if (RemoveUdpIds.Count > 0) RemoveUdpIdsArray = RemoveUdpIds.ToArray();
+                        if (AddUdpIds.Count > 0) AddUdpIdsArray = AddUdpIds.ToArray();
+                    }
+
+                    if (RemoveUdpIdsArray != null || AddUdpIdsArray != null)
+                    {
+                        VaultConnection.WebServiceManager.DocumentService.UpdateFilePropertyDefinitions(new long[] { VaultFile.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "Purge properties");
+
+                        if (appOptions.LogInfo && AddUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", AddUdpNames) + "' ont été ajoutées."));
+                        if (appOptions.LogInfo && RemoveUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", RemoveUdpNames) + "' ont été purgées."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Pas de purge/ajout de propriétés nécessaire."));
+                    }
+                }
+                catch (VaultServiceErrorException VltEx)
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
+            processProgReport.Report(pProgressReport);
+
+            if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            return (processId, dr, resultValues, resultState, resultLogs);
+        }
+        #endregion
+
+        #endregion
+
 
         #region ItemProcessing
         internal async Task<DataSet> ProcessItemsAsync(string FileTaskName, DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
@@ -757,7 +1281,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
                 new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
 
-            for (int i = 0; i < appOptions.SimultaneousValidationProcess; i++)
+            for (int i = 0; i < appOptions.FileValidationProcess; i++)
             {
                 int ProcessId = i;
                 DataRow PopEntity = EntitiesStack.Pop();
@@ -995,7 +1519,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             //resultValues.Add("VaultRevSchId", vaultFile.FileRev.RevDefId);
 
             resultValues.Add("VaultRevLabel", vaultItem.RevNum);
-            resultValues.Add("VaultRevId", vaultItem.RevId);
+            //resultValues.Add("VaultRevId", vaultItem.RevId);
 
             string targetVaultRevisionSchName = dr.Field<string>("TargetVaultRevSchName");
             string targetVaultRevisionName = dr.Field<string>("TargetVaultRevLabel");

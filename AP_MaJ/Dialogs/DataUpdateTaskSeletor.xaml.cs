@@ -105,9 +105,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             MaJTask FileTask = new MaJTask() { Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 100 };
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
             FileTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 101, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 102, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 103, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 104, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, Index = 102, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = true, Index = 103, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = true, Index = 104, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 106, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 107, Parent = FileTask });
@@ -150,8 +150,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     dTimer.Tick -= timer_Tick;
 
                     currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
-
-                    if(appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ElementErrorCount > 0) TaskCancellationTokenSource.Cancel();
                 }
             }
 
@@ -176,7 +174,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             currentTask.ProcessFeedback[e.ProcessIndex] = e.ProcessFeedbackMessage;
 
-            if (e.ProcessHasError == null) currentTask.ElementCount++;
+            if(!string.IsNullOrWhiteSpace(e.ProcessFeedbackMessage)) currentTask.ElementCount++;
 
             if (e.ProcessHasError == false)
             {
@@ -212,6 +210,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                 TaskCancellationTokenSource = new CancellationTokenSource();
                 CancellationToken TaskCancellationToken = TaskCancellationTokenSource.Token;
+                
+                TaskProgReport = new Progress<TaskProgressReport>();
+                ProcessProgReport = new Progress<ProcessProgressReport>();
 
                 foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
                 {
@@ -224,10 +225,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                         continue;
                     }
 
-                    TaskProgReport = new Progress<TaskProgressReport>();
                     TaskProgReport.ProgressChanged += ShowTaskProgress;
-
-                    ProcessProgReport = new Progress<ProcessProgressReport>();
                     ProcessProgReport.ProgressChanged += ShowProcessProgress;
 
                     currentTask.ProcessingState = StateEnum.Processing;
@@ -265,8 +263,14 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     else if (currentTask.ElementErrorCount > 0) currentTask.ProcessingState = StateEnum.Error;
                     else currentTask.ProcessingState = StateEnum.Completed;
 
-                    TaskProgReport.ProgressChanged -= ShowTaskProgress;
+
+                    if (appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ProcessingState == StateEnum.Error)
+                    {
+                        TaskCancellationTokenSource.Cancel();
+                    }
+
                     ProcessProgReport.ProgressChanged -= ShowProcessProgress;
+                    TaskProgReport.ProgressChanged -= ShowTaskProgress;
                 }
             }
             else
