@@ -23,7 +23,11 @@
                          >
             <dxt:GridControl.Columns>
                 <dxt:GridColumn FieldName="Severity" Binding="{Binding [Severity]}" Width="Auto"/>
-                <dxt:GridColumn Header="Date" Binding="{Binding [Date]}" Width="Auto"/>
+                <dxt:GridColumn Header="Date" Binding="{Binding [Date]}" Width="Auto" DefaultSortOrder="Ascending">
+                    <dxge:GridColumn.EditSettings>
+                        <dxe:TextEditSettings DisplayFormat="yyyy.MM.dd HH:mm:ss.ff" MaskUseAsDisplayFormat="True"/>
+                    </dxge:GridColumn.EditSettings>
+                </dxt:GridColumn>
                 <dxt:GridColumn Header="Message" Binding="{Binding [Message]}" Width="*">
                     <dxge:GridColumn.EditSettings>
                         <dxe:TextEditSettings TextWrapping="Wrap"/>

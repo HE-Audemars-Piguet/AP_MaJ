@@ -125,6 +125,32 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private Dictionary<FolderPathAbsolute, VDF.Vault.Currency.Entities.Folder> _folderPathToFolderDico = null;
 
+        public List<NumSchm> VaultFileNumberingSchemes
+        {
+            get
+            {
+                return _vaultFileNumberingSchemes;
+            }
+            set
+            {
+                _vaultFileNumberingSchemes = value;
+            }
+        }
+        private List<NumSchm> _vaultFileNumberingSchemes = null;
+
+        public List<NumSchm> VaultItemNumberingSchemes
+        {
+            get
+            {
+                return _vaultItemNumberingSchemes;
+            }
+            set
+            {
+                _vaultItemNumberingSchemes = value;
+            }
+        }
+        private List<NumSchm> _vaultItemNumberingSchemes = null;
+
         public RevDefInfo RevDefInfo 
         {
             get

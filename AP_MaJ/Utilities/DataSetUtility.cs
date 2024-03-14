@@ -33,7 +33,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultMasterId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Path", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultFolderId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
-     
+
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultNumSchName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultNumSchId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultPath", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultFolderId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });

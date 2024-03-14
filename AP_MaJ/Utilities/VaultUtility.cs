@@ -29,11 +29,16 @@ using DevExpress.ClipboardSource.SpreadsheetML;
 using System.Collections;
 using System.Windows;
 using static System.Net.Mime.MediaTypeNames;
+using Autodesk.DataManagement.Client.Framework.Vault.Currency.Properties;
+using DevExpress.Xpf.Editors.Helpers;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
     public class VaultUtility
     {
+        public List<string> BooleanTrueValues = new List<string>() { "Oui", "Vrai", "Yes", "True", "1" };
+        public List<string> BooleanFalseValues = new List<string>() { "Non", "Faux", "No", "False", "0" };
+
         public VDF.Vault.Currency.Connections.Connection VaultConnection
         {
             get
@@ -108,7 +113,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture des définitions de schéma de révision" });
             vltConfig.RevDefInfo = VaultConnection.WebServiceManager.RevisionService.GetAllRevisionDefinitionInfo();
 
-            // TODO get other values from configuration...
+            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture des définitions de schéma de numérotation" });
+            vltConfig.VaultFileNumberingSchemes = VaultConnection.WebServiceManager.NumberingService.GetNumberingSchemes(VDF.Vault.Currency.Entities.EntityClassIds.Files, NumSchmType.Activated).ToList();
+            vltConfig.VaultItemNumberingSchemes = VaultConnection.WebServiceManager.NumberingService.GetNumberingSchemes(VDF.Vault.Currency.Entities.EntityClassIds.Items, NumSchmType.Activated).ToList();
+            
+            
+// TODO get other values from configuration...
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
 
@@ -309,6 +319,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         if (resultState != StateEnum.Error)
                         {
+                            ValidateFileNumberingSch(VaultFile, dr, resultValues, ref resultState, resultLogs);
                             ValidateFileCategoryInfo(VaultFile, dr, resultValues, ref resultState, resultLogs);
                             ValidateFileLifeCycleInfo(VaultFile, dr, resultValues, ref resultState, resultLogs);
                             ValidateFileLifeCycleStateInfo(VaultFile, dr, resultValues, ref resultState, resultLogs);
@@ -354,6 +365,25 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 
                 resultState = StateEnum.Error;
                 return;
+            }
+        }
+        
+        private void ValidateFileNumberingSch(ACW.File vaultFile, DataRow dr, Dictionary<string, object> resultValues, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs)
+        {
+            string targetVaultNumSch = dr.Field<string>("TargetVaultNumSchName");
+
+            if (!string.IsNullOrWhiteSpace(targetVaultNumSch))
+            {
+                NumSchm numSchm = VaultConfig.VaultFileNumberingSchemes.Where(x => x.Name.Equals(targetVaultNumSch)).FirstOrDefault();
+                if (numSchm != null)
+                {
+                    resultValues.Add("TargetVaultNumSchId", numSchm.SchmID);
+                }
+                else
+                {
+                    resultLogs.Add(CreateLog("Error", "La catégorie cible '" + targetVaultNumSch + "' n'existe pas dans le Vault."));
+                    resultState = StateEnum.Error;
+                }
             }
         }
 
@@ -1032,7 +1062,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private void UpdateFileCategory(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
         {
-            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultCatId") != null)
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultCatId") != null && dr.Field<long?>("VaultCatId") != dr.Field<long?>("TargetVaultCatId"))
             {
                 try
                 {
@@ -1049,7 +1079,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private void MoveFile(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
         {
-            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultFolderId") != null)
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultFolderId") != null && dr.Field<long?>("VaultFolderId") != dr.Field<long?>("TargetVaultFolderId"))
             {
                 try
                 {
@@ -1066,9 +1096,45 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private void RenameFile(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
         {
-            if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")))
+            string Ext = System.IO.Path.GetExtension(dr.Field<string>("Name"));
+            string NewName = string.Empty;
+
+            if(dr.Field<long?>("TargetVaultNumSchId") == null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")))
             {
-                FileRenameRestric[] fileRenameRestrics = VaultConnection.WebServiceManager.DocumentService.GetFileRenameRestrictionsByMasterId(dr.Field<long>("VaultMasterId"), dr.Field<string>("TargetVaultName"));
+                NewName = dr.Field<string>("TargetVaultName");
+                if (!NewName.EndsWith(Ext, StringComparison.InvariantCultureIgnoreCase)) NewName += Ext;
+            }
+            else if (dr.Field<long?>("TargetVaultNumSchId") != null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")) && dr.Field<string>("TargetVaultName").Equals("NextNumber"))
+            {
+                try
+                {
+                    NewName = VaultConnection.WebServiceManager.DocumentService.GenerateFileNumber(dr.Field<long>("TargetVaultNumSchId"), null);
+                    NewName += Ext;
+                }
+                catch (VaultServiceErrorException VltEx)
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du renommage du fichier '" + fullVaultName + "'."));
+                    resultState = StateEnum.Error;
+                }
+            }
+            else if (dr.Field<long?>("TargetVaultNumSchId") != null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")) && dr.Field<string>("TargetVaultName").StartsWith("NextNumber="))
+            {
+                try
+                {
+                    string NumSchInput = dr.Field<string>("TargetVaultName").Substring("NextNumber=".Length).Trim();
+                    NewName = VaultConnection.WebServiceManager.DocumentService.GenerateFileNumber(dr.Field<long>("TargetVaultNumSchId"), NumSchInput.Split('|'));
+                    NewName += Ext;
+                }
+                catch (VaultServiceErrorException VltEx)
+                {
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du renommage du fichier '" + fullVaultName + "'."));
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewName) && NewName != dr.Field<string>("Name"))
+            {            
+                FileRenameRestric[] fileRenameRestrics = VaultConnection.WebServiceManager.DocumentService.GetFileRenameRestrictionsByMasterId(dr.Field<long>("VaultMasterId"), NewName);
                 if(fileRenameRestrics == null)
                 {
                     try
@@ -1093,10 +1159,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             FileIteration AcquiredFile = AcquireResults.FileResults.FirstOrDefault().File;
                      
                             ACW.File NewFileVer = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "Renommage du fichier", false, DateTime.Now,
-                                                                                                                        GetFileIterationAssocParam(AcquiredFile), null, false, dr.Field<string>("TargetVaultName"),
+                                                                                                                        GetFileIterationAssocParam(AcquiredFile), null, false, NewName,
                                                                                                                         AcquiredFile.FileClassification, AcquiredFile.IsHidden, null);
 
-                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été renommé de '" + dr.Field<string>("Name") + "' en '" + dr.Field<string>("TargetVaultName") + "'."));
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été renommé de '" + dr.Field<string>("Name") + "' en '" + NewName + "'."));
                         }
                         else
                         {
@@ -1125,6 +1191,54 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             {
                 try
                 {
+                    ACW.File file = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+
+                    ACW.PropInst FileProvider = VaultConnection.WebServiceManager.PropertyService.GetProperties(VDF.Vault.Currency.Entities.EntityClassIds.Files,
+                                                new long[] { file.Id }, new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["Provider"].Id }).FirstOrDefault();
+
+
+                    List<VDF.Vault.Currency.Properties.ContentSourceProvider> contentSourceProviders = VaultConnection.ConfigurationManager.GetContentSourceProviders().ToList();
+
+                    List<ACW.PropInstParam> UpdateUdps = new List<ACW.PropInstParam>();
+                    List<ACW.PropWriteReq> UpdateFileProps = new List<ACW.PropWriteReq>();
+
+                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == file.Cat.CatId).FirstOrDefault();
+                    if (catCfg != null)
+                    {
+                        BhvCfg bhvCfg = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
+                        if (bhvCfg != null)
+                        {
+                            foreach (PropertyFieldMapping fMapping in appOptions.VaultPropertyFieldMappings.Where(x => x.VaultPropertySet.Equals("File")))
+                            {
+                                PropertyDefinition pDef = VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.DisplayName.Equals(fMapping.VaultPropertyDisplayName)).FirstOrDefault();
+
+                                if (bhvCfg.BhvArray.Select(x => x.Id).Contains(pDef.Id))
+                                {
+                                    string stringVal = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMapping.FieldName);
+                                    object objectVal = ToObject(stringVal, pDef.ManagedDataType);
+
+                                    UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal }); 
+                                    
+                                    if (pDef.Mappings.HasMappings)
+                                    {
+                                        Dictionary<string, IList<ContentSourcePropertyMapping>> dictionary = pDef.Mappings.GetContentSourcePropertyMappingsGroupedByProvider(VDF.Vault.Currency.Entities.EntityClassIds.Files, PropertyMappings.DesiredMappingTypes.Both);
+                                        if(dictionary.ContainsKey(FileProvider.Val.ToString()))
+                                        {
+                                           
+
+                                        }
+                                    }
+                                }
+
+
+
+
+                            }
+                        }
+                    }
+
+ 
+
                     resultLogs.Add(CreateLog("System", "La mise à jour des propriétés de fichier n'est pas encore possible..."));
                 }
                 catch (VaultServiceErrorException VltEx)
@@ -1137,7 +1251,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private void UpdateFileLifeCycle(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
         {
-            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcId") != null)
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcId") != null && dr.Field<long?>("TargetVaultLcId") != dr.Field<long?>("VaultLcId"))
             {
                 try
                 {
@@ -1179,7 +1293,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private void UpdateFileLifeCycleState(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
         {
-            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcsId") != null)
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcsId") != null && dr.Field<long?>("TargetVaultLcsId") != dr.Field<long?>("VaultLcsId"))
             {
                 try
                 {
@@ -1230,9 +1344,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         param2.Val = dr.Field<long>("VaultMasterId").ToString();
 
                         VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + fullVaultName, new JobParam[] { param1, param2 }, 10);
+                        
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis pour le fichier '" + fullVaultName + "'."));
                     }
 
-                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis pour le fichier '" + fullVaultName + "'."));
+                    
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
@@ -1754,6 +1870,69 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             {
                 return null;
             }
+        }
+
+        public object ToObject(string inputString, Type OutputTypeObject)
+        {
+
+            if (inputString.Equals("ClearPropValue")) return null;
+
+            if (OutputTypeObject == typeof(string))
+            {
+                return inputString;
+            }
+            else if (OutputTypeObject == typeof(double) && !string.IsNullOrEmpty(inputString))
+            {
+                double doubleVal;
+
+                if (double.TryParse(inputString, out doubleVal))
+                {
+                    return doubleVal;
+                }
+                else
+                {
+                    if (inputString.Contains("."))
+                    {
+                        inputString = inputString.Replace(".", ",");
+                        if (double.TryParse(inputString, out doubleVal))
+                        {
+                            return doubleVal;
+                        }
+                    }
+                    else if (inputString.Contains(","))
+                    {
+                        inputString = inputString.Replace(",", ".");
+                        if (double.TryParse(inputString, out doubleVal))
+                        {
+                            return doubleVal;
+                        }
+                    }
+                }
+
+            }
+            else if (OutputTypeObject == typeof(bool) && !string.IsNullOrEmpty(inputString))
+            {
+                bool boolVal;
+
+                if (bool.TryParse(inputString, out boolVal))
+                {
+                    return boolVal;
+                }
+                else
+                {
+                    if (BooleanTrueValues.Contains(inputString, StringComparer.InvariantCultureIgnoreCase)) return true;
+                    else if (BooleanFalseValues.Contains(inputString, StringComparer.InvariantCultureIgnoreCase)) return false;
+                }
+            }
+            else if (OutputTypeObject == typeof(DateTime) && !string.IsNullOrEmpty(inputString))
+            {
+                DateTime datetimeVal;
+
+                if (DateTime.TryParse(inputString, out datetimeVal))
+                    return datetimeVal;
+            }
+
+            return null;
         }
     }
 }
