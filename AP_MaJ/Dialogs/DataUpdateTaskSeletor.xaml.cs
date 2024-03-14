@@ -108,9 +108,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, Index = 102, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = true, Index = 103, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = true, Index = 104, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 106, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 107, Parent = FileTask });
+            //FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = FileTask });
+            //FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 106, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 105, Parent = FileTask });
             MaJTasks.Add(FileTask);
 
             MaJTask ItemTask = new MaJTask() { Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 200 };
@@ -119,7 +119,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             ItemTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 202, Parent = ItemTask });
             ItemTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 203, Parent = ItemTask });
             ItemTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 204, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 205, Parent = ItemTask });
+            //ItemTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 205, Parent = ItemTask });
             MaJTasks.Add(ItemTask);
 
             MaJToDoTasks = new ObservableCollection<string>();
@@ -248,6 +248,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                         else if (currentTask.Name.Equals("ReadConfig"))
                         {
                             vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                            vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
                         }
                     }
                     else if (currentTask.Parent.Name.Equals("File"))

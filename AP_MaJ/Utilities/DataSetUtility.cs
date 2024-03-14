@@ -26,14 +26,17 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Id", DataType = typeof(long), AutoIncrement = true, AutoIncrementSeed = 1, AutoIncrementStep = 1, AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Task", DataType = typeof(TaskTypeEnum), AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "State", DataType = typeof(StateEnum), AllowDBNull = false });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultMasterId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
+            
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "EntityType", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Name", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultMasterId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Path", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultFolderId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
+     
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultPath", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultFolderId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultCatName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultCatId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });

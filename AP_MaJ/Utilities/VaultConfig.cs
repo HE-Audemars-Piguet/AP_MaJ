@@ -1,4 +1,5 @@
 ﻿using Autodesk.Connectivity.WebServices;
+using Autodesk.DataManagement.Client.Framework.Currency;
 using Autodesk.DataManagement.Client.Framework.Vault.Currency.Entities;
 using System.Collections.Generic;
 using VDF = Autodesk.DataManagement.Client.Framework;
@@ -110,6 +111,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
         private List<long> _allowedStateTransitionIdsList = null;
+
+        public Dictionary<FolderPathAbsolute, VDF.Vault.Currency.Entities.Folder> FolderPathToFolderDico
+        {
+            get
+            {
+                return _folderPathToFolderDico;
+            }
+            set
+            {
+                _folderPathToFolderDico = value;
+            }
+        }
+        private Dictionary<FolderPathAbsolute, VDF.Vault.Currency.Entities.Folder> _folderPathToFolderDico = null;
 
         public RevDefInfo RevDefInfo 
         {
