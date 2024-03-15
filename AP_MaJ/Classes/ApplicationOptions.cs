@@ -318,6 +318,19 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private string _vaultuserr = string.Empty;
 
+        public int MaxJobSubmitionCount
+        {
+            get 
+            {
+                return _maxJobSubmitionCount;
+            }
+            set
+            {
+                _maxJobSubmitionCount = value;
+            }
+        }
+        private int _maxJobSubmitionCount = 5;
+
         [JsonConverter(typeof(JsonStringEncription))]
         public string VaultPassword
         {

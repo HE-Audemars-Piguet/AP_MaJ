@@ -172,18 +172,15 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                 }
             }
 
-            currentTask.ProcessFeedback[e.ProcessIndex] = e.ProcessFeedbackMessage;
+            currentTask.ProcessFeedback[e.ProcessIndex] = e.Message;
 
-            if(!string.IsNullOrWhiteSpace(e.ProcessFeedbackMessage)) currentTask.ElementCount++;
+            currentTask.ElementCount = currentTask.ElementCount + e.TotalCountInc;
+            currentTask.ElementDoneCount = currentTask.ElementDoneCount + e.DoneInc;
 
-            if (e.ProcessHasError == false)
+            if(e.ErrorInc > 0)
             {
-                currentTask.ElementDoneCount++;
-            }
-            else if (e.ProcessHasError == true)
-            {
-                currentTask.ElementErrorCount++;
-                if(appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.Stop) TaskCancellationTokenSource.Cancel();
+                currentTask.ElementErrorCount = currentTask.ElementErrorCount + e.ErrorInc;
+                if (appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.Stop) TaskCancellationTokenSource.Cancel();
             }
         }
 

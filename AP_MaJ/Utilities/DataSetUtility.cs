@@ -26,7 +26,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Id", DataType = typeof(long), AutoIncrement = true, AutoIncrementSeed = 1, AutoIncrementStep = 1, AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Task", DataType = typeof(TaskTypeEnum), AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "State", DataType = typeof(StateEnum), AllowDBNull = false });
-            
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "JobSubmitCount", DataType = typeof(int), DefaultValue = null, AllowDBNull = true });
+
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "EntityType", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Name", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
@@ -54,7 +55,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLcsId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TempVaultLcsName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TempVaultLcsId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
-            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcsName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcsName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultLcsId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevSchName", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });

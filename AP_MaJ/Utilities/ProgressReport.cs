@@ -15,7 +15,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
     public class ProcessProgressReport
     {
         public int ProcessIndex { get; set; }
-        public string ProcessFeedbackMessage { get; set; } = string.Empty;
-        public bool? ProcessHasError { get; set; } = null;
+        public string Message { get; set; } = string.Empty;
+
+        public int TotalCountInc { get; set; } = 0;
+        public int DoneInc { get; set; } = 0;
+        public int ErrorInc { get; set; } = 0;
+        //public bool? ProcessHasError { get; set; } = null;
     }
 }

@@ -31,6 +31,8 @@ using System.Windows;
 using static System.Net.Mime.MediaTypeNames;
 using Autodesk.DataManagement.Client.Framework.Vault.Currency.Properties;
 using DevExpress.Xpf.Editors.Helpers;
+using System.Runtime.InteropServices.ComTypes;
+using DevExpress.Xpf.Docking;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -87,13 +89,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             VaultConfig vltConfig = new VaultConfig();
 
             if(ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la définition des propriétés des fichiers", Timer = "Start" });
-            vltConfig.VaultFilePropertyDefinitionDictionary = await Task.Run(() => VaultConnection.PropertyManager.GetPropertyDefinitions(VDF.Vault.Currency.Entities.EntityClassIds.Files, null, VDF.Vault.Currency.Properties.PropertyDefinitionFilter.IncludeAll));
+            vltConfig.VaultFilePropertyDefinitionDictionary = await Task.Run(() => VaultConnection.PropertyManager.GetPropertyDefinitions(VDF.Vault.Currency.Entities.EntityClassIds.Files, null, VDF.Vault.Currency.Properties.PropertyDefinitionFilter.IncludeAll | VDF.Vault.Currency.Properties.PropertyDefinitionFilter.OnlyActive));
+            vltConfig.VaultFilePropertyMapping = await Task.Run(() => GetPropertyMapping(VDF.Vault.Currency.Entities.EntityClassIds.Files, 
+                vltConfig.VaultFilePropertyDefinitionDictionary.Where(x => (!x.Value.IsSystem || x.Value.SystemName.Equals("Revision")) && !x.Value.IsDynamic).Select(x => x.Value).ToList()));
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la définition des catégories des fichiers" });
             vltConfig.VaultFileCategoryList = await Task.Run(() => VaultConnection.CategoryManager.GetAvailableCategories(VDF.Vault.Currency.Entities.EntityClassIds.Files, true).ToList());
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la définition des propriétés des articles" });
-            vltConfig.VaultItemPropertyDefinitionDictionary = await Task.Run(() => VaultConnection.PropertyManager.GetPropertyDefinitions(VDF.Vault.Currency.Entities.EntityClassIds.Items, null, VDF.Vault.Currency.Properties.PropertyDefinitionFilter.IncludeAll));
+            vltConfig.VaultItemPropertyDefinitionDictionary = await Task.Run(() => VaultConnection.PropertyManager.GetPropertyDefinitions(VDF.Vault.Currency.Entities.EntityClassIds.Items, null, VDF.Vault.Currency.Properties.PropertyDefinitionFilter.IncludeAll | VDF.Vault.Currency.Properties.PropertyDefinitionFilter.OnlyActive));
+            vltConfig.VaultItemPropertyMapping = await Task.Run(() => GetPropertyMapping(VDF.Vault.Currency.Entities.EntityClassIds.Items, 
+                vltConfig.VaultItemPropertyDefinitionDictionary.Where(x => (!x.Value.IsSystem || x.Value.SystemName.Equals("Title(Item,CO)") || x.Value.SystemName.Equals("Description(Item,CO)")) && !x.Value.IsDynamic).Select(x => x.Value).ToList()));
+
+            //propDef.Active == false || propDef.IsCalculated == true || (propDef.IsSystem == true && !(propDef.SystemName.Equals("Title(Item,CO)") || propDef.SystemName.Equals("Description(Item,CO)")))
+
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la définition des cycles de vie" });
             vltConfig.VaultLifeCycleDefinitionList = await Task.Run(() => VaultConnection.WebServiceManager.LifeCycleService.GetAllLifeCycleDefinitions().ToList());
@@ -220,8 +229,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> ValidateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport)
         {
-            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
-            
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
             List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
 
@@ -242,8 +249,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
                 else FullVaultName += "/" + dr.Field<string>("Name");
                 
-                pProgressReport.ProcessFeedbackMessage = FullVaultName;
-                //processProgReport.Report(pProgressReport);
+                processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
                 if (string.IsNullOrWhiteSpace(FullVaultName))
                 {
@@ -334,10 +340,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
             }
 
-            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
-            processProgReport.Report(pProgressReport);
-
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            if(resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
+            else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
 
             return (processId, dr, resultValues, resultState, resultLogs);
         }
@@ -711,8 +717,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> TempChangeStateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
         {
-            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
-
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
             List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
 
@@ -733,8 +737,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
                 else FullVaultName += "/" + dr.Field<string>("Name");
 
-                pProgressReport.ProcessFeedbackMessage = FullVaultName;
-                //processProgReport.Report(pProgressReport);
+                processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
                 if (string.IsNullOrWhiteSpace(FullVaultName))
                 {
@@ -757,10 +760,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
             }
 
-            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
-            processProgReport.Report(pProgressReport);
-
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
+            else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
 
             return (processId, dr, resultValues, resultState, resultLogs);
         }
@@ -845,8 +848,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> PurgePropertyFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
         {
-            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
-
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
             List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
 
@@ -867,7 +868,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
                 else FullVaultName += "/" + dr.Field<string>("Name");
 
-                pProgressReport.ProcessFeedbackMessage = FullVaultName;
+                processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
                 if (string.IsNullOrWhiteSpace(FullVaultName))
                 {
@@ -940,10 +941,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
             }
 
-            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
-            processProgReport.Report(pProgressReport);
-
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
+            else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
 
             return (processId, dr, resultValues, resultState, resultLogs);
         }
@@ -1027,8 +1028,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
         {
-            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
-
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
             List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
 
@@ -1040,22 +1039,22 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
             else FullVaultName += "/" + dr.Field<string>("Name");
 
-            pProgressReport.ProcessFeedbackMessage = FullVaultName;
+            processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
             await Task.Run(() => UpdateFileCategory(FullVaultName, dr, ref resultState, resultLogs, appOptions));
             await Task.Run(() => MoveFile(FullVaultName, dr, ref resultState, resultLogs, appOptions));
             await Task.Run(() => RenameFile(FullVaultName, dr, ref resultState, resultLogs, appOptions));
-            await Task.Run(() => UpdateFileProperty(FullVaultName, dr, ref resultState, resultLogs, appOptions));
             await Task.Run(() => UpdateFileLifeCycle(FullVaultName, dr, ref resultState, resultLogs, appOptions));
             await Task.Run(() => UpdateFileRevision(FullVaultName, dr, ref resultState, resultLogs, appOptions));
+            await Task.Run(() => UpdateFileProperty(FullVaultName, dr, ref resultState, resultLogs, appOptions));
             await Task.Run(() => UpdateFileLifeCycleState(FullVaultName, dr, ref resultState, resultLogs, appOptions));
-            await Task.Run(() => SyncFileProperties(FullVaultName, dr, ref resultState, resultLogs, appOptions));
-            await Task.Run(() => CreateBomBlobJob(FullVaultName, dr, ref resultState, resultLogs, appOptions));
-
-            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
-            processProgReport.Report(pProgressReport);
+            //await Task.Run(() => SyncFileProperties(FullVaultName, dr, ref resultState, resultLogs, appOptions));
+            await Task.Run(() => CreateBomBlobJob(FullVaultName, dr, resultValues, ref resultState, resultLogs, appOptions));
 
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
+            else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
 
             return (processId, dr, resultValues, resultState, resultLogs);
         }
@@ -1159,7 +1158,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             FileIteration AcquiredFile = AcquireResults.FileResults.FirstOrDefault().File;
                      
                             ACW.File NewFileVer = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "Renommage du fichier", false, DateTime.Now,
-                                                                                                                        GetFileIterationAssocParam(AcquiredFile), null, false, NewName,
+                                                                                                                        GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")), null, false, NewName,
                                                                                                                         AcquiredFile.FileClassification, AcquiredFile.IsHidden, null);
 
                             if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été renommé de '" + dr.Field<string>("Name") + "' en '" + NewName + "'."));
@@ -1193,11 +1192,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     ACW.File file = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
 
-                    ACW.PropInst FileProvider = VaultConnection.WebServiceManager.PropertyService.GetProperties(VDF.Vault.Currency.Entities.EntityClassIds.Files,
-                                                new long[] { file.Id }, new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["Provider"].Id }).FirstOrDefault();
-
-
-                    List<VDF.Vault.Currency.Properties.ContentSourceProvider> contentSourceProviders = VaultConnection.ConfigurationManager.GetContentSourceProviders().ToList();
+                    string FileProviderName = VaultConnection.WebServiceManager.PropertyService.GetProperties(VDF.Vault.Currency.Entities.EntityClassIds.Files,
+                                                new long[] { file.Id }, new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["Provider"].Id }).FirstOrDefault().Val.ToString();
 
                     List<ACW.PropInstParam> UpdateUdps = new List<ACW.PropInstParam>();
                     List<ACW.PropWriteReq> UpdateFileProps = new List<ACW.PropWriteReq>();
@@ -1217,28 +1213,65 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                     string stringVal = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMapping.FieldName);
                                     object objectVal = ToObject(stringVal, pDef.ManagedDataType);
 
-                                    UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal }); 
-                                    
-                                    if (pDef.Mappings.HasMappings)
-                                    {
-                                        Dictionary<string, IList<ContentSourcePropertyMapping>> dictionary = pDef.Mappings.GetContentSourcePropertyMappingsGroupedByProvider(VDF.Vault.Currency.Entities.EntityClassIds.Files, PropertyMappings.DesiredMappingTypes.Both);
-                                        if(dictionary.ContainsKey(FileProvider.Val.ToString()))
-                                        {
-                                           
+                                    UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
 
-                                        }
+                                    if (VaultConfig.VaultFilePropertyMapping.ContainsKey(pDef.SystemName) && VaultConfig.VaultFilePropertyMapping[pDef.SystemName].ContainsKey(FileProviderName))
+                                    {
+                                        ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping[pDef.SystemName][FileProviderName].FirstOrDefault();
+
+                                        UpdateFileProps.Add(new ACW.PropWriteReq()
+                                        {
+                                            CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
+                                            Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
+                                            Val = UpdateUdps.Last().Val
+                                        });
                                     }
                                 }
-
-
-
-
                             }
                         }
                     }
 
- 
+                    if (VaultConfig.VaultFilePropertyMapping.ContainsKey("Revision") && VaultConfig.VaultFilePropertyMapping["Revision"].ContainsKey(FileProviderName))
+                    {
+                        ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping["Revision"][FileProviderName].FirstOrDefault();
 
+                        UpdateFileProps.Add(new ACW.PropWriteReq()
+                        {
+                            CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
+                            Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
+                            Val = file.FileRev.Label
+                        });
+                    }
+
+                    if (UpdateUdps.Count > 0 || UpdateFileProps.Count > 0)
+                    {
+                        // Checkout
+                        ACW.ByteArray downloadTicket = null;
+                        file = VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, file).EntityIterationId,
+                                    ACW.CheckoutFileOptions.Master, Environment.MachineName, "", "Batch editor update properties", out downloadTicket);
+
+                        // update Vault UDPs
+                        if (UpdateUdps.Count > 0)
+                        {
+                            VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") },
+                                    new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } });
+                        }
+
+                        // Update file properties
+                        ByteArray uploadTicket = null;
+                        if (UpdateFileProps.Count > 0)
+                        {
+                            ACW.PropWriteResults PropUpdateresults;
+                            uploadTicket = VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(file.Name).TrimStart('.'),
+                                                true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray();
+
+                        }
+
+                        // Checkin
+                        file = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "Batch editor update properties", false, 
+                                    DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket);
+                    }
+                    
                     resultLogs.Add(CreateLog("System", "La mise à jour des propriétés de fichier n'est pas encore possible..."));
                 }
                 catch (VaultServiceErrorException VltEx)
@@ -1325,7 +1358,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        private void CreateBomBlobJob(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
+        private void CreateBomBlobJob(string fullVaultName, DataRow dr, Dictionary<string, object> resultValues, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
         {
             if (resultState != StateEnum.Error)
             {
@@ -1335,6 +1368,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     if (Ext.Equals(".ipt", StringComparison.InvariantCultureIgnoreCase) || Ext.Equals(".iam", StringComparison.InvariantCultureIgnoreCase))
                     {
+                        int Count = 1;
+                        if (dr.Field<int?>("JobSubmitCount") != null) Count = dr.Field<int>("JobSubmitCount") + 1;
+
+                        resultValues.Add("JobSubmitCount", Count++);
+
                         JobParam param1 = new JobParam();
                         param1.Name = "EntityClassId";
                         param1.Val = "File";
@@ -1344,16 +1382,22 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         param2.Val = dr.Field<long>("VaultMasterId").ToString();
 
                         VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + fullVaultName, new JobParam[] { param1, param2 }, 10);
-                        
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis pour le fichier '" + fullVaultName + "'."));
-                    }
 
-                    
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis pour le fichier '" + fullVaultName + "'."));
+                    }                    
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la création du job de création du BOM Blob du fichier '" + fullVaultName + "'."));
-                    resultState = StateEnum.Error;
+                    if(VltEx.ErrorCode == 237)
+                    {
+                        if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la création du job de création du BOM Blob du fichier '" + fullVaultName + "'." + Environment.NewLine + 
+                                                                                       "Ce job est déjà présent dans la queue du job processeur!"));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la création du job de création du BOM Blob du fichier '" + fullVaultName + "'."));
+                        resultState = StateEnum.Error;
+                    }
                 }
             }
         }
@@ -1363,131 +1407,136 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         internal async Task<DataSet> ForceAndWaitForBomBlobCreationFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
+
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Update) &&
-                                                                                                              x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                                              x.Field<int?>("JobSubmitCount") != null &&
                                                                                                               x.Field<long?>("VaultMasterId") != null));
 
             foreach (DataRow dr in EntitiesStack)
             {
-                dr["Task"] = TaskTypeEnum.PurgeProps;
+                dr["Task"] = TaskTypeEnum.WaitForBomBlob;
                 dr["State"] = StateEnum.Pending;
             }
-
             int TotalCount = EntitiesStack.Count;
 
-            taskProgReport.Report(new TaskProgressReport() { Message = "Création des information de nomenclature des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
+            taskProgReport.Report(new TaskProgressReport() { Message = "Attente des information de nomenclature des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
 
-            if (TotalCount > 0)
+            List<long> PendingJobMasterIds = new List<long>();
+            List<long> ErrorJobMasterIds = new List<long>();
+
+            while (EntitiesStack.Count > 0)
             {
-                List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
-                new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
+                TimeSpan from = new TimeSpan(24, 0, 0);
+                
+                processProgReport.Report(new ProcessProgressReport() { Message = "Contrôle de la file d'attente du job processeur...", ProcessIndex = 0 });
+                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(10000, DateTime.Now.Subtract(from)));
 
-                for (int i = 0; i < appOptions.FilePurgePropsProcess; i++)
+                if (AllBomBlobJobs != null)
                 {
-                    int ProcessId = i;
-                    DataRow PopEntity = EntitiesStack.Pop();
-                    TaskList.Add(Task.Run(() => BomBlobCreationFile(ProcessId, PopEntity, processProgReport, appOptions)));
-
-                    if (EntitiesStack.Count == 0) break;
+                    PendingJobMasterIds = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Ready).Select(x => long.Parse(x.ParamArray[1].Val)).ToList();
+                    ErrorJobMasterIds = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Failure).Select(x => long.Parse(x.ParamArray[1].Val)).ToList();
                 }
 
-
-                while (TaskList.Any())
+                foreach (DataRow dr in EntitiesStack)
                 {
-                    Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> finished = await Task.WhenAny(TaskList);
+                    long MasterId = dr.Field<long>("VaultMasterId");
+                    dr["State"] = StateEnum.Processing;
 
-                    int ProcessId = finished.Result.processId;
-
-                    finished.Result.entity["State"] = finished.Result.State;
-
-                    foreach (KeyValuePair<string, object> kvp in finished.Result.Result)
+                    if (!PendingJobMasterIds.Contains(MasterId) && !ErrorJobMasterIds.Contains(MasterId))
                     {
-                        finished.Result.entity[kvp.Key] = kvp.Value;
-                    }
+                        ACW.File file = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(MasterId));
 
-                    foreach (Dictionary<string, object> log in finished.Result.ResultLogs)
-                    {
-                        DataRow drLog = ds.Tables["Logs"].NewRow();
-                        drLog["EntityId"] = finished.Result.entity["Id"];
+                        bool HasBomBlob = (bool)VaultConnection.WebServiceManager.PropertyService.GetProperties(EntityClassIds.Files, new long[] { file.Id }, 
+                                                    new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["ItemAssignable"].Id }).FirstOrDefault().Val;
 
-                        foreach (KeyValuePair<string, object> kvp in log)
+                        if (HasBomBlob)
                         {
-                            drLog[kvp.Key] = kvp.Value;
+                            dr["State"] = StateEnum.Completed;
+                            processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, DoneInc = 1 });
                         }
+                        else
+                        {
+                            try
+                            {
+                                string Ext = System.IO.Path.GetExtension(dr.Field<string>("Name"));
 
-                        ds.Tables["Logs"].Rows.Add(drLog);
+                                if (Ext.Equals(".ipt", StringComparison.InvariantCultureIgnoreCase) || Ext.Equals(".iam", StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    int Count = 1;
+                                    if (dr.Field<int?>("JobSubmitCount") != null) Count = dr.Field<int>("JobSubmitCount") + 1;
+
+                                    if (Count <= appOptions.MaxJobSubmitionCount)
+                                    {
+                                        dr["JobSubmitCount"] = Count++;
+
+                                        JobParam param1 = new JobParam();
+                                        param1.Name = "EntityClassId";
+                                        param1.Val = "File";
+
+                                        JobParam param2 = new JobParam();
+                                        param2.Name = "FileMasterId";
+                                        param2.Val = dr.Field<long>("VaultMasterId").ToString();
+
+                                        VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + dr.Field<string>("Name"), new JobParam[] { param1, param2 }, 10);
+                                    }
+                                    else
+                                    {
+                                        dr["State"] = StateEnum.Error;
+                                        processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
+                                    }
+                                    // if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été re-soumis pour le fichier '" + dr.Field<string>("Name") + "'."));
+                                }
+                            }
+                            catch (VaultServiceErrorException VltEx)
+                            {
+                                if (VltEx.ErrorCode == 237)
+                                {
+                                    //  if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la création du job de création du BOM Blob du fichier '" + fullVaultName + "'." + Environment.NewLine +
+                                    //                                                                 "Ce job est déjà présent dans la queue du job processeur!"));
+                                }
+                                else
+                                {
+                                    //   if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la création du job de création du BOM Blob du fichier '" + fullVaultName + "'."));
+                                    //resultState = StateEnum.Error;
+                                }
+
+                                dr["State"] = StateEnum.Error;
+                                processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
+                            }
+                        }
                     }
-
-                    TaskList.Remove(finished);
-
-                    if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                    else if (ErrorJobMasterIds.Contains(MasterId))
                     {
-                        DataRow PopEntity = EntitiesStack.Pop();
-                        TaskList.Add(Task.Run(() => BomBlobCreationFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                        if (dr.Field<int>("JobSubmitCount") < appOptions.MaxJobSubmitionCount)
+                        {
+                            dr["JobSubmitCount"] = dr.Field<int>("JobSubmitCount") + 1;
+                            await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(AllBomBlobJobs.Where(x => long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault().Id));
+                        }
+                        else
+                        {
+                            dr["State"] = StateEnum.Error;
+                            processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
+                        }
                     }
                 }
+
+                EntitiesStack = new Stack<DataRow>(EntitiesStack.Where(x => x.Field<StateEnum>("State") == StateEnum.Processing));
+
+                if(EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                {
+                    processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0 });
+                    await Task.Delay(5000);
+                }
+
+                PendingJobMasterIds.Clear();
+                ErrorJobMasterIds.Clear();
             }
 
-            taskProgReport.Report(new TaskProgressReport() { Message = "Création des information de nomenclature des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
+            taskProgReport.Report(new TaskProgressReport() { Message = "Attente des information de nomenclature des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
 
             return ds;
-        }
-
-        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> BomBlobCreationFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
-        {
-            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
-
-            Dictionary<string, object> resultValues = new Dictionary<string, object>();
-            List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
-
-            StateEnum resultState = StateEnum.Processing;
-
-            if (dr == null)
-            {
-                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "La ligne de base de données est 'null', impossible de traiter l'élément."));
-                resultState = StateEnum.Error;
-            }
-
-            string FullVaultName = string.Empty;
-            ACW.File VaultFile = null;
-
-            if (resultState != StateEnum.Error)
-            {
-                FullVaultName = dr.Field<string>("Path");
-                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
-                else FullVaultName += "/" + dr.Field<string>("Name");
-
-                pProgressReport.ProcessFeedbackMessage = FullVaultName;
-
-                if (string.IsNullOrWhiteSpace(FullVaultName))
-                {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le nom de fichier est vide, impossible de traiter l'élément."));
-                    resultState = StateEnum.Error;
-                }
-            }
-
-            if (resultState != StateEnum.Error)
-            {
-                try
-                {
-                    
-                }
-                catch (VaultServiceErrorException VltEx)
-                {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
-                    resultState = StateEnum.Error;
-                }
-            }
-
-            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
-            processProgReport.Report(pProgressReport);
-
-            if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
-
-            return (processId, dr, resultValues, resultState, resultLogs);
         }
         #endregion
 
@@ -1574,8 +1623,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> ValidateItem(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport)
         {
-            ProcessProgressReport pProgressReport = new ProcessProgressReport() { ProcessIndex = processId, ProcessHasError = null };
-
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
             List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
 
@@ -1593,9 +1640,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState != StateEnum.Error)
             {
                 FullVaultName = dr.Field<string>("Name");
-
-                pProgressReport.ProcessFeedbackMessage = FullVaultName;
-                processProgReport.Report(pProgressReport);
+                processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
                 if (string.IsNullOrWhiteSpace(FullVaultName))
                 {
@@ -1644,11 +1689,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
             }
 
-            pProgressReport.ProcessHasError = resultState == StateEnum.Error;
-            processProgReport.Report(pProgressReport);
+            if(resultState == StateEnum.Processing) resultState = StateEnum.Completed;
 
-            if(resultState == StateEnum.Processing) resultState = StateEnum.Completed; 
-            
+            if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
+            else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
+
             return (processId, dr, resultValues, resultState, resultLogs);
         }
 
@@ -1667,7 +1712,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 return;
             }
         }
-
 
         private void ValidateItemCategoryInfo(ACW.Item vaultItem, DataRow dr, Dictionary<string, object> resultValues, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs)
         {
@@ -1838,39 +1882,39 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return false;
         }
 
-        private FileAssocParam[] GetFileIterationAssocParam(FileIteration file)
-        {
-            try
-            {
-                ArrayList fileAssocParams = new ArrayList();
-                FileAssocArray ThisFileAssocArray = VaultConnection.WebServiceManager.DocumentService.GetFileAssociationsByIds(new long[] { file.EntityIterationId }, FileAssociationTypeEnum.None, false, FileAssociationTypeEnum.All, false, false, true)[0];
+        //private FileAssocParam[] GetFileIterationAssocParam(FileIteration file)
+        //{
+        //    try
+        //    {
+        //        ArrayList fileAssocParams = new ArrayList();
+        //        FileAssocArray ThisFileAssocArray = VaultConnection.WebServiceManager.DocumentService.GetFileAssociationsByIds(new long[] { file.EntityIterationId }, FileAssociationTypeEnum.None, false, FileAssociationTypeEnum.All, false, false, true)[0];
 
-                if (ThisFileAssocArray != null && ThisFileAssocArray.FileAssocs != null)
-                {
-                    foreach (FileAssoc assoc in ThisFileAssocArray.FileAssocs)
-                    {
-                        FileAssocParam param1 = new FileAssocParam();
+        //        if (ThisFileAssocArray != null && ThisFileAssocArray.FileAssocs != null)
+        //        {
+        //            foreach (FileAssoc assoc in ThisFileAssocArray.FileAssocs)
+        //            {
+        //                FileAssocParam param1 = new FileAssocParam();
 
-                        param1.CldFileId = assoc.CldFile.Id;
-                        param1.RefId = assoc.RefId;
-                        param1.Source = assoc.Source;
-                        param1.Typ = assoc.Typ;
-                        param1.ExpectedVaultPath = assoc.ExpectedVaultPath;
+        //                param1.CldFileId = assoc.CldFile.Id;
+        //                param1.RefId = assoc.RefId;
+        //                param1.Source = assoc.Source;
+        //                param1.Typ = assoc.Typ;
+        //                param1.ExpectedVaultPath = assoc.ExpectedVaultPath;
 
-                        fileAssocParams.Add(param1);
-                    }
-                    return (FileAssocParam[])fileAssocParams.ToArray(typeof(FileAssocParam));
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch
-            {
-                return null;
-            }
-        }
+        //                fileAssocParams.Add(param1);
+        //            }
+        //            return (FileAssocParam[])fileAssocParams.ToArray(typeof(FileAssocParam));
+        //        }
+        //        else
+        //        {
+        //            return null;
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        return null;
+        //    }
+        //}
 
         public object ToObject(string inputString, Type OutputTypeObject)
         {
@@ -1933,6 +1977,60 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
 
             return null;
+        }
+
+
+        private Dictionary<string, Dictionary<string, IList<ContentSourcePropertyMapping>>> GetPropertyMapping(string entityClassIdFilter, List<PropertyDefinition> propertyDefinitions)
+        {
+            Dictionary<string, Dictionary<string, IList<ContentSourcePropertyMapping>>> result = new Dictionary<string, Dictionary<string, IList<ContentSourcePropertyMapping>>>();
+
+            foreach (PropertyDefinition pDef in propertyDefinitions)
+            {
+                if (pDef.Mappings.HasMappings)
+                {
+                    result.Add(pDef.SystemName, pDef.Mappings.GetContentSourcePropertyMappingsGroupedByProvider(entityClassIdFilter, PropertyMappings.DesiredMappingTypes.Both));
+                }
+            }
+            
+            return result;
+        }
+
+        private FileAssocParam[] GetFileAssocParamByMasterId(long masterId)
+        {
+            try
+            {
+                ArrayList fileAssocParams = new ArrayList();
+                FileAssocArray ThisFileAssocArray = VaultConnection.WebServiceManager.DocumentService.GetLatestFileAssociationsByMasterIds(
+                                                        new long[] { masterId }, FileAssociationTypeEnum.None, false, FileAssociationTypeEnum.All, false, false, true, false).FirstOrDefault();
+
+                if (ThisFileAssocArray != null && ThisFileAssocArray.FileAssocs != null)
+                {
+                    foreach (FileAssoc assoc in ThisFileAssocArray.FileAssocs)
+                    {
+                        FileAssocParam param1 = new FileAssocParam();
+
+                        param1.CldFileId = assoc.CldFile.Id;
+                        param1.RefId = assoc.RefId;
+                        param1.Source = assoc.Source;
+                        param1.Typ = assoc.Typ;
+                        param1.ExpectedVaultPath = assoc.ExpectedVaultPath;
+
+                        fileAssocParams.Add(param1);
+                    }
+                    return (FileAssocParam[])fileAssocParams.ToArray(typeof(FileAssocParam));
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch
+            {
+                //MessageBox.Show("Error - Unable to update file assocs." + Environment.NewLine +
+                //                "File \"" + DocService.GetFileById(entityIterationId).Name + "\" has lost references." + Environment.NewLine +
+                //                "It MUST be open and checked-in from the Source application.", "!!! ERROR !!!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
         }
     }
 }

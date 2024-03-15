@@ -22,6 +22,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private VDF.Vault.Currency.Properties.PropertyDefinitionDictionary _vaultFilePropertyDefinitionDictionary = null;
 
+        public Dictionary<string, Dictionary<string, IList<VDF.Vault.Currency.Properties.ContentSourcePropertyMapping>>> VaultFilePropertyMapping
+        {
+            get 
+            { 
+                return _vaultFilePropertyMapping; 
+            }
+            set 
+            { 
+                _vaultFilePropertyMapping = value; 
+            }
+        }
+        private Dictionary<string, Dictionary<string, IList<VDF.Vault.Currency.Properties.ContentSourcePropertyMapping>>> _vaultFilePropertyMapping = null;
+
         public VDF.Vault.Currency.Properties.PropertyDefinitionDictionary VaultItemPropertyDefinitionDictionary
         {
             get
@@ -34,6 +47,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
         private VDF.Vault.Currency.Properties.PropertyDefinitionDictionary _vaultItemPropertyDefinitionDictionary = null;
+
+        public Dictionary<string, Dictionary<string, IList<VDF.Vault.Currency.Properties.ContentSourcePropertyMapping>>> VaultItemPropertyMapping
+        {
+            get
+            {
+                return _vaultItemPropertyMapping;
+            }
+            set
+            {
+                _vaultItemPropertyMapping = value;
+            }
+        }
+        private Dictionary<string, Dictionary<string, IList<VDF.Vault.Currency.Properties.ContentSourcePropertyMapping>>> _vaultItemPropertyMapping = null;
+
 
         public List<LfCycDef> VaultLifeCycleDefinitionList
         {
@@ -163,6 +190,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
         private RevDefInfo _revDefInfo = null;
+
         public VaultConfig() { }
     }
 }
