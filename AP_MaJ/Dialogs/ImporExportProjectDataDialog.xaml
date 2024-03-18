@@ -45,6 +45,16 @@
                 <Button.Content>
                     <Image Source="{dx:DXImage 'SvgImages/Spreadsheet/InsertSheet.svg'}" Height="16"/>
                 </Button.Content>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="IsEnabled" Value="True"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SourceFileName}" Value="">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
             </Button>
         </Grid>
 

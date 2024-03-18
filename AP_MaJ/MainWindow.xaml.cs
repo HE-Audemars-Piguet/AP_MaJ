@@ -419,7 +419,7 @@ namespace Ch.Hurni.AP_MaJ
 
         private void ImportProjectData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
-            List<string> ColList = Data.Tables["Entities"].Columns.Cast<DataColumn>().Where(x => !x.ColumnName.EndsWith("Id") && !x.ColumnName.StartsWith("Vault") && !x.ColumnName.Equals("State") && !x.ColumnName.Equals("Task") && !x.ColumnName.Equals("JobSubmitCount")).Select(x => x.ColumnName).ToList();
+            List<string> ColList = Data.Tables["Entities"].Columns.Cast<DataColumn>().Where(x => !x.ColumnName.EndsWith("Id") && !x.ColumnName.StartsWith("Vault") && !x.ColumnName.Equals("State") && !x.ColumnName.Equals("Task") && !x.ColumnName.Equals("JobSubmitCount") && !x.ColumnName.Equals("VaultProvider")).Select(x => x.ColumnName).ToList();
             ColList = ColList.Concat(Data.Tables["NewProps"].Columns.Cast<DataColumn>().Where(x => !x.ColumnName.Equals("EntityId")).Select(x => x.ColumnName)).ToList();
 
             ImporExportProjectDataDialog ImportExportDlg = new ImporExportProjectDataDialog(ColList, ActiveProjectName, "Windows-1252", false);
@@ -525,7 +525,7 @@ namespace Ch.Hurni.AP_MaJ
 
         private void ProcessProjectData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
-            DataUpdateTaskSeletor UpdateTaskDlg = new DataUpdateTaskSeletor(ref _data, AppOptions);
+            DataUpdateTaskSeletor UpdateTaskDlg = new DataUpdateTaskSeletor(ref _data, ActiveProjectDataBase, AppOptions);
 
             UpdateTaskDlg.Owner = this;
             UpdateTaskDlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;

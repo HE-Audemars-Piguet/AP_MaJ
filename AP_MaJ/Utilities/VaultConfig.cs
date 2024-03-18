@@ -61,6 +61,44 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private Dictionary<string, Dictionary<string, IList<VDF.Vault.Currency.Properties.ContentSourcePropertyMapping>>> _vaultItemPropertyMapping = null;
 
+        public long ProviderPropId 
+        {
+            get
+            {
+                return _providerPropId;
+            }
+            set
+            {
+                _providerPropId = value;
+            }
+        }
+        private long _providerPropId = -1;
+
+        public long ItemAssignablePropId
+        {
+            get
+            {
+                return _itemAssignablePropId;
+            }
+            set
+            {
+                _itemAssignablePropId = value;
+            }
+        }
+        private long _itemAssignablePropId = -1;
+
+        public long CompliancePropId
+        {
+            get
+            {
+                return _compliancePropId;
+            }
+            set
+            {
+                _compliancePropId = value;
+            }
+        }
+        private long _compliancePropId = -1;
 
         public List<LfCycDef> VaultLifeCycleDefinitionList
         {
@@ -189,6 +227,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 _revDefInfo = value;
             }
         }
+
         private RevDefInfo _revDefInfo = null;
 
         public VaultConfig() { }

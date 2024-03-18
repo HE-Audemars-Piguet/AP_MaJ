@@ -78,7 +78,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             }
         }
         private DataSet _data;
-
+        private string _dbFileName = string.Empty;
 
         private ApplicationOptions appOptions;
         private VaultUtility vaultUtility;
@@ -87,9 +87,10 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         private DateTime dTimerStartTime;
         private CancellationTokenSource TaskCancellationTokenSource;
 
-        public DataUpdateTaskSeletor(ref DataSet data, ApplicationOptions appOptions)
+        public DataUpdateTaskSeletor(ref DataSet data, string dbFileName, ApplicationOptions appOptions)
         {
             _data = data;
+            _dbFileName = dbFileName;
 
             this.appOptions = appOptions;
             this.vaultUtility = new VaultUtility();
@@ -279,6 +280,8 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             Page1.Visibility = Visibility.Collapsed;
             Page2.Visibility = Visibility.Collapsed;
             Page3.Visibility = Visibility.Visible;
+            
+            _data.SaveToSQLite(_dbFileName);
 
             DoneList.ItemsSource = MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).ToList();
         }
@@ -292,6 +295,16 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
+            string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Report " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
+            string Report = "DisplayName;ProcessingState;ElementCount;TotalElementCount;ElementDoneCount;ElementErrorCount;TaskDuration";
+            foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
+            {
+
+                Report += Environment.NewLine + t.DisplayName + ";" + t.ProcessingState + ";" + t.ElementCount + ";" + t.TotalElementCount + ";" + t.ElementDoneCount + ";" + t.ElementErrorCount + ";" + t.TaskDuration;
+            }
+
+            System.IO.File.WriteAllText(ReportName, Report);
+
             Close();
         }
     }
