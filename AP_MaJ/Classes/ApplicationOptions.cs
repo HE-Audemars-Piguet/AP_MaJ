@@ -121,6 +121,20 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private PropertySyncModeEnum _filePropertySyncMode = PropertySyncModeEnum.PurgeAndAdd;
 
+        public int MaxRetryCount
+        {
+            get
+            {
+                return _maxRetryCount;
+            }
+            set
+            {
+                _maxRetryCount = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private int _maxRetryCount = 3;
+
         public int FileValidationProcess
         {
             get
@@ -377,6 +391,63 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private DevExpress.Xpf.Core.ThemedWindow _parent = null;
+
+        public int MaxInventorAppCount
+        {
+            get
+            {
+                return _maxInventorAppCount;
+            }
+            set
+            {
+                _maxInventorAppCount = value;
+            }
+        }
+        private int _maxInventorAppCount = 3;
+
+        public bool IsInventorVisible
+        {
+            get
+            {
+                return _isInventorVisible;
+            }
+            set
+            {
+                _isInventorVisible = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _isInventorVisible = false;
+
+        public bool IsInventorSilent
+        {
+            get
+            {
+                return _isInventorSilent;
+            }
+            set
+            {
+                _isInventorSilent = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _isInventorSilent = true;
+
+        public bool IsInventorInteractionEnable
+        {
+            get
+            {
+                return _isInventorInteractionEnable;
+            }
+            set
+            {
+                _isInventorInteractionEnable = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _isInventorInteractionEnable = false;
+
+
         #endregion
 
         #region Constructors

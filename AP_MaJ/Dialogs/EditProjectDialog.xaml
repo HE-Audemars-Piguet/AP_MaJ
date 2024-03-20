@@ -216,14 +216,18 @@
             </dxlc:LayoutGroup>
 
             <dxlc:LayoutGroup Header="Inventor" View="Group" Orientation="Vertical">
+                <dxlc:LayoutItem Label="Nombre maximum d'instance Inventor" ElementSpace="8">
+                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxInventorAppCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
+                                      EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True"/>
+                </dxlc:LayoutItem>
                 <dxlc:LayoutItem Label="Visibilité" ElementSpace="8">
-                    <dxe:CheckEdit />
+                    <dxe:CheckEdit EditValue="{Binding Path=AppOptions.IsInventorVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
                 <dxlc:LayoutItem Label="Mode silentieux" ElementSpace="8">
-                    <dxe:CheckEdit />
+                    <dxe:CheckEdit EditValue="{Binding Path=AppOptions.IsInventorSilent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
-                <dxlc:LayoutItem Label="Désactiver les interactions" ElementSpace="8">
-                    <dxe:CheckEdit />
+                <dxlc:LayoutItem Label="Mode interactions" ElementSpace="8">
+                    <dxe:CheckEdit EditValue="{Binding Path=AppOptions.IsInventorInteractionEnable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </dxlc:LayoutItem>
             </dxlc:LayoutGroup>
 

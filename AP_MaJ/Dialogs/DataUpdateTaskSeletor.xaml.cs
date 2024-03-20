@@ -87,11 +87,25 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         private DateTime dTimerStartTime;
         private CancellationTokenSource TaskCancellationTokenSource;
 
+        public InventorDispatcher InvDispatcher
+        {
+            get
+            {
+                return _invDispatcher;
+            }
+            set
+            {
+                _invDispatcher = value;
+            }
+        }
+        private InventorDispatcher _invDispatcher = null;
+
         public DataUpdateTaskSeletor(ref DataSet data, string dbFileName, ApplicationOptions appOptions)
         {
             _data = data;
             _dbFileName = dbFileName;
-
+            _invDispatcher = new InventorDispatcher(appOptions.MaxInventorAppCount);
+            
             this.appOptions = appOptions;
             this.vaultUtility = new VaultUtility();
 
@@ -107,7 +121,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
             FileTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 101, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, Index = 102, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = true, Index = 103, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = true, Index = 103, Parent = FileTask });
             FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = true, Index = 104, Parent = FileTask });
             //FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = FileTask });
             //FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 106, Parent = FileTask });
@@ -118,7 +132,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
             ItemTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 201, Parent = ItemTask });
             ItemTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 202, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Purge des propriétés", IsChecked = false, Index = 203, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, Index = 203, Parent = ItemTask });
             ItemTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 204, Parent = ItemTask });
             //ItemTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 205, Parent = ItemTask });
             MaJTasks.Add(ItemTask);
@@ -251,7 +265,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     }
                     else if (currentTask.Parent.Name.Equals("File"))
                     {
-                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, InvDispatcher, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                     }
                     else if (currentTask.Parent.Name.Equals("Item"))
                     {

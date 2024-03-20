@@ -33,6 +33,8 @@ using Autodesk.DataManagement.Client.Framework.Vault.Currency.Properties;
 using DevExpress.Xpf.Editors.Helpers;
 using System.Runtime.InteropServices.ComTypes;
 using DevExpress.Xpf.Docking;
+using System.Xml;
+using DevExpress.Data.Svg;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -67,6 +69,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private VaultConfig _vaultConfig = null;
 
+        private InventorDispatcher _invDispatcher;
         internal async Task<VDF.Vault.Currency.Connections.Connection> ConnectToVaultAsync(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken)
         {
             bool ReportProgress = taskProgReport != null;
@@ -151,12 +154,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
 
         #region FileProcessing
-        internal async Task<DataSet> ProcessFilesAsync(string FileTaskName, DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        internal async Task<DataSet> ProcessFilesAsync(string FileTaskName, DataSet data, ApplicationOptions appOptions, InventorDispatcher invDispatcher, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             if (FileTaskName.Equals("Validate")) return await ValidateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("ChangeState")) return await TempChangeStateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("PurgeProps")) return await PurgePropertyFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
-            else if (FileTaskName.Equals("Update")) return await UpdateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
+            else if (FileTaskName.Equals("Update")) return await UpdateFilesAsync(data, appOptions, invDispatcher, taskProgReport, processProgReport, taskCancellationToken);
             //else if (FileTaskName.Equals("PropSync")) return data;
             //else if (FileTaskName.Equals("CreateBomBlob"))return await ForceAndWaitForBomBlobCreationFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             else if (FileTaskName.Equals("WaitForBomBlob")) return await ForceAndWaitForBomBlobCreationFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
@@ -305,7 +308,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + " à été retourné lors de l'accès au fichier '" + FullVaultName + "'."));
+                    resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + " à été retourné lors de l'accès au fichier '" + FullVaultName + "'."));
                     resultState = StateEnum.Error;
                 }
 
@@ -797,7 +800,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du changement d'état du fichier '" + FullVaultName + "' vers l'état '" + dr.Field<string>("TempVaultLcsName") + "'."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors du changement d'état du fichier '" + FullVaultName + "' vers l'état '" + dr.Field<string>("TempVaultLcsName") + "'."));
                     resultState = StateEnum.Error;
                 }
             }
@@ -978,7 +981,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
                     resultState = StateEnum.Error;
                 }
             }
@@ -993,8 +996,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         #endregion
 
         #region FileUpdate
-        internal async Task<DataSet> UpdateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        internal async Task<DataSet> UpdateFilesAsync(DataSet data, ApplicationOptions appOptions, InventorDispatcher invDispatcher, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
+            _invDispatcher = invDispatcher;
+
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
             DataSet ds = data.Copy();
 
@@ -1063,6 +1068,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
             }
 
+            _invDispatcher.CloseAllInventor();
+
             taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
 
             return ds;
@@ -1083,15 +1090,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
-            resultState = await UpdateFileCategory(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-            resultState = await MoveFile(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-            resultState = await RenameFile(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-            resultState = await UpdateFileLifeCycle(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-            resultState = await UpdateFileRevision(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+            resultState = await UpdateFileCategory(FullVaultName, dr, resultState, resultLogs, appOptions);
+            resultState = await MoveFile(FullVaultName, dr, resultState, resultLogs, appOptions);
+            resultState = await RenameFile(FullVaultName, dr, resultState, resultLogs, appOptions);
+            resultState = await UpdateFileLifeCycle(FullVaultName, dr, resultState, resultLogs, appOptions);
+            resultState = await UpdateFileRevision(FullVaultName, dr, resultState, resultLogs, appOptions);
             resultState = await UpdateFileProperty(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-            resultState = await UpdateFileLifeCycleState(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+            resultState = await UpdateFileLifeCycleState(FullVaultName, dr, resultState, resultLogs, appOptions);
             //await Task.Run(() => SyncFileProperties(FullVaultName, dr, ref resultState, resultLogs, appOptions));
-            resultState = await CreateBomBlobJob(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions, processId, processProgReport);
+            resultState = await CreateBomBlobJob(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
 
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
 
@@ -1101,7 +1108,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return (processId, dr, resultValues, resultState, resultLogs);
         }
 
-        private async Task<StateEnum> UpdateFileCategory(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> UpdateFileCategory(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultCatId") != null && dr.Field<long?>("VaultCatId") != dr.Field<long?>("TargetVaultCatId"))
             {
@@ -1112,15 +1119,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du changement de catégorie du fichier."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors du changement de catégorie du fichier (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
                     resultState = StateEnum.Error;
                 }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await UpdateFileCategory(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> MoveFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> MoveFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultFolderId") != null && dr.Field<long?>("VaultFolderId") != dr.Field<long?>("TargetVaultFolderId"))
             {
@@ -1131,15 +1144,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du déplacement du fichier."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors du déplacement du fichier (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
                     resultState = StateEnum.Error;
                 }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await MoveFile(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> RenameFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> RenameFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             string Ext = System.IO.Path.GetExtension(dr.Field<string>("Name"));
             string NewName = string.Empty;
@@ -1158,7 +1177,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") + "'."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "."));
                     resultState = StateEnum.Error;
                 }
             }
@@ -1172,7 +1191,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") + "' et les paramètres '" + NumSchInput + "'."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") + "' et les paramètres '" + NumSchInput + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "."));
                     resultState = StateEnum.Error;
                 }
             }
@@ -1217,16 +1236,27 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                     catch (VaultServiceErrorException VltEx)
                     {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du renommage du fichier '" + dr.Field<string>("Name") + "' en '" + NewName + "'."));
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors du renommage du fichier '" + dr.Field<string>("Name") + "' en '" + NewName + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
+
+                        ACW.ByteArray downloadTicket;
+                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UndoCheckoutFile(dr.Field<long>("VaultMasterId"), out downloadTicket));
+
                         resultState = StateEnum.Error;
                     }
                 }
                 else
                 {
                     if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Il y a des restrictions de nommage..."));
+                    RetryCount = appOptions.MaxRetryCount;
                     resultState = StateEnum.Error;
                 }
 
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await RenameFile(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
@@ -1332,6 +1362,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                                                              string.Join(Environment.NewLine, UpdateFileProps.Select(x => "   - " + FilePropNames[UpdateFileProps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
                         }
 
+
+                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - mise à jour de la matière dans Inventor", ProcessIndex = processId });
+                            
+                        InventorInstance invInst = _invDispatcher.GetInventorInstance();
+
+                        Inventor.Document invDoc = invInst.InvApp.Documents.Open("C:\\Temp\\Part_" + processId + ".ipt");
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier '" + fullVaultName + "' a été ouvert dans Inventor... Enfin presque!"));
+
+                        invDoc.Close();
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier '" + fullVaultName + "' a été fermé... Enfin presque!"));
+
+                        _invDispatcher.ReleaseInventorInstance(invInst);
+
+
                         // Checkin
                         file = await Task.Run (() => VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des propriétés", false, 
                                                      DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket));
@@ -1344,7 +1388,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la mise à jour des propriétés du fichier."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la mise à jour des propriétés du fichier."));
                     resultState = StateEnum.Error;
                 }
             }
@@ -1352,11 +1396,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileLifeCycle(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> UpdateFileLifeCycle(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcId") != null && dr.Field<long?>("TargetVaultLcId") != dr.Field<long?>("VaultLcId"))
             {
-                
                 try
                 { 
                     if (dr.Field<long?>("TempVaultLcsId") != null)
@@ -1381,17 +1424,22 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                     else
                     {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du changement de cycle de vie du fichier vers '" + dr.Field<string>("TargetVaultLcName") + "'."));
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors du changement de cycle de vie du fichier vers '" + dr.Field<string>("TargetVaultLcName") + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
                         resultState = StateEnum.Error;
                     }
-                    
                 }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await UpdateFileLifeCycle(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileRevision(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> UpdateFileRevision(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultRevLabel")))
             {
@@ -1425,15 +1473,25 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la mise à jour de la révision du fichier."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la mise à jour de la révision du fichier (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." +
+                        Environment.NewLine + "TargetVaultRevSchName = " + dr.Field<string>("TargetVaultRevSchName") + 
+                        Environment.NewLine + "VaultRevSchName = " + dr.Field<string>("VaultRevSchName") +
+                        Environment.NewLine + "Label = " + Label ));
                     resultState = StateEnum.Error;
                 }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await UpdateFileRevision(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileLifeCycleState(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+
+        private async Task<StateEnum> UpdateFileLifeCycleState(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcsId") != null && dr.Field<long?>("TargetVaultLcsId") != dr.Field<long?>("VaultLcsId"))
             {
@@ -1446,9 +1504,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors du changement d'état de cycle de vie du fichier vers '" + dr.Field<string>("TargetVaultLcsName") + "'."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors du changement d'état de cycle de vie du fichier vers '" + dr.Field<string>("TargetVaultLcsName") + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
                     resultState = StateEnum.Error;
                 }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await UpdateFileLifeCycleState(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
@@ -1464,13 +1528,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la mise à jour des propriétés du fichier '" + fullVaultName + "'."));
+                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la mise à jour des propriétés du fichier '" + fullVaultName + "'."));
                     resultState = StateEnum.Error;
                 }
             }
         }
 
-        private async Task<StateEnum> CreateBomBlobJob(string fullVaultName, DataRow dr, Dictionary<string, object> resultValues, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> CreateBomBlobJob(string fullVaultName, DataRow dr, Dictionary<string, object> resultValues, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error)
             {
@@ -1503,15 +1567,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     if(VltEx.ErrorCode == 237)
                     {
-                        if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la soumission du job de création du BOM Blob." + Environment.NewLine + 
+                        if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la soumission du job de création du BOM Blob." + Environment.NewLine + 
                                                                                        "Le job est déjà présent dans la queue du job processeur!"));
                     }
                     else
                     {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + "' à été retourné lors de la soumission du job de création du BOM Blob."));
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la soumission du job de création du BOM Blob (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
                         resultState = StateEnum.Error;
                     }
                 }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = await CreateBomBlobJob(fullVaultName, dr, resultValues, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
@@ -1782,7 +1852,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                     else
                     {
-                        resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + VltEx.ErrorCode + " à été retourné lors de l'accès à l'article '" + FullVaultName + "'."));
+                        resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + " à été retourné lors de l'accès à l'article '" + FullVaultName + "'."));
                     }
                     resultState = StateEnum.Error;
                     VaultItem = null;
@@ -2112,5 +2182,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 return null;
             }
         }
+
+        private string GetSubExceptionCodes(VaultServiceErrorException vltEx)
+        {
+            string result = vltEx.ErrorCode.ToString();
+            List<string> restrictionCodes = new List<string>();
+
+            if (vltEx.ErrorCode == 1092 || vltEx.ErrorCode == 1387 || vltEx.ErrorCode == 1633)
+            {
+                XmlNodeList nodes = vltEx.Detail["sl:sldetail"]["sl:restrictions"].ChildNodes;
+                foreach (XmlNode node in nodes)
+                {
+                    if (node.Name == "sl:restriction")
+                    {
+                        XmlElement element = node as XmlElement;
+                        if (element != null)
+                            restrictionCodes.Add(element.GetAttribute("sl:code"));
+                    }
+                }
+
+                if(restrictionCodes.Count > 0)
+                {
+                    result += " (codes de restriction: " + string.Join(", ", restrictionCodes) + ")";
+                }
+            }
+            
+            return result;
+        }
+
     }
 }

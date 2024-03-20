@@ -76,6 +76,17 @@ namespace Ch.Hurni.AP_MaJ
         }
         private string _activeProjectName = string.Empty;
 
+        public string ApplicationDir
+        {
+            get
+            {
+                string _applicationDirectory = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+                return _applicationDirectory;
+            }
+        }
+
+
         public string ActiveProjectDir
         {
             get
@@ -298,6 +309,8 @@ namespace Ch.Hurni.AP_MaJ
             }
         }
         private ApplicationOptions _appOptions = null;
+
+
         #endregion
 
 
@@ -674,7 +687,7 @@ namespace Ch.Hurni.AP_MaJ
             string DefaultGridViewName = System.IO.Path.Combine(ActiveProjectGridViewDir, "Default.xml");
             if (!System.IO.File.Exists(DefaultGridViewName))
             {
-                System.IO.File.Copy(@"C:\Temp\Default\GridViews\Default.xml", DefaultGridViewName);
+                System.IO.File.Copy(System.IO.Path.Combine(ApplicationDir, "Default.xml"), DefaultGridViewName);
             }
 
             return new ObservableCollection<string>(new System.IO.DirectoryInfo(ActiveProjectGridViewDir).EnumerateFiles("*.xml", SearchOption.TopDirectoryOnly).Select(x => System.IO.Path.GetFileNameWithoutExtension(x.Name)).OrderBy(x => x));
