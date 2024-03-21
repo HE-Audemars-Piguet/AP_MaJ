@@ -107,13 +107,14 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             _invDispatcher = new InventorDispatcher(appOptions.MaxInventorAppCount);
             
             this.appOptions = appOptions;
-            this.vaultUtility = new VaultUtility();
+            this.vaultUtility = new VaultUtility(_invDispatcher);
 
             MaJTasks = new ObservableCollection<MaJTask>();
-            MaJTask VaultTask = new MaJTask() { Name = "Vault", DisplayName = "Connexion au Vault", IsChecked = true, Index = 0 };
+            MaJTask VaultTask = new MaJTask() { Name = "VaultInventor", DisplayName = "Lecture des configurations Vault et Inventor", IsChecked = true, Index = 0 };
             VaultTask.SubTasks = new ObservableCollection<MaJTask>();
             VaultTask.SubTasks.Add(new MaJTask() { Name = "Connect", DisplayName = "Connexion au Vault", IsChecked = true, Index = 1, Parent = VaultTask });
-            VaultTask.SubTasks.Add(new MaJTask() { Name = "ReadConfig", DisplayName = "Lecture de la configuration Vault", IsChecked = true, Index = 2, Parent = VaultTask });
+            VaultTask.SubTasks.Add(new MaJTask() { Name = "ReadVaultConfig", DisplayName = "Lecture de la configuration Vault", IsChecked = true, Index = 2, Parent = VaultTask });
+            VaultTask.SubTasks.Add(new MaJTask() { Name = "ReadInventorConfig", DisplayName = "Lecture de la configuration Inventor", IsChecked = true, Index = 2, Parent = VaultTask });
             MaJTasks.Add(VaultTask);
 
 
@@ -242,7 +243,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                     currentTask.ProcessingState = StateEnum.Processing;
 
-                    if (currentTask.Parent.Name.Equals("Vault"))
+                    if (currentTask.Parent.Name.Equals("VaultInventor"))
                     {
                         if (currentTask.Name.Equals("Connect"))
                         {
@@ -257,15 +258,19 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                                 currentTask.ProcessingState = StateEnum.Completed;
                             }
                         }
-                        else if (currentTask.Name.Equals("ReadConfig"))
+                        else if (currentTask.Name.Equals("ReadVaultConfig"))
                         {
                             vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
                             vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
                         }
+                        else if (currentTask.Name.Equals("ReadInventorConfig"))
+                        {
+                            vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        }
                     }
                     else if (currentTask.Parent.Name.Equals("File"))
                     {
-                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, InvDispatcher, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                     }
                     else if (currentTask.Parent.Name.Equals("Item"))
                     {

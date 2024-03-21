@@ -227,9 +227,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 _revDefInfo = value;
             }
         }
-
         private RevDefInfo _revDefInfo = null;
 
+        public List<string> InventorMaterials
+        {
+            get
+            {
+                return _inventorMaterials;
+            }
+            set
+            {
+                _inventorMaterials = value;
+            }
+        }
+        private List<string> _inventorMaterials = null;
         public VaultConfig() { }
     }
 }

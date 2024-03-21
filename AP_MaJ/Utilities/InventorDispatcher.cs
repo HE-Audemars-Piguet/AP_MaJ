@@ -25,7 +25,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
 
                     _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-                    _invApp.Visible = true;
+                    _invApp.Visible = false;
                     _invApp.SilentOperation = true;
                     _invApp.UserInterfaceManager.UserInteractionDisabled = true;
 
@@ -45,6 +45,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         private Inventor.Application _invApp = null;
 
         public InventorInstance() { }
+
     }
 
     public class InventorDispatcher

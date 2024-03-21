@@ -209,6 +209,7 @@
                         </dxg:GridColumn>
                         <dxg:GridColumn FieldName="VaultPropertyDisplayName" Header="Propriété" HeaderToolTip="Nom de la propriété dans Vault" Width="*" MinWidth="100"/>
                         <dxg:GridColumn FieldName="VaultPropertyType" Header="Type" HeaderToolTip="Type de la propriété dans Vault"  Width="*" MinWidth="100"/>
+                        <dxg:GridColumn FieldName="MustMatchInventorMaterial" Header="Corespondance matière" HeaderToolTip="Corespondance avec les matières d'Inventor" Width="25" AllowResizing="False"/>
                         <dxg:GridColumn FieldName="FieldName" Header="Titre colonne" HeaderToolTip="Nom de la colonne dans le fichier Excel" Width="*" MinWidth="100"/>
                     </dxg:GridControl>
 

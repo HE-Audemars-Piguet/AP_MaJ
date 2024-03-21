@@ -556,6 +556,20 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private string _vaultPropertyType;
 
+        public bool MustMatchInventorMaterial
+        {
+            get
+            {
+                return _mustMatchInventorMaterial;
+            }
+            set
+            {
+                _mustMatchInventorMaterial = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _mustMatchInventorMaterial = false;
+
         [JsonIgnore]
         public bool? IsSelected
         {
