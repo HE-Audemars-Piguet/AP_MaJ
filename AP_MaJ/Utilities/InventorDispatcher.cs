@@ -22,17 +22,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             {
                 if(_invApp == null)
                 {
-                    Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
-
-                    _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-                    _invApp.Visible = false;
-                    _invApp.SilentOperation = true;
-                    _invApp.UserInterfaceManager.UserInteractionDisabled = true;
-
-                    while (_invApp != null && !_invApp.Ready)
-                    {
-                        System.Threading.Thread.Sleep(1000);
-                    }
+                    StartInventor();
                 }
 
                 return _invApp;
@@ -42,10 +32,36 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 _invApp = value;
             } 
         }
+
+        public bool IsInventorStarted 
+        { 
+            get
+            {
+                return _invApp != null;
+            }
+        }
+
         private Inventor.Application _invApp = null;
 
         public InventorInstance() { }
 
+        internal void StartInventor()
+        {
+            if (_invApp == null)
+            {
+                Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
+
+                _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
+                _invApp.Visible = false;
+                _invApp.SilentOperation = true;
+                _invApp.UserInterfaceManager.UserInteractionDisabled = true;
+
+                while (_invApp != null && !_invApp.Ready)
+                {
+                    System.Threading.Thread.Sleep(1000);
+                }
+            }
+        }
     }
 
     public class InventorDispatcher
@@ -61,15 +77,32 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        public InventorInstance GetInventorInstance()
+        public InventorInstance GetInventorInstance(string fullVaultName = "", int processId = -1, IProgress<ProcessProgressReport> processProgReport = null)
         {
             while (true)
             {
                 InventorInstance result = GetFreeInstance();
                 if (result != null)
+                {
+                    if(!result.IsInventorStarted)
+                    {
+                        if(!string.IsNullOrWhiteSpace(fullVaultName) && processId != -1 && processProgReport != null)
+                        {
+                            processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Démarrage d'Inventor...", ProcessIndex = processId });
+                        }
+                        
+                        result.StartInventor();
+                    }
                     return result;
+                }
                 else
+                {
+                    if (!string.IsNullOrWhiteSpace(fullVaultName) && processId != -1 && processProgReport != null)
+                    {
+                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
+                    }
                     System.Threading.Thread.Sleep(1000);
+                }
             }
         }
 
@@ -92,17 +125,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (Monitor.IsEntered(invInst)) Monitor.Exit(invInst);
         }
 
-        public void CloseAllInventor()
+        public void CloseAllInventor(IProgress<TaskProgressReport> taskProgReport = null)
         {
-            foreach(InventorInstance invInst in _invInstances)
+            int TotalInventorCount = _invInstances.Where(x => x.IsInventorStarted).Count();
+            int ClosedInventorCount = 0;
+
+            do
             {
-                if (Monitor.TryEnter(invInst))
+                foreach (InventorInstance invInst in _invInstances.Where(x => x.IsInventorStarted))
                 {
-                    invInst.InvApp.Quit();
-                    invInst.InvApp = null;
-                    Monitor.Exit(invInst);
+                    if (Monitor.TryEnter(invInst))
+                    {
+                        ClosedInventorCount++;
+                        
+                        if (taskProgReport != null)
+                        {
+                            taskProgReport.Report(new TaskProgressReport() { Message = "Fermeture des instances Inventor " + ClosedInventorCount + " sur " + TotalInventorCount + "..." });
+                        }
+
+                        invInst.InvApp.Quit();
+                        invInst.InvApp = null;
+                        Monitor.Exit(invInst);
+                    }
                 }
-            }
+
+                if (_invInstances.Where(x => x.IsInventorStarted).Count() > 0) System.Threading.Thread.Sleep(1000);
+
+            } while (_invInstances.Where(x => x.IsInventorStarted).Count() > 0);
         }
     }
 

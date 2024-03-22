@@ -4,7 +4,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core" 
                  xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
-                 xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+                 xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm" xmlns:dxb="http://schemas.devexpress.com/winfx/2008/xaml/bars"
                  Title="Mise à jour des propriétés" Height="500" Width="800" ResizeMode="CanResizeWithGrip" 
                  WindowStyle="ToolWindow" ControlBoxButtonSet="None">
     <Grid Margin="4">
@@ -24,7 +24,7 @@
             <TextBlock Grid.Row="0" Text="Sélectionner les taches de mise à jour à exécuter" FontWeight="Bold"/>
             <dxg:TreeViewControl Grid.Row="1" ItemsSource="{Binding MaJTasks}" TreeDerivationMode="ChildNodesSelector" TreeViewFieldName="DisplayName" CheckBoxFieldName="IsChecked" ChildNodesPath="SubTasks" 
                                  ShowCheckboxes="True" AutoExpandAllNodes="True" AllowRecursiveNodeChecking="True" ShowBorder="True" Margin="0 8 0 0">
-                
+
             </dxg:TreeViewControl>
             
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 4 0 0">
@@ -86,19 +86,22 @@
                                 </Image.Style>
                             </Image>
 
-                            <Image Grid.Row="0" Grid.Column="1" Height="16" Width="16" Margin="2">
+                            <Image Grid.Row="0" Grid.Column="1" Height="16" Width="16" Margin="2" dxb:ImageColorizer.Color="Gray" dxb:ImageColorizer.IsEnabled="True">
                                 <Image.Style>
                                     <Style TargetType="Image">
                                         <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}"/>
                                         <Setter Property="ToolTip" Value="{Binding Parent.DisplayName}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Parent.Name}" Value="Vault">
+                                            <DataTrigger Binding="{Binding TaskGroup}" Value="Vault">
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}"/>
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding Parent.Name}" Value="File">
+                                            <DataTrigger Binding="{Binding TaskGroup}" Value="Inventor">
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Business Objects/BO_Product_Group.svg'}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding TaskGroup}" Value="File">
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Dashboards/New.svg'}"/>
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding Parent.Name}" Value="Item">
+                                            <DataTrigger Binding="{Binding TaskGroup}" Value="Item">
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/XAF/ModelEditor_DashboardView.svg'}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -160,7 +163,42 @@
                                 <TextBlock Text="{Binding Path=ElementErrorCount}" Margin="0 2"/>
                             </StackPanel>
 
-                            <dxe:ProgressBarEdit Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Value="{Binding Path=ElementCount}" Maximum="{Binding Path=TotalElementCount}" ShowBorder="False">
+                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Foreground="Green" BorderThickness="0" HorizontalAlignment="Stretch"
+                                         Value="{Binding Path=ElementCount}" Maximum="{Binding Path=TotalElementCount}">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding Path=IsIndeterminate}" Value="False"/>
+                                                    <Condition Binding="{Binding ProcessingState}" Value="Processing"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+
+                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Foreground="Green" BorderThickness="0" HorizontalAlignment="Stretch" IsIndeterminate="True">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding Path=IsIndeterminate}" Value="True"/>
+                                                    <Condition Binding="{Binding ProcessingState}" Value="Processing"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+
+                            <!--<dxe:ProgressBarEdit Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Value="{Binding Path=ElementCount}" Maximum="{Binding Path=TotalElementCount}" ShowBorder="False">
                                 <dxe:ProgressBarEdit.Style>
                                     <Style TargetType="dxe:ProgressBarEdit">
                                         <Setter Property="Visibility" Value="Visible"/>
@@ -171,7 +209,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </dxe:ProgressBarEdit.Style>
-                            </dxe:ProgressBarEdit>
+                            </dxe:ProgressBarEdit>-->
 
                             <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="6" Margin="4 0" >
                                 <Grid.RowDefinitions>
@@ -279,7 +317,7 @@
                                 </Image.Style>
                             </Image>
 
-                            <Image Grid.Row="0" Grid.Column="1" Height="16" Width="16" Margin="2">
+                            <Image Grid.Row="0" Grid.Column="1" Height="16" Width="16" Margin="2" dxb:ImageColorizer.Color="Gray" dxb:ImageColorizer.IsEnabled="True">
                                 <Image.Style>
                                     <Style TargetType="Image">
                                         <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}"/>
@@ -287,6 +325,9 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Parent.Name}" Value="Vault">
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Parent.Name}" Value="Inventor">
+                                                <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Business Objects/BO_Product_Group.svg'}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Parent.Name}" Value="File">
                                                 <Setter Property="Source" Value="{dx:DXImage 'SvgImages/Dashboards/New.svg'}"/>

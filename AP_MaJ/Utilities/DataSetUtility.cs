@@ -95,7 +95,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             ds.Relations.Add("EntityNewProp", ds.Tables["Entities"].Columns["Id"], ds.Tables["NewProps"].Columns["EntityId"]);
             ds.Relations.Add("EntityLogs", ds.Tables["Entities"].Columns["Id"], ds.Tables["Logs"].Columns["EntityId"]);
-
+            
             return ds;
         }
 

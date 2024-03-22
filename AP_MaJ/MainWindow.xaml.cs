@@ -13,6 +13,7 @@ using DevExpress.Xpf.Editors.Settings;
 using DevExpress.Xpf.Grid;
 using DevExpress.Xpf.Layout.Core;
 using DevExpress.XtraPrinting.Native;
+using Inventor;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Entity.Core.Metadata.Edm;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.Drawing.Imaging;
@@ -49,7 +51,7 @@ namespace Ch.Hurni.AP_MaJ
     /// </summary>
     public partial class MainWindow : ThemedWindow, INotifyPropertyChanged
     {
-        private string _rootProjectDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        private string _rootProjectDir = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
 
         private JsonSerializerOptions JsonOptions = new JsonSerializerOptions() { WriteIndented = true };
 
@@ -554,7 +556,34 @@ namespace Ch.Hurni.AP_MaJ
 
         private void ExportLog_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
-            ImporExportProjectDataDialog ImportExportDlg = new ImporExportProjectDataDialog(Data.Tables["Logs"], ActiveProjectDir);
+            DataTable Report = Data.Tables["logs"].Clone();
+
+            Report.Columns.Add(new DataColumn("EntityType", typeof(string)));
+            Report.Columns.Add(new DataColumn("Path", typeof(string)));
+            Report.Columns.Add(new DataColumn("Name", typeof(string)));
+
+            foreach(DataRow dr in Data.Tables["Entities"].Rows)
+            {
+                DataRow[] dataRows = dr.GetChildRows("EntityLogs");
+
+                if(dataRows.Length > 0)
+                {
+                    foreach (DataRow log in dataRows)
+                    {
+                        DataRow newRow = Report.NewRow();
+                        newRow["EntityType"] = dr["EntityType"];
+                        newRow["Path"] = dr["Path"];
+                        newRow["Name"] = dr["Name"];
+                        newRow["Severity"] = log["Severity"];
+                        newRow["Date"] = log["Date"];
+                        newRow["Message"] = log["Message"];
+                        newRow["EntityId"] = log["EntityId"];
+                        Report.Rows.Add(newRow);
+                    }
+                }
+            }
+
+            ImporExportProjectDataDialog ImportExportDlg = new ImporExportProjectDataDialog(Report, ActiveProjectDir);
             ImportExportDlg.Owner = this;
             ImportExportDlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 

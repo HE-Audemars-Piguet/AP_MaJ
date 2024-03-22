@@ -110,32 +110,34 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             this.vaultUtility = new VaultUtility(_invDispatcher);
 
             MaJTasks = new ObservableCollection<MaJTask>();
-            MaJTask VaultTask = new MaJTask() { Name = "VaultInventor", DisplayName = "Lecture des configurations Vault et Inventor", IsChecked = true, Index = 0 };
-            VaultTask.SubTasks = new ObservableCollection<MaJTask>();
-            VaultTask.SubTasks.Add(new MaJTask() { Name = "Connect", DisplayName = "Connexion au Vault", IsChecked = true, Index = 1, Parent = VaultTask });
-            VaultTask.SubTasks.Add(new MaJTask() { Name = "ReadVaultConfig", DisplayName = "Lecture de la configuration Vault", IsChecked = true, Index = 2, Parent = VaultTask });
-            VaultTask.SubTasks.Add(new MaJTask() { Name = "ReadInventorConfig", DisplayName = "Lecture de la configuration Inventor", IsChecked = true, Index = 2, Parent = VaultTask });
-            MaJTasks.Add(VaultTask);
 
+            MaJTask VaultConnectTask = new MaJTask() { TaskGroup="Vault", Name = "VaultConnect", DisplayName = "Connexion au Vault", IsChecked = true, Index = 0, IsIndeterminate = true };
+            MaJTasks.Add(VaultConnectTask);
 
-            MaJTask FileTask = new MaJTask() { Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 100 };
+            MaJTask ReadVaultConfigTask = new MaJTask() { TaskGroup = "Vault", Name = "ReadVaultConfig", DisplayName = "Lecture de la configuration Vault", IsChecked = true, Index = 1, IsIndeterminate = true };
+            MaJTasks.Add(ReadVaultConfigTask);
+
+            MaJTask ReadInventorConfigTask = new MaJTask() { TaskGroup = "Inventor", Name = "ReadInventorConfig", DisplayName = "Lecture de la configuration Inventor", IsChecked = true, Index = 10, IsIndeterminate = true };
+            MaJTasks.Add(ReadInventorConfigTask);
+
+            MaJTask FileTask = new MaJTask() { IsGroup = true, TaskGroup = "File", Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 20 };
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
-            FileTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 101, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, Index = 102, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = true, Index = 103, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = true, Index = 104, Parent = FileTask });
-            //FileTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 105, Parent = FileTask });
-            //FileTask.SubTasks.Add(new MaJTask() { Name = "CreateBomBlob", DisplayName = "Créer les BOM blob", IsChecked = false, Index = 106, Parent = FileTask });
-            FileTask.SubTasks.Add(new MaJTask() { Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 105, Parent = FileTask });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 21});
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, Index = 22 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = true, Index = 23 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Update", DisplayName = "Mise à jour", IsChecked = true, Index = 24 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 25 });
             MaJTasks.Add(FileTask);
 
-            MaJTask ItemTask = new MaJTask() { Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 200 };
+            MaJTask InventorCloseTask = new MaJTask() { TaskGroup = "Inventor", Name = "InventorClose", DisplayName = "Fermeture des sessions Inventor", IsChecked = true, Index = 30, IsIndeterminate = true };
+            MaJTasks.Add(InventorCloseTask);
+
+            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 40 };
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 201, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 202, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, Index = 203, Parent = ItemTask });
-            ItemTask.SubTasks.Add(new MaJTask() { Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 204, Parent = ItemTask });
-            //ItemTask.SubTasks.Add(new MaJTask() { Name = "PropSync", DisplayName = "Synchronisation des propriétés", IsChecked = false, Index = 205, Parent = ItemTask });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 41 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 42 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, Index = 43 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 44 });
             MaJTasks.Add(ItemTask);
 
             MaJToDoTasks = new ObservableCollection<string>();
@@ -168,7 +170,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
                 }
             }
-
+            
             currentTask.TotalElementCount = e.TotalEntityCount;
             currentTask.TaskDetail = e.Message;
         }
@@ -206,7 +208,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             Page2.Visibility = Visibility.Visible;
             Page3.Visibility = Visibility.Collapsed;
 
-            ToDoList.ItemsSource = MaJTasks.SelectMany(x=>x.SubTasks).Where(y => y.IsChecked == true).ToList();
+            ToDoList.ItemsSource = CollectSelectedTasks(MaJTasks).ToList();
+
+            //ToDoList.ItemsSource = MaJTasks.SelectMany(x=>x.SubTasks).Where(y => y.IsChecked == true).ToList();
         }
 
         private async void ExecutButton_Click(object sender, RoutedEventArgs e)
@@ -227,7 +231,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                 TaskProgReport = new Progress<TaskProgressReport>();
                 ProcessProgReport = new Progress<ProcessProgressReport>();
 
-                foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
+
+
+                foreach (MaJTask t in CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index).ToList())
                 {
                     currentTask = t;
                     currentTask.ProcessFeedback.Clear();
@@ -243,36 +249,45 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                     currentTask.ProcessingState = StateEnum.Processing;
 
-                    if (currentTask.Parent.Name.Equals("VaultInventor"))
+                    if (currentTask.Name.Equals("VaultConnect"))
                     {
-                        if (currentTask.Name.Equals("Connect"))
+                        currentTask.IsIndeterminate = true;
+                        vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        if (vaultUtility.VaultConnection == null)
                         {
-                            vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                            if (vaultUtility.VaultConnection == null)
-                            {
-                                currentTask.ProcessingState = StateEnum.Error;
-                                return;
-                            }
-                            else
-                            {
-                                currentTask.ProcessingState = StateEnum.Completed;
-                            }
+                            currentTask.ProcessingState = StateEnum.Error;
+                            return;
                         }
-                        else if (currentTask.Name.Equals("ReadVaultConfig"))
+                        else
                         {
-                            vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                            vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
+                            currentTask.ProcessingState = StateEnum.Completed;
                         }
-                        else if (currentTask.Name.Equals("ReadInventorConfig"))
-                        {
-                            vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                        }
+                        currentTask.IsIndeterminate = false;
                     }
-                    else if (currentTask.Parent.Name.Equals("File"))
+                    else if (currentTask.Name.Equals("ReadVaultConfig"))
+                    {
+                        currentTask.IsIndeterminate = true;
+                        vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
+                        currentTask.IsIndeterminate = false;
+                    }
+                    else if (currentTask.Name.Equals("ReadInventorConfig"))
+                    {
+                        currentTask.IsIndeterminate = true;
+                        vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        currentTask.IsIndeterminate = false;
+                    }
+                    else if (currentTask.TaskGroup.Equals("File"))
                     {
                         _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                     }
-                    else if (currentTask.Parent.Name.Equals("Item"))
+                    else if (currentTask.Name.Equals("InventorClose"))
+                    {
+                        currentTask.IsIndeterminate = true;
+                        await vaultUtility.CloseAllInventorAsync(TaskProgReport, TaskCancellationToken);
+                        currentTask.IsIndeterminate = false;
+                    }
+                    else if (currentTask.TaskGroup.Equals("Item"))
                     {
                         _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                     }
@@ -290,6 +305,79 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     ProcessProgReport.ProgressChanged -= ShowProcessProgress;
                     TaskProgReport.ProgressChanged -= ShowTaskProgress;
                 }
+
+
+
+
+                //foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
+                //{
+                //    currentTask = t;
+                //    currentTask.ProcessFeedback.Clear();
+
+                //    if (TaskCancellationToken.IsCancellationRequested)
+                //    {
+                //        currentTask.ProcessingState = StateEnum.Canceled;
+                //        continue;
+                //    }
+
+                //    TaskProgReport.ProgressChanged += ShowTaskProgress;
+                //    ProcessProgReport.ProgressChanged += ShowProcessProgress;
+
+                //    currentTask.ProcessingState = StateEnum.Processing;
+
+                //    if (currentTask.Parent.Name.Equals("Vault") ||currentTask.Parent.Name.Equals("Inventor"))
+                //    {
+                //        currentTask.IsIndeterminate = true;
+                //        if (currentTask.Name.Equals("Connect"))
+                //        {
+                //            vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                //            if (vaultUtility.VaultConnection == null)
+                //            {
+                //                currentTask.ProcessingState = StateEnum.Error;
+                //                return;
+                //            }
+                //            else
+                //            {
+                //                currentTask.ProcessingState = StateEnum.Completed;
+                //            }
+                //        }
+                //        else if (currentTask.Name.Equals("ReadVaultConfig"))
+                //        {
+                //            vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                //            vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
+                //        }
+                //        else if (currentTask.Name.Equals("ReadInventorConfig"))
+                //        {
+                //            vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                //        }
+                //        currentTask.IsIndeterminate = false;
+                //    }
+                //    else if (currentTask.TaskGroup.Equals("File"))
+                //    {
+                //        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                //    }
+                //    else if (currentTask.TaskGroup.Equals("File"))
+                //    {
+                //        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                //    }
+                //    else if (currentTask.TaskGroup.Equals("Item"))
+                //    {
+                //        _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                //    }
+
+                //    if (TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
+                //    else if (currentTask.ElementErrorCount > 0) currentTask.ProcessingState = StateEnum.Error;
+                //    else currentTask.ProcessingState = StateEnum.Completed;
+
+
+                //    if (appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ProcessingState == StateEnum.Error)
+                //    {
+                //        TaskCancellationTokenSource.Cancel();
+                //    }
+
+                //    ProcessProgReport.ProgressChanged -= ShowProcessProgress;
+                //    TaskProgReport.ProgressChanged -= ShowTaskProgress;
+                //}
             }
             else
             {
@@ -302,7 +390,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             
             _data.SaveToSQLite(_dbFileName);
 
-            DoneList.ItemsSource = MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).ToList();
+            DoneList.ItemsSource = CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index).ToList();
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -316,7 +404,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         {
             string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Report " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
             string Report = "DisplayName;ProcessingState;ElementCount;TotalElementCount;ElementDoneCount;ElementErrorCount;TaskDuration";
-            foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
+            foreach (MaJTask t in CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index))
             {
 
                 Report += Environment.NewLine + t.DisplayName + ";" + t.ProcessingState + ";" + t.ElementCount + ";" + t.TotalElementCount + ";" + t.ElementDoneCount + ";" + t.ElementErrorCount + ";" + t.TaskDuration;
@@ -326,12 +414,29 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             Close();
         }
+
+
+        IEnumerable<MaJTask> CollectSelectedTasks(ObservableCollection<MaJTask> tasks)
+        {
+            if (tasks != null)
+            {
+                foreach (MaJTask task in tasks)
+                {
+                    if (task.IsChecked == true && !task.IsGroup) yield return task;
+
+                    foreach (MaJTask subtask in CollectSelectedTasks(task.SubTasks))
+                        if (subtask.IsChecked == true) yield return subtask;
+                }
+            }
+        }
     }
 
     public class MaJTask : INotifyPropertyChanged
     {
         public int Index { get; set; }
         public string Name { get; set; }
+        public string TaskGroup { get; set; }
+        public bool IsGroup { get; set; } = false;
         public string DisplayName { get; set; }
         public bool IsChecked 
         { 
@@ -361,9 +466,22 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         }
         private StateEnum _processingState = StateEnum.Pending;
 
-        public MaJTask Parent { get; set; }
 
         public ObservableCollection<MaJTask> SubTasks { get; set; }
+
+        public bool IsIndeterminate
+        {
+            get
+            {
+                return _isIndeterminate;
+            }
+            set
+            {
+                _isIndeterminate = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _isIndeterminate = false;
 
         public long TotalElementCount
         {
