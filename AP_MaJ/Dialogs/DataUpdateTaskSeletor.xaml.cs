@@ -117,27 +117,30 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             MaJTask ReadVaultConfigTask = new MaJTask() { TaskGroup = "Vault", Name = "ReadVaultConfig", DisplayName = "Lecture de la configuration Vault", IsChecked = true, Index = 1, IsIndeterminate = true };
             MaJTasks.Add(ReadVaultConfigTask);
 
+            MaJTask CreateVaultFolderTask = new MaJTask() { TaskGroup = "Vault", Name = "CreateVaultFolder", DisplayName = "Création des nouveaux dossiers Vault", IsChecked = true, Index = 2, IsIndeterminate = true };
+            MaJTasks.Add(CreateVaultFolderTask);
+
             MaJTask ReadInventorConfigTask = new MaJTask() { TaskGroup = "Inventor", Name = "ReadInventorConfig", DisplayName = "Lecture de la configuration Inventor", IsChecked = true, Index = 10, IsIndeterminate = true };
             MaJTasks.Add(ReadInventorConfigTask);
 
-            MaJTask FileTask = new MaJTask() { IsGroup = true, TaskGroup = "File", Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, Index = 20 };
+            MaJTask FileTask = new MaJTask() { IsGroup = true, TaskGroup = "File", Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = null, IsTaskCheckBoxEnable = true, Index = 20 };
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, Index = 21});
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, Index = 22 });
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = true, Index = 23 });
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Update", DisplayName = "Mise à jour", IsChecked = true, Index = 24 });
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = false, Index = 25 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 21});
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 22 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 23 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Update", DisplayName = "Mise à jour", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 24 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 25 });
             MaJTasks.Add(FileTask);
 
             MaJTask InventorCloseTask = new MaJTask() { TaskGroup = "Inventor", Name = "InventorClose", DisplayName = "Fermeture des sessions Inventor", IsChecked = true, Index = 30, IsIndeterminate = true };
             MaJTasks.Add(InventorCloseTask);
 
-            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, Index = 40 };
+            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 40 };
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false,Index = 41 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, Index = 42 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, Index = 43 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = false, Index = 44 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 41 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 42 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 43 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 44 });
             MaJTasks.Add(ItemTask);
 
             MaJToDoTasks = new ObservableCollection<string>();
@@ -227,11 +230,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                 TaskCancellationTokenSource = new CancellationTokenSource();
                 CancellationToken TaskCancellationToken = TaskCancellationTokenSource.Token;
-                
+
                 TaskProgReport = new Progress<TaskProgressReport>();
                 ProcessProgReport = new Progress<ProcessProgressReport>();
-
-
 
                 foreach (MaJTask t in CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index).ToList())
                 {
@@ -251,7 +252,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                     if (currentTask.Name.Equals("VaultConnect"))
                     {
-                        currentTask.IsIndeterminate = true;
                         vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
                         if (vaultUtility.VaultConnection == null)
                         {
@@ -262,20 +262,18 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                         {
                             currentTask.ProcessingState = StateEnum.Completed;
                         }
-                        currentTask.IsIndeterminate = false;
                     }
                     else if (currentTask.Name.Equals("ReadVaultConfig"))
                     {
-                        currentTask.IsIndeterminate = true;
                         vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                    }                    
+                    else if (currentTask.Name.Equals("CreateVaultFolder"))
+                    {
                         vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
-                        currentTask.IsIndeterminate = false;
                     }
                     else if (currentTask.Name.Equals("ReadInventorConfig"))
                     {
-                        currentTask.IsIndeterminate = true;
                         vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                        currentTask.IsIndeterminate = false;
                     }
                     else if (currentTask.TaskGroup.Equals("File"))
                     {
@@ -283,9 +281,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     }
                     else if (currentTask.Name.Equals("InventorClose"))
                     {
-                        currentTask.IsIndeterminate = true;
                         await vaultUtility.CloseAllInventorAsync(TaskProgReport, TaskCancellationToken);
-                        currentTask.IsIndeterminate = false;
                     }
                     else if (currentTask.TaskGroup.Equals("Item"))
                     {
@@ -437,8 +433,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         public string Name { get; set; }
         public string TaskGroup { get; set; }
         public bool IsGroup { get; set; } = false;
+        public bool IsTaskCheckBoxEnable { get; set; } = false; 
         public string DisplayName { get; set; }
-        public bool IsChecked 
+        public bool? IsChecked 
         { 
             get
             {
@@ -450,7 +447,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                 NotifyPropertyChanged();
             }
         }
-        private bool _isChecked = false;
+        private bool? _isChecked = false;
 
         public StateEnum ProcessingState
         {

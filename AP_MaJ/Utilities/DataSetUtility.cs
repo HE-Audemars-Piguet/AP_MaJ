@@ -27,6 +27,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "Task", DataType = typeof(TaskTypeEnum), AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "State", DataType = typeof(StateEnum), AllowDBNull = false });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "JobSubmitCount", DataType = typeof(int), DefaultValue = null, AllowDBNull = true });
+            dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultLevel", DataType = typeof(int), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "EntityType", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = false });
 
@@ -66,9 +67,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevSchId", DataType = typeof(long), DefaultValue = null, AllowDBNull = true });
 
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevLabel", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            //dtEntities.Columns.Add(new DataColumn() { ColumnName = "VaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
             dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevLabel", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
-            //dtEntities.Columns.Add(new DataColumn() { ColumnName = "TargetVaultRevId", DataType = typeof(string), DefaultValue = string.Empty, AllowDBNull = true });
 
             dtEntities.PrimaryKey = new List<DataColumn>() { dtEntities.Columns["Id"] }.ToArray();
             ds.Tables.Add(dtEntities);
