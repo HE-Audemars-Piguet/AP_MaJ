@@ -94,7 +94,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             VDF.Vault.Results.LogInResult results = await Task.Run(() => VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, appOptions.VaultUser, appOptions.VaultPassword,
                                                                                                                    VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null));
 
-            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Stop" });
+            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
 
             if (results.Success) return results.Connection;
             else return null;
@@ -149,7 +149,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             vltConfig.VaultFileNumberingSchemes = VaultConnection.WebServiceManager.NumberingService.GetNumberingSchemes(VDF.Vault.Currency.Entities.EntityClassIds.Files, NumSchmType.Activated)?.ToList() ?? null;
             vltConfig.VaultItemNumberingSchemes = VaultConnection.WebServiceManager.NumberingService.GetNumberingSchemes(VDF.Vault.Currency.Entities.EntityClassIds.Items, NumSchmType.Activated)?.ToList() ?? null;
 
-            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la définition des propriétés des fichiers...", Timer = "Stop" });
+            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
 
             return vltConfig;
         }
@@ -171,7 +171,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 dictionary = await Task.Run(() => VaultConnection.FolderManager.EnsureFolderPathsExist(VaultFolders));            
             }
 
-            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Création des dossiers de destination manquants dans Vault...", Timer = "Stop" });
+            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
 
             return dictionary;
         }
@@ -179,15 +179,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         internal async Task<List<string>> GetInventorMaterialAsync(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken)
         {
             bool ReportProgress = taskProgReport != null;
-            
-            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la liste des matières disponible dans Inventor...", Timer = "Start" });
+
+            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Démarrage d'Inventor...", Timer = "Start" });
 
             List<string> MaterialList = new List<string>();
 
             if(appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial).Count() > 0)
             {
                 InventorInstance invInst = _invDispatcher.GetInventorInstance();
+                await invInst.StartOrRestartInventorAsync();
 
+                if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la liste des matières disponible dans Inventor...", Timer = "Start" });
+               // await Task.Delay(100);
+
+                invInst.InventorFileCount++;
                 Inventor.Document invDoc = await Task.Run(() => invInst.InvApp.Documents.Add(Inventor.DocumentTypeEnum.kPartDocumentObject));
 
                 foreach (Inventor.MaterialAsset assetMaterial in invInst.InvApp.ActiveMaterialLibrary.MaterialAssets)
@@ -195,11 +200,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     MaterialList.Add(assetMaterial.DisplayName);
                 }
 
-                invDoc.Close(true);
+                await Task.Run(() => invDoc.Close(true));
+
                 _invDispatcher.ReleaseInventorInstance(invInst);
             }
 
-            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la liste des matières disponible dans Inventor...", Timer = "Stop" });
+            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
 
             return MaterialList;
         }
@@ -207,8 +213,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         internal async Task CloseAllInventorAsync(IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken)
         {
             bool ReportProgress = taskProgReport != null;
+            taskProgReport.Report(new TaskProgressReport() { Message = "Fermeture des instances Inventor...", Timer = "Start" });
 
             await Task.Run(() =>_invDispatcher.CloseAllInventor(taskProgReport));
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "¨Stop" });
         }
 
 
@@ -891,7 +900,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             {
                 try
                 {
-                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleStates(new long[] { dr.Field<long>("VaultMasterId") }, new long[] { dr.Field<long>("TempVaultLcsId") }, "Update state from...").FirstOrDefault());
+                    VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleStates(new long[] { dr.Field<long>("VaultMasterId") }, new long[] { dr.Field<long>("TempVaultLcsId") }, "MaJ - Changement d'état").FirstOrDefault());
                     if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Changement d'état temporaire de '" + dr.Field<string>("VaultLcsName") + "' à '" + dr.Field<string>("TempVaultLcsName") + "'."));
                 }
                 catch (VaultServiceErrorException VltEx)
@@ -1485,7 +1494,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                                     if(!string.IsNullOrEmpty(stringVal)) 
                                     {
-                                        object objectVal = ToObject(stringVal, pDef.ManagedDataType);
+                                        object objectVal = ToObject(stringVal, pDef.ManagedDataType, file.Name);
 
                                         UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
                                         UdpNames.Add(pDef.DisplayName);
@@ -1497,8 +1506,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                             if(cSourceMappings.ContentPropertyDefinition.Moniker.Equals("Material!{32853F0F-3444-11D1-9E93-0060B03C1CA6}!nvarchar"))
                                             {
                                                 NewInventorMaterialName = stringVal;
-                                                //UpdateUdps.Remove(UpdateUdps.LastOrDefault());
-                                                //UdpNames.Remove(UdpNames.LastOrDefault());
+                                                UpdateUdps.Remove(UpdateUdps.LastOrDefault());
+                                                UdpNames.Remove(UdpNames.LastOrDefault());
                                             }
                                             else
                                             {
@@ -1506,7 +1515,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                                 {
                                                     CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
                                                     Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
-                                                    Val = UpdateUdps.Last().Val
+                                                    Val = objectVal
                                                 });
                                                 FilePropNames.Add(pDef.DisplayName);
                                             }
@@ -1564,13 +1573,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         // Checkin
                         file = await Task.Run (() => VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des propriétés", false, 
                                                      DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket));
+                        
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Archivage du fichier après mise à jour."));
 
                         if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewInventorMaterialName) && System.IO.Path.GetExtension(fullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase))
                         {
                             resultState = await UpdateInventorMaterial(fullVaultName, NewInventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
                         }
 
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Archivage du fichier après mise à jour."));
+
                     }
                 }
                 catch (VaultServiceErrorException VltEx)
@@ -1607,16 +1618,28 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     FileIteration AcquiredFile = AcquireResults.FileResults.FirstOrDefault().File;
 
                     InventorInstance invInst = _invDispatcher.GetInventorInstance(fullVaultName, processId, processProgReport);
+                    await invInst.StartOrRestartInventorAsync();
 
                     try
                     {
                         processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
 
+                        invInst.InventorFileCount++;
                         Inventor.PartDocument invPartDoc = invInst.InvApp.Documents.Open(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath) as Inventor.PartDocument;
                         invPartDoc.ActiveMaterial = invInst.InvApp.ActiveMaterialLibrary.MaterialAssets[newInventorMaterialName] as Inventor.Asset;
                         invPartDoc.Close(false);
                         processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
-                        //Progress
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("info", "La matière du fichier Inventor a été changée pour '" + newInventorMaterialName + "'."));
+
+                        _invDispatcher.ReleaseInventorInstance(invInst);
+
+                        using (System.IO.StreamReader stream = new System.IO.StreamReader(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath))
+                        {
+                            await Task.Run(() => VaultConnection.FileManager.CheckinFile(AcquiredFile, "MaJ - Changement matière Inventor", false, DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")),
+                                                                                     null, false, AcquiredFile.EntityName, AcquiredFile.FileClassification, AcquiredFile.IsHidden, stream.BaseStream));
+                        }
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La matière a été changée pour '" + newInventorMaterialName + "'."));
                     }
                     catch (Exception Ex)
                     {
@@ -1627,17 +1650,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         resultState = StateEnum.Error;
                     }
-
-                    _invDispatcher.ReleaseInventorInstance(invInst);
-
-                    using (System.IO.StreamReader stream = new System.IO.StreamReader(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath))
-                    {
-                        await Task.Run(() => VaultConnection.FileManager.CheckinFile(AcquiredFile, "Changement matière Inventor", false, DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")),
-                                                                                 null, false, AcquiredFile.EntityName, AcquiredFile.FileClassification, AcquiredFile.IsHidden, stream.BaseStream));
-                    }
-                        
-
-                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La matière a été changée pour '" + newInventorMaterialName + "'."));
                 }
                 else
                 {
@@ -1725,7 +1737,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateRevisionDefinitionAndNumbers(new long[] { VaultFile.Id }, 
                                              new long[] { dr.Field<long>("TargetVaultRevSchId") }, new string[] { Label }, "MaJ - Changement de révision"));
                     }
-                    else if (dr.Field<long?>("TargetVaultRevSchId") == null && Label != VaultFile.FileRev.Label)
+                    else if (dr.Field<long>("TargetVaultRevSchId") == VaultFile.FileRev.RevDefId && Label != VaultFile.FileRev.Label)
                     {
                         await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileRevisionNumbers(new long[] { VaultFile.Id }, 
                                              new string[] { Label }, "MaJ - Changement de révision"));
@@ -1752,10 +1764,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return resultState;
         }
 
-
         private async Task<StateEnum> UpdateFileLifeCycleState(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
-            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcsId") != null && dr.Field<long?>("TargetVaultLcsId") != dr.Field<long?>("VaultLcsId"))
+            ACW.File VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId")));
+
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcsId") != null && dr.Field<long?>("TargetVaultLcsId") != VaultFile.FileLfCyc.LfCycStateId)
             {
                 try
                 {
@@ -2457,10 +2470,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return false;
         }
 
-        public object ToObject(string inputString, Type OutputTypeObject)
+        public object ToObject(string inputString, Type OutputTypeObject, string fileName = "")
         {
 
             if (inputString.Equals("ClearPropValue")) return null;
+            
+            if (inputString.Equals("SyncPartNumber")) inputString = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
             if (OutputTypeObject == typeof(string))
             {

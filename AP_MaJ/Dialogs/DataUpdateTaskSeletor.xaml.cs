@@ -30,7 +30,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using static Ch.Hurni.AP_MaJ.Classes.ApplicationOptions;
 using static DevExpress.Utils.SafeXml;
-
+using System.IO.Compression;
 
 namespace CH.Hurni.AP_MaJ.Dialogs
 {
@@ -178,9 +178,16 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             currentTask.TaskDetail = e.Message;
         }
 
+        DateTime lastExection = DateTime.MinValue;
         private void timer_Tick(object sender, EventArgs e)
         {
-            currentTask.TaskDuration = currentTask.FormatTimeSpan(DateTime.Now.Subtract(dTimerStartTime));
+            DateTime now = DateTime.Now;
+
+            if((now - lastExection).TotalSeconds >= 1)
+            {
+                currentTask.TaskDuration = currentTask.FormatTimeSpan(now.Subtract(dTimerStartTime));
+                lastExection = now;
+            }            
         }
 
         private void ShowProcessProgress(object sender, ProcessProgressReport e)
@@ -298,82 +305,11 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                         TaskCancellationTokenSource.Cancel();
                     }
 
+                    await Task.Delay(100);
+
                     ProcessProgReport.ProgressChanged -= ShowProcessProgress;
                     TaskProgReport.ProgressChanged -= ShowTaskProgress;
                 }
-
-
-
-
-                //foreach (MaJTask t in MaJTasks.SelectMany(x => x.SubTasks).Where(y => y.IsChecked == true).OrderBy(y => y.Index))
-                //{
-                //    currentTask = t;
-                //    currentTask.ProcessFeedback.Clear();
-
-                //    if (TaskCancellationToken.IsCancellationRequested)
-                //    {
-                //        currentTask.ProcessingState = StateEnum.Canceled;
-                //        continue;
-                //    }
-
-                //    TaskProgReport.ProgressChanged += ShowTaskProgress;
-                //    ProcessProgReport.ProgressChanged += ShowProcessProgress;
-
-                //    currentTask.ProcessingState = StateEnum.Processing;
-
-                //    if (currentTask.Parent.Name.Equals("Vault") ||currentTask.Parent.Name.Equals("Inventor"))
-                //    {
-                //        currentTask.IsIndeterminate = true;
-                //        if (currentTask.Name.Equals("Connect"))
-                //        {
-                //            vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                //            if (vaultUtility.VaultConnection == null)
-                //            {
-                //                currentTask.ProcessingState = StateEnum.Error;
-                //                return;
-                //            }
-                //            else
-                //            {
-                //                currentTask.ProcessingState = StateEnum.Completed;
-                //            }
-                //        }
-                //        else if (currentTask.Name.Equals("ReadVaultConfig"))
-                //        {
-                //            vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                //            vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
-                //        }
-                //        else if (currentTask.Name.Equals("ReadInventorConfig"))
-                //        {
-                //            vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                //        }
-                //        currentTask.IsIndeterminate = false;
-                //    }
-                //    else if (currentTask.TaskGroup.Equals("File"))
-                //    {
-                //        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
-                //    }
-                //    else if (currentTask.TaskGroup.Equals("File"))
-                //    {
-                //        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
-                //    }
-                //    else if (currentTask.TaskGroup.Equals("Item"))
-                //    {
-                //        _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
-                //    }
-
-                //    if (TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
-                //    else if (currentTask.ElementErrorCount > 0) currentTask.ProcessingState = StateEnum.Error;
-                //    else currentTask.ProcessingState = StateEnum.Completed;
-
-
-                //    if (appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ProcessingState == StateEnum.Error)
-                //    {
-                //        TaskCancellationTokenSource.Cancel();
-                //    }
-
-                //    ProcessProgReport.ProgressChanged -= ShowProcessProgress;
-                //    TaskProgReport.ProgressChanged -= ShowTaskProgress;
-                //}
             }
             else
             {
@@ -398,16 +334,26 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Report " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
+            string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Statistics.log");
             string Report = "DisplayName;ProcessingState;ElementCount;TotalElementCount;ElementDoneCount;ElementErrorCount;TaskDuration";
             foreach (MaJTask t in CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index))
             {
-
                 Report += Environment.NewLine + t.DisplayName + ";" + t.ProcessingState + ";" + t.ElementCount + ";" + t.TotalElementCount + ";" + t.ElementDoneCount + ";" + t.ElementErrorCount + ";" + t.TaskDuration;
             }
-
             System.IO.File.WriteAllText(ReportName, Report);
 
+            if(SaveHistory.IsChecked == true)
+            {
+                string ZipName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Archive " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".zip");
+                using (System.IO.Compression.ZipArchive archive = System.IO.Compression.ZipFile.Open(ZipName, System.IO.Compression.ZipArchiveMode.Create))
+                {
+                    archive.CreateEntryFromFile(ReportName, "Statistics.log");
+                    archive.CreateEntryFromFile(_dbFileName, System.IO.Path.GetFileName(_dbFileName));
+                    archive.CreateEntryFromFile(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj", System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj"));
+                }
+                System.IO.File.Delete(ReportName);
+            }
+            
             Close();
         }
 

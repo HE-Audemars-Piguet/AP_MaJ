@@ -1,4 +1,5 @@
-﻿using Ch.Hurni.AP_MaJ.Classes;
+﻿using AP_MaJ;
+using Ch.Hurni.AP_MaJ.Classes;
 using Ch.Hurni.AP_MaJ.Dialogs;
 using Ch.Hurni.AP_MaJ.Utilities;
 using CH.Hurni.AP_MaJ.Dialogs;
@@ -42,6 +43,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using static Ch.Hurni.AP_MaJ.Classes.ApplicationOptions;
 
 namespace Ch.Hurni.AP_MaJ
@@ -319,6 +321,8 @@ namespace Ch.Hurni.AP_MaJ
         #region Constructors
         public MainWindow()
         {
+            App.Current.DispatcherUnhandledException += Current_DispatcherUnhandledException;
+
             DataContext = this;
             
             InitializeComponent();
@@ -371,6 +375,18 @@ namespace Ch.Hurni.AP_MaJ
                         }
                     }
                 }
+            }
+        }
+
+        private void Current_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(ActiveProjectName))
+            {
+                System.IO.File.AppendAllText(System.IO.Path.Combine("C:\\Temp", "Crash.log"), e.Exception.ToString());
+            }
+            else
+            {
+                System.IO.File.AppendAllText(System.IO.Path.Combine(ActiveProjectName, "Crash.log"), e.Exception.ToString());
             }
         }
         #endregion
@@ -552,6 +568,13 @@ namespace Ch.Hurni.AP_MaJ
             Data = UpdateTaskDlg.Data;
 
             MainGridControl.EndDataUpdate();
+        }
+
+        private void ClearData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            Data = DataSetUtility.CreateDataSet(AppOptions.VaultPropertyFieldMappings);
+
+            Data.SaveToSQLite(ActiveProjectDataBase);
         }
 
         private void ExportLog_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
@@ -750,8 +773,9 @@ namespace Ch.Hurni.AP_MaJ
             //else if (enumTypeName.Equals("FileProviderEnum")) return ((FileProviderEnum)Enum.Parse(typeof(FileProviderEnum), val.ToString())).ToString();
             else return val.ToString();
         }
-        #endregion
 
+
+        #endregion
 
 
     }

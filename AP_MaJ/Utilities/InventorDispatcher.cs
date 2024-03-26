@@ -20,10 +20,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         {
             get
             {
-                if(_invApp == null)
-                {
-                    StartInventor();
-                }
+                //if(_invApp == null)
+                //{
+                //    ///StartInventor();
+                //}
 
                 return _invApp;
             }
@@ -32,34 +32,77 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 _invApp = value;
             } 
         }
+        private Inventor.Application _invApp = null;
 
-        public bool IsInventorStarted 
-        { 
+        public int InventorFileCount
+        {
             get
             {
-                return _invApp != null;
+                return _inventorFileCount;
+            }
+            set
+            {
+                _inventorFileCount = value;
             }
         }
+        private int _inventorFileCount = 0;
 
-        private Inventor.Application _invApp = null;
+        public int MaxInventorFileCount
+        {
+            get
+            {
+                return _maxInventorFileCount;
+            }
+            set
+            {
+                _maxInventorFileCount = value;
+            }
+        }
+        private int _maxInventorFileCount = 100;
+
 
         public InventorInstance() { }
 
-        internal void StartInventor()
+        //internal void StartInventor()
+        //{
+        //    if (_invApp == null)
+        //    {
+        //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
+
+        //        _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
+        //        _invApp.Visible = false;
+        //        _invApp.SilentOperation = true;
+        //        _invApp.UserInterfaceManager.UserInteractionDisabled = true;
+
+        //        while (_invApp != null && !_invApp.Ready)
+        //        {
+        //            System.Threading.Thread.Sleep(1000);
+        //        }
+        //    }
+        //}
+
+        internal async Task StartOrRestartInventorAsync()
         {
-            if (_invApp == null)
+            if(_invApp == null)
             {
                 Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
 
-                _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
+                _invApp = await Task.Run(() => System.Activator.CreateInstance(inventorAppType)) as Inventor.Application;
                 _invApp.Visible = false;
                 _invApp.SilentOperation = true;
                 _invApp.UserInterfaceManager.UserInteractionDisabled = true;
 
                 while (_invApp != null && !_invApp.Ready)
                 {
-                    System.Threading.Thread.Sleep(1000);
+                    await Task.Delay(1000);
                 }
+
+                InventorFileCount = 0;
+            }
+            
+            if(InventorFileCount >= MaxInventorFileCount)
+            {
+
             }
         }
     }
@@ -69,11 +112,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         private List<InventorInstance> _invInstances = new List<InventorInstance>();
         private List<string> _mutexIds = new List<string>();
 
-        public InventorDispatcher(int MaxInventorInstance)
+        public InventorDispatcher(int MaxInventorInstance, int MaxInventorFileCount = 100)
         {
            for (int i = 0; i < MaxInventorInstance; i++)
             {
-                _invInstances.Add(new InventorInstance());
+                _invInstances.Add(new InventorInstance() { MaxInventorFileCount = MaxInventorFileCount });
             }
         }
 
@@ -84,15 +127,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 InventorInstance result = GetFreeInstance();
                 if (result != null)
                 {
-                    if(!result.IsInventorStarted)
-                    {
-                        if(!string.IsNullOrWhiteSpace(fullVaultName) && processId != -1 && processProgReport != null)
-                        {
-                            processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Démarrage d'Inventor...", ProcessIndex = processId });
-                        }
+                    //if(!result.IsInventorStarted)
+                    //{
+                    //    if(!string.IsNullOrWhiteSpace(fullVaultName) && processId != -1 && processProgReport != null)
+                    //    {
+                    //        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Démarrage d'Inventor...", ProcessIndex = processId });
+                    //    }
                         
-                        result.StartInventor();
-                    }
+                    //    result.StartInventor();
+                    //}
                     return result;
                 }
                 else
@@ -127,12 +170,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         public void CloseAllInventor(IProgress<TaskProgressReport> taskProgReport = null)
         {
-            int TotalInventorCount = _invInstances.Where(x => x.IsInventorStarted).Count();
+            int TotalInventorCount = _invInstances.Where(x => x.InvApp != null).Count();
             int ClosedInventorCount = 0;
 
             do
             {
-                foreach (InventorInstance invInst in _invInstances.Where(x => x.IsInventorStarted))
+                foreach (InventorInstance invInst in _invInstances.Where(x => x.InvApp != null))
                 {
                     if (Monitor.TryEnter(invInst))
                     {
@@ -149,9 +192,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                 }
 
-                if (_invInstances.Where(x => x.IsInventorStarted).Count() > 0) System.Threading.Thread.Sleep(1000);
+                if (_invInstances.Where(x => x.InvApp != null).Count() > 0) System.Threading.Thread.Sleep(1000);
 
-            } while (_invInstances.Where(x => x.IsInventorStarted).Count() > 0);
+            } while (_invInstances.Where(x => x.InvApp != null).Count() > 0);
         }
     }
 

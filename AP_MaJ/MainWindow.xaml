@@ -37,7 +37,7 @@
                 <dxb:BarButtonItem Name="bOpen" ItemClick="OpenProject_Click" Content="Ouvrir projet" ToolTip="Ouvrir un projet de mise a jour"
                                    Glyph="{dx:DXImage SvgImages/Outlook Inspired/Open.svg}" LargeGlyph="{dx:DXImage SvgImages/Outlook Inspired/Open.svg}"/>
                 <dxb:BarButtonItem Name="bSettings" Content="Option du projet" ItemClick="EditProject_Click" IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
-                                   Glyph="{dx:DXImage SvgImages/RichEdit/DocumentProperties.svg}" LargeGlyph="{dx:DXImage SvgImages/RichEdit/DocumentProperties.svg}"/>
+                                   Glyph="{dx:DXImage 'SvgImages/Spreadsheet/ManageDataSource.svg'}" LargeGlyph="{dx:DXImage 'SvgImages/Spreadsheet/ManageDataSource.svg'}"/>
 
                 <dxb:BarItemSeparator/>
 
@@ -46,7 +46,10 @@
                                    Glyph="{dx:DXImage SvgImages/Scheduling/Import.svg}" LargeGlyph="{dx:DXImage SvgImages/Scheduling/Import.svg}"/>
                 <dxb:BarButtonItem Name="bUpdate" ItemClick="ProcessProjectData_Click" Content="Mise à jour des données" 
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
-                                   Glyph="{dx:DXImage SvgImages/RichEdit/UpdateTableOfContents.svg}" LargeGlyph="{dx:DXImage SvgImages/RichEdit/UpdateTableOfContents.svg}"/>
+                                   Glyph="{dx:DXImage 'SvgImages/Dashboards/UpdateDataExtract.svg'}" LargeGlyph="{dx:DXImage 'SvgImages/Dashboards/UpdateDataExtract.svg'}"/>
+                <dxb:BarButtonItem Name="bClearData" ItemClick="ClearData_Click" Content="Effacer les donnée du projet de mise à jour" 
+                                   IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
+                                   Glyph="{dx:DXImage 'SvgImages/Dashboards/DeleteDataSource.svg'}" LargeGlyph="{dx:DXImage 'SvgImages/Dashboards/DeleteDataSource.svg'}"/>
                 <dxb:BarButtonItem Name="bExportate" ItemClick="ExportLog_Click" Content="Exporter des rappots" ToolTip="Exporter des rapports des logs des mises à jour au format CSV ou XLSX"
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/XAF/Action_LocalizationExport.svg}" LargeGlyph="{dx:DXImage SvgImages/XAF/Action_LocalizationExport.svg}"/>

@@ -400,6 +400,7 @@
                 </dxe:ListBoxEdit.ItemTemplate>
             </dxe:ListBoxEdit>
 
+            <CheckBox Grid.Row="2" HorizontalAlignment="Left" Margin="0 4 0 0" Name="SaveHistory" Content="Sauver l'historique d'execution" IsChecked="True"/>
             
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 4 0 0">
                 <Button Content="Terminer" Click="CloseButton_Click" IsDefault="True" IsCancel="True" Margin="4 0 0 0" MinWidth="80"/>
