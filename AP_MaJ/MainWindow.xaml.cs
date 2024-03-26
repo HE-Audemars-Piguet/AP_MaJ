@@ -739,7 +739,22 @@ namespace Ch.Hurni.AP_MaJ
             string DefaultGridViewName = System.IO.Path.Combine(ActiveProjectGridViewDir, "Default.xml");
             if (!System.IO.File.Exists(DefaultGridViewName))
             {
-                System.IO.File.Copy(System.IO.Path.Combine(ApplicationDir, "Default.xml"), DefaultGridViewName);
+                string SourceFile = System.IO.Directory.EnumerateFiles(ApplicationDir, "Default.xml", SearchOption.AllDirectories).FirstOrDefault();
+                if(!string.IsNullOrWhiteSpace(SourceFile)) 
+                {
+                    System.IO.File.Copy(SourceFile, DefaultGridViewName);
+                }
+                else
+                {
+                    ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Error.GetMessageBoxIcon())
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        AllowTextSelection = true
+                    };
+
+                    ThemedMessageBox.Show("Erreur de configuration","La vue par défaut de la grille '" + SourceFile + "' n'existe pas!", msgBoxParam);
+                }
             }
 
             return new ObservableCollection<string>(new System.IO.DirectoryInfo(ActiveProjectGridViewDir).EnumerateFiles("*.xml", SearchOption.TopDirectoryOnly).Select(x => System.IO.Path.GetFileNameWithoutExtension(x.Name)).OrderBy(x => x));

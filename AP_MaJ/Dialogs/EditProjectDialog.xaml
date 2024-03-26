@@ -6,73 +6,11 @@
                  xmlns:dxlc="http://schemas.devexpress.com/winfx/2008/xaml/layoutcontrol"
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
                  xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
-                 xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
                  xmlns:cnv="clr-namespace:Ch.Hurni.AP_MaJ.Converters"
                  xmlns:system="clr-namespace:System;assembly=mscorlib"
                  Title="EditProjectDialog" Height="700" Width="800" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
     <dx:ThemedWindow.Resources>
         <cnv:PropertyTypeNameConverter x:Key="PropertyTypeNameConverter"/>
-        
-        <DataTemplate x:Key="PropertyGroupValueTemplate">
-            <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconMaterial VerticalAlignment="Center">
-                    <iconPacks:PackIconMaterial.Style>
-                        <Style TargetType="iconPacks:PackIconMaterial">
-                            <Setter Property="Kind" Value="TagTextOutline"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Value}" Value="UserDefined">
-                                    <Setter Property="Kind" Value="SafeSquareOutline"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </iconPacks:PackIconMaterial.Style>
-                </iconPacks:PackIconMaterial>
-                <TextBlock Text="{Binding Value}" Margin="8 0 0 0" VerticalAlignment="Center"/>
-            </StackPanel>
-        </DataTemplate>
-
-        <DataTemplate x:Key="PropertyCellDisplayTemplate">
-            <iconPacks:PackIconMaterial HorizontalAlignment="Center" VerticalAlignment="Center">
-                <iconPacks:PackIconMaterial.Style>
-                    <Style TargetType="iconPacks:PackIconMaterial">
-                        <Setter Property="Kind" Value="TagTextOutline"/>
-                        <Setter Property="ToolTip" Value="Properties"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Value}" Value="UserDefined">
-                                <Setter Property="Kind" Value="SafeSquareOutline"/>
-                                <Setter Property="ToolTip" Value="Vault User Defined Properties"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </iconPacks:PackIconMaterial.Style>
-            </iconPacks:PackIconMaterial>
-        </DataTemplate>
-
-        <DataTemplate x:Key="MappingDirectionItemTemplate">
-            <iconPacks:PackIconMaterial HorizontalAlignment="Center" VerticalAlignment="Center">
-                <iconPacks:PackIconMaterial.Style>
-                    <Style TargetType="iconPacks:PackIconMaterial">
-                        <Setter Property="Kind" Value="SwapHorizontalBold"/>
-                        <Setter Property="ToolTip" Value="Read/write file property value from/to database field"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=RowData.Row.MappingDirection}" Value="Write">
-                                <Setter Property="Kind" Value="ArrowLeftBold"/>
-                                <Setter Property="Height" Value="10"/>
-                                <Setter Property="Width" Value="10"/>
-                                <Setter Property="ToolTip" Value="Write database field value to file property"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=RowData.Row.MappingDirection}" Value="Read">
-                                <Setter Property="Kind" Value="ArrowRightBold"/>
-                                <Setter Property="Height" Value="10"/>
-                                <Setter Property="Width" Value="10"/>
-                                <Setter Property="ToolTip" Value="Write file property value to database field"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </iconPacks:PackIconMaterial.Style>
-            </iconPacks:PackIconMaterial>
-        </DataTemplate>
-
     </dx:ThemedWindow.Resources>
 
     <Grid Margin="4">
@@ -178,7 +116,11 @@
                     <dxlc:LayoutItem.Label>
                         <Grid Width="{Binding RelativeSource={RelativeSource AncestorType=dxlc:LayoutGroup, Mode=FindAncestor}, Path=ActualWidth}" Margin="0 0 0 4">
                             <TextBlock Text="Vault file property mappings" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <Button Grid.Column="0" Content="{iconPacks:Material Kind=TableEdit}" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 0 0"/>
+                            <Button Grid.Column="0" Click="Mapping_Edit_Click" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 0 0 0">
+                                <Button.Content>
+                                    <Image Source="{dx:DXImage 'SvgImages/Snap/ModifyTableStyle.svg'}" Height="16"/>
+                                </Button.Content>
+                            </Button>
                         </Grid>
                     </dxlc:LayoutItem.Label>
                     <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.VaultPropertyFieldMappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="100" MaxHeight="250"

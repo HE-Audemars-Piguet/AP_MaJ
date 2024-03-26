@@ -6,7 +6,7 @@
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
                  xmlns:dxa="http://schemas.devexpress.com/winfx/2008/xaml/accordion"
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
-                 xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks" xmlns:uctrl="clr-namespace:Ch.Hurni.AP_MaJ.Controls"
+				 xmlns:uctrl="clr-namespace:Ch.Hurni.AP_MaJ.Controls"
                  x:Class="Ch.Hurni.AP_MaJ.MainWindow"
                  Title="MainWindow" Height="800" Width="1000">
     <dx:ThemedWindow.Resources>

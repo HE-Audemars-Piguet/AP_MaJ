@@ -3,7 +3,6 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
                  xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
-                 xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks" 
                  Title="ImporExportProjectDataDialog" Height="700" Width="800" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
     
     <dx:ThemedWindow.Resources>
