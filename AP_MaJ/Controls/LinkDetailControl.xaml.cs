@@ -22,27 +22,27 @@ namespace Ch.Hurni.AP_MaJ.Controls
     /// <summary>
     /// Interaction logic for PropertyDetailControl.xaml
     /// </summary>
-    public partial class LogDetailControl : UserControl, INotifyPropertyChanged
+    public partial class LinkDetailControl : UserControl, INotifyPropertyChanged
     {
         #region Properties
-        public DataRow[] Logs
+        public DataRow[] Links
         {
             get
             {
-                return _logs;
+                return _links;
             }
             set
             {
-                _logs = value;
+                _links = value;
                 NotifyPropertyChanged();
             }
         }
-        private DataRow[] _logs = null;
+        private DataRow[] _links = null;
         #endregion
 
 
         #region BindableProperties
-        public static readonly DependencyProperty SelectedItemProperty = DependencyProperty.Register("SelectedItem", typeof(DataRowView), typeof(LogDetailControl), new PropertyMetadata(null, SelectedItemValue_Changed));
+        public static readonly DependencyProperty SelectedItemProperty = DependencyProperty.Register("SelectedItem", typeof(DataRowView), typeof(LinkDetailControl), new PropertyMetadata(null, SelectedItemValue_Changed));
         public DataRowView SelectedItem
         {
             get { return (DataRowView)GetValue(SelectedItemProperty); }
@@ -50,24 +50,22 @@ namespace Ch.Hurni.AP_MaJ.Controls
         }
         private static void SelectedItemValue_Changed(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            LogDetailControl currentCtrl = (LogDetailControl)d;
+            LinkDetailControl currentCtrl = (LinkDetailControl)d;
 
             if (e.NewValue == null)
             {
-                currentCtrl.LogsGridControl.ItemsSource = null;
+                currentCtrl.LinksGridControl.ItemsSource = null;
                 return;
             }
 
-            //currentCtrl.Props.Rows.Clear();
-
             DataRow SelectedEntityData = (e.NewValue as DataRowView).Row;
-            currentCtrl.Logs = SelectedEntityData.GetChildRows("EntityLogs");
-            currentCtrl.LogsGridControl.ItemsSource = currentCtrl.Logs;
+            currentCtrl.Links = SelectedEntityData.GetChildRows("EntityLinks");
+            currentCtrl.LinksGridControl.ItemsSource = currentCtrl.Links;
         }
         #endregion
 
 
-        public LogDetailControl()
+        public LinkDetailControl()
         {
             InitializeComponent();
         }

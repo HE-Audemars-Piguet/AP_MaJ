@@ -131,6 +131,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Classes\ApplicationOptions.cs" />
+    <Compile Include="Controls\LinkDetailControl.xaml.cs">
+      <DependentUpon>LinkDetailControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Controls\LogDetailControl.xaml.cs">
       <DependentUpon>LogDetailControl.xaml</DependentUpon>
     </Compile>
@@ -158,6 +161,10 @@
     <Compile Include="Utilities\ProgressReport.cs" />
     <Compile Include="Utilities\VaultConfig.cs" />
     <Compile Include="Utilities\VaultUtility.cs" />
+    <Page Include="Controls\LinkDetailControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Controls\LogDetailControl.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

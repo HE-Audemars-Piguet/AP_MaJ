@@ -138,7 +138,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
         private List<EntityCategory> _vaultFileCategoryList = null;
-        
+
+        public List<EntityCategory> VaultItemCategoryList
+        {
+            get
+            {
+                return _vaultItemCategoryList;
+            }
+            set
+            {
+                _vaultItemCategoryList = value;
+            }
+        }
+        private List<EntityCategory> _vaultItemCategoryList = null;
+
+
         public List<CatCfg> VaultFileCategoryBehavioursList
         {
             get

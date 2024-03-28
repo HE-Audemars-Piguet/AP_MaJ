@@ -84,6 +84,17 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             ds.Tables.Add(dtNewProps);
 
 
+            DataTable dtEntityLinks = new DataTable("Links");
+            dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "EntityId", DataType = typeof(long), AllowDBNull = false });
+            dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "LinkType", DataType = typeof(string), AllowDBNull = true });
+            dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "LinkMasterId", DataType = typeof(long), AllowDBNull = true });
+            dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "LinkName", DataType = typeof(string), AllowDBNull = true });
+            dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "FoundInEntities", DataType = typeof(bool), AllowDBNull = false, DefaultValue = false });
+
+            //dtNewProps.PrimaryKey = new List<DataColumn>() { dtNewProps.Columns["EntityId"] }.ToArray();
+            ds.Tables.Add(dtEntityLinks);
+
+
             DataTable dtLogs = new DataTable("Logs");
             dtLogs.Columns.Add(new DataColumn() { ColumnName = "EntityId", DataType = typeof(long), AllowDBNull = false });
             dtLogs.Columns.Add(new DataColumn() { ColumnName = "Severity", DataType = typeof(string), AllowDBNull = false });
@@ -94,7 +105,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             ds.Relations.Add("EntityNewProp", ds.Tables["Entities"].Columns["Id"], ds.Tables["NewProps"].Columns["EntityId"]);
             ds.Relations.Add("EntityLogs", ds.Tables["Entities"].Columns["Id"], ds.Tables["Logs"].Columns["EntityId"]);
-            
+            ds.Relations.Add("EntityLinks", ds.Tables["Entities"].Columns["Id"], ds.Tables["Links"].Columns["EntityId"]);
+
             return ds;
         }
 

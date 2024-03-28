@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Ch.Hurni.AP_MaJ.Controls.LogDetailControl"
+﻿<UserControl x:Class="Ch.Hurni.AP_MaJ.Controls.LinkDetailControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -20,29 +20,20 @@
     </UserControl.Resources>
     
     <Grid>
-        <dxt:GridControl Name="LogsGridControl" AllowInitiallyFocusedRow="False"
-                         AutoGenerateColumns="None" SelectionMode="Row" ColumnGeneratorTemplate="{StaticResource DefaultColumnTemplate}" ShowBorder="False">
+        <dxt:GridControl Name="LinksGridControl" AllowInitiallyFocusedRow="False"
+                         AutoGenerateColumns="None" SelectionMode="Row" ColumnGeneratorTemplate="{StaticResource DefaultColumnTemplate}" ShowBorder="False"
+                         >
             <dxt:GridControl.Columns>
-                <dxt:GridColumn FieldName="Severity" Binding="{Binding [Severity]}" Width="Auto"/>
-                <dxt:GridColumn Header="Date" Binding="{Binding [Date]}" Width="Auto" DefaultSortOrder="Ascending">
-                    <dxge:GridColumn.EditSettings>
-                        <dxe:TextEditSettings DisplayFormat="yyyy.MM.dd HH:mm:ss.ff" MaskUseAsDisplayFormat="True"/>
-                    </dxge:GridColumn.EditSettings>
-                </dxt:GridColumn>
-                <dxt:GridColumn Header="Message" Binding="{Binding [Message]}" Width="*">
-                    <dxge:GridColumn.EditSettings>
-                        <dxe:TextEditSettings TextWrapping="Wrap"/>
-                    </dxge:GridColumn.EditSettings>
-                </dxt:GridColumn>
+                <dxt:GridColumn FieldName="Type de lien" Binding="{Binding [LinkType]}" Width="Auto"/>
+                <dxt:GridColumn Header="Nom" Binding="{Binding [LinkName]}" Width="*"/>
+                <dxt:GridColumn Header="MasterId" Binding="{Binding [LinkMasterId]}" Width="Auto"/>
+                <dxt:GridColumn Header="Dans le dataset" FieldName="FoundInEntities" Binding="{Binding [FoundInEntities]}" Width="Auto"/>
             </dxt:GridControl.Columns>
             <dxt:GridControl.View>
                 <dxt:TableView AutoWidth="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True" ShowHorizontalLines="True" ShowVerticalLines="True"  ShowGroupPanel="False" ShowEmptyText="True" ShowIndicator="False">
                     <dxt:TableView.FormatConditions>
-                        <dxg:FormatCondition ApplyToRow="true" FieldName="Severity" ValueRule="Equal" Value1="Error">
-                            <dx:Format Foreground="#FFFF0000" />
-                        </dxg:FormatCondition>
-                        <dxg:FormatCondition ApplyToRow="true" FieldName="Severity" ValueRule="Equal" Value1="Warning">
-                            <dx:Format Foreground="#FFF79646" />
+                        <dxg:FormatCondition ApplyToRow="true" FieldName="FoundInEntities" ValueRule="Equal" Value1="False">
+                            <dx:Format Foreground="LightGray" />
                         </dxg:FormatCondition>
                     </dxt:TableView.FormatConditions>
                 </dxt:TableView>

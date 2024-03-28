@@ -788,10 +788,6 @@ namespace Ch.Hurni.AP_MaJ
             //else if (enumTypeName.Equals("FileProviderEnum")) return ((FileProviderEnum)Enum.Parse(typeof(FileProviderEnum), val.ToString())).ToString();
             else return val.ToString();
         }
-
-
         #endregion
-
-
     }
 }

@@ -134,6 +134,29 @@
                     </uctrl:PropertyDetailControl.Style>
                 </uctrl:PropertyDetailControl>
             </dx:DXTabItem>
+            <dx:DXTabItem Header="Liens">
+                <dx:DXTabItem.Style>
+                    <Style TargetType="dx:DXTabItem">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=MainGridControl, Path=SelectedItem[EntityType]}" Value="Item">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </dx:DXTabItem.Style>
+                <uctrl:LinkDetailControl>
+                    <uctrl:LinkDetailControl.Style>
+                        <Style TargetType="uctrl:LinkDetailControl">
+                            <Style.Triggers>
+                                <Trigger Property="IsVisible" Value="True">
+                                    <Setter Property="SelectedItem" Value="{Binding ElementName=MainGridControl, Path=SelectedItem, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </uctrl:LinkDetailControl.Style>
+                </uctrl:LinkDetailControl>
+            </dx:DXTabItem>
             <dx:DXTabItem Header="Logs">
                 <uctrl:LogDetailControl>
                     <uctrl:LogDetailControl.Style>
