@@ -405,6 +405,19 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private int _maxInventorAppCount = 3;
 
+        public int MaxInventorFileCount
+        {
+            get
+            {
+                return _maxInventorFileCount;
+            }
+            set
+            {
+                _maxInventorFileCount = value;
+            }
+        }
+        private int _maxInventorFileCount = 100;
+
         public bool IsInventorVisible
         {
             get

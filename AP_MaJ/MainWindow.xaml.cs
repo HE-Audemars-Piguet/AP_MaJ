@@ -380,13 +380,13 @@ namespace Ch.Hurni.AP_MaJ
 
         private void Current_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(ActiveProjectName))
+            if (string.IsNullOrWhiteSpace(ActiveProjectDir))
             {
                 System.IO.File.AppendAllText(System.IO.Path.Combine("C:\\Temp", "Crash.log"), e.Exception.ToString());
             }
             else
             {
-                System.IO.File.AppendAllText(System.IO.Path.Combine(ActiveProjectName, "Crash.log"), e.Exception.ToString());
+                System.IO.File.AppendAllText(System.IO.Path.Combine(ActiveProjectDir, "Crash.log"), e.Exception.ToString());
             }
         }
         #endregion

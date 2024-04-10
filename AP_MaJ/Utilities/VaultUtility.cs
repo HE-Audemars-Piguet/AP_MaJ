@@ -185,29 +185,39 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         {
             bool ReportProgress = taskProgReport != null;
 
-            if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Démarrage d'Inventor...", Timer = "Start" });
-
             List<string> MaterialList = new List<string>();
 
             if(appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial).Count() > 0)
             {
-                InventorInstance invInst = _invDispatcher.GetInventorInstance();
-                await invInst.StartOrRestartInventorAsync();
+                if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Attend une instance d'Inventor libre...", Timer = "Start" });
+                await Task.Delay(10);
 
-                if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la liste des matières disponible dans Inventor...", Timer = "Start" });
-               // await Task.Delay(100);
+                InventorInstance invInst = _invDispatcher.GetInventorInstance(0);
 
-                invInst.InventorFileCount++;
-                Inventor.Document invDoc = await Task.Run(() => invInst.InvApp.Documents.Add(Inventor.DocumentTypeEnum.kPartDocumentObject));
-
-                foreach (Inventor.MaterialAsset assetMaterial in invInst.InvApp.ActiveMaterialLibrary.MaterialAssets)
+                try
                 {
-                    MaterialList.Add(assetMaterial.DisplayName);
+                    if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Démarrage ou redémarrage d'Inventor..." });
+                    await invInst.StartOrRestartInventorAsync();
+
+                    if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Lecture de la liste des matières disponible dans Inventor..." });
+                    await Task.Delay(10);
+
+                    invInst.InventorFileCount++;
+                    Inventor.Document invDoc = await Task.Run(() => invInst.InvApp.Documents.Add(Inventor.DocumentTypeEnum.kPartDocumentObject));
+
+                    foreach (Inventor.MaterialAsset assetMaterial in invInst.InvApp.ActiveMaterialLibrary.MaterialAssets)
+                    {
+                        MaterialList.Add(assetMaterial.DisplayName);
+                    }
+
+                    await Task.Run(() => invDoc.Close(true));
+                }
+                catch
+                {
+                    await invInst.ForceCloseInventor();
                 }
 
-                await Task.Run(() => invDoc.Close(true));
-
-                _invDispatcher.ReleaseInventorInstance(invInst);
+                _invDispatcher.ReleaseInventorInstance(0);
             }
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
@@ -220,9 +230,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             bool ReportProgress = taskProgReport != null;
             taskProgReport.Report(new TaskProgressReport() { Message = "Fermeture des instances Inventor...", Timer = "Start" });
 
-            await Task.Run(() =>_invDispatcher.CloseAllInventor(taskProgReport));
+            await Task.Run(() =>_invDispatcher.CloseAllInventor());
 
-            taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "¨Stop" });
+            taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
+            await Task.Delay(10);
         }
 
 
@@ -1202,8 +1213,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                                                                (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
                                                                                 x.Field<StateEnum>("State") == StateEnum.Completed &&
                                                                                 x.Field<long?>("VaultMasterId") != null).ToList(); ;
-            
-            int maxLevel = Entities.Max(x => x.Field<int>("VaultLevel"));
 
             foreach (DataRow dr in Entities)
             {
@@ -1212,8 +1221,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
 
             int TotalCount = Entities.Count;
-
             int currentLevel = 1;
+
+            int maxLevel = currentLevel;
+            if (TotalCount > 0) maxLevel = Entities.Max(x => x.Field<int>("VaultLevel"));
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
             
@@ -1562,7 +1573,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") },
                                                  new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } }));
 
-                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés du fichier:" + System.Environment.NewLine +
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés du fichier dans Vault:" + System.Environment.NewLine +
                                                                              string.Join(System.Environment.NewLine, UpdateUdps.Select(x => "   - " + UdpNames[UpdateUdps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
                         }
 
@@ -1625,39 +1636,59 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     FileIteration AcquiredFile = AcquireResults.FileResults.FirstOrDefault().File;
 
-                    InventorInstance invInst = _invDispatcher.GetInventorInstance(fullVaultName, processId, processProgReport);
-                    await invInst.StartOrRestartInventorAsync();
+                    processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
+                    await Task.Delay(10);
 
-                    try
+                    InventorInstance invInst = _invDispatcher.GetInventorInstance(processId);
+
+                    if (invInst != null)
                     {
-                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
-
-                        invInst.InventorFileCount++;
-                        Inventor.PartDocument invPartDoc = invInst.InvApp.Documents.Open(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath) as Inventor.PartDocument;
-                        invPartDoc.ActiveMaterial = invInst.InvApp.ActiveMaterialLibrary.MaterialAssets[newInventorMaterialName] as Inventor.Asset;
-                        invPartDoc.Close(false);
-                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("info", "La matière du fichier Inventor a été changée pour '" + newInventorMaterialName + "'."));
-
-                        _invDispatcher.ReleaseInventorInstance(invInst);
-
-                        using (System.IO.StreamReader stream = new System.IO.StreamReader(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath))
+                        try
                         {
-                            await Task.Run(() => VaultConnection.FileManager.CheckinFile(AcquiredFile, "MaJ - Changement matière Inventor", false, DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")),
-                                                                                     null, false, AcquiredFile.EntityName, AcquiredFile.FileClassification, AcquiredFile.IsHidden, stream.BaseStream));
+                            processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Démarrage ou redémarrage d'Inventor...", ProcessIndex = processId });
+                            await Task.Delay(10);
+                            await invInst.StartOrRestartInventorAsync();
+
+                            processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
+                            await Task.Delay(10);
+
+                            invInst.InventorFileCount++;
+                            Inventor.PartDocument invPartDoc = invInst.InvApp.Documents.Open(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath) as Inventor.PartDocument;
+                            invPartDoc.ActiveMaterial = invInst.InvApp.ActiveMaterialLibrary.MaterialAssets[newInventorMaterialName] as Inventor.Asset;
+
+                            invPartDoc.Close(false);
+                            processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
+
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("info", "La matière du fichier Inventor a été changée pour '" + newInventorMaterialName + "'."));
+
+                            using (System.IO.StreamReader stream = new System.IO.StreamReader(AcquireResults.FileResults.FirstOrDefault().LocalPath.FullPath))
+                            {
+                                await Task.Run(() => VaultConnection.FileManager.CheckinFile(AcquiredFile, "MaJ - Changement matière Inventor", false, DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")),
+                                                                                         null, false, AcquiredFile.EntityName, AcquiredFile.FileClassification, AcquiredFile.IsHidden, stream.BaseStream));
+                            }
+
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Fichier archivé après mise à jour de la matière dans Inventor."));
+                        }
+                        catch (Exception Ex)
+                        {
+                            await invInst.ForceCloseInventor();
+
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le changement de matière pour '" + newInventorMaterialName + "' n'a pas pu être fait."));
+
+                            ACW.ByteArray downloadTicket;
+                            await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UndoCheckoutFile(dr.Field<long>("VaultMasterId"), out downloadTicket));
+
+                            resultState = StateEnum.Error;
                         }
 
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La matière a été changée pour '" + newInventorMaterialName + "'."));
+                        _invDispatcher.ReleaseInventorInstance(processId);
                     }
-                    catch (Exception Ex)
+                    else
                     {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le changement de matière pour '" + newInventorMaterialName + "' n'a pas pu être fait."));
-
-                        ACW.ByteArray downloadTicket;
-                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UndoCheckoutFile(dr.Field<long>("VaultMasterId"), out downloadTicket));
-
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Impossible d'optenir une instance d'Inventor."));
                         resultState = StateEnum.Error;
                     }
+
                 }
                 else
                 {

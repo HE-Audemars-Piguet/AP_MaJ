@@ -48,7 +48,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
             foreach (PropertyFieldMapping cfm in PropertyMappings)
             {
-                Mappings.Add(new PropertyFieldMapping() { VaultPropertySet = cfm.VaultPropertySet, VaultPropertyDisplayName = cfm.VaultPropertyDisplayName, VaultPropertyType = cfm.VaultPropertyType, FieldName = cfm.FieldName, IsSelected = true, IsValid = false });
+                Mappings.Add(new PropertyFieldMapping() { VaultPropertySet = cfm.VaultPropertySet, VaultPropertyDisplayName = cfm.VaultPropertyDisplayName, VaultPropertyType = cfm.VaultPropertyType, MustMatchInventorMaterial = cfm.MustMatchInventorMaterial, FieldName = cfm.FieldName, IsSelected = true, IsValid = false });
             }
             
             foreach (Autodesk.DataManagement.Client.Framework.Vault.Currency.Properties.PropertyDefinition propDef in VltCongif.VaultFilePropertyDefinitionDictionary.Values)

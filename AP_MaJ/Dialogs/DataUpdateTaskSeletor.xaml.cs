@@ -104,7 +104,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         {
             _data = data;
             _dbFileName = dbFileName;
-            _invDispatcher = new InventorDispatcher(appOptions.MaxInventorAppCount);
+            _invDispatcher = new InventorDispatcher(appOptions.MaxInventorAppCount, appOptions.MaxInventorFileCount);
             
             this.appOptions = appOptions;
             this.vaultUtility = new VaultUtility(_invDispatcher);
@@ -285,6 +285,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     else if (currentTask.TaskGroup.Equals("File"))
                     {
                         _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                        _data.SaveToSQLite(_dbFileName);
                     }
                     else if (currentTask.Name.Equals("InventorClose"))
                     {
@@ -293,6 +294,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     else if (currentTask.TaskGroup.Equals("Item"))
                     {
                         _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                        _data.SaveToSQLite(_dbFileName);
                     }
 
                     if (TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;

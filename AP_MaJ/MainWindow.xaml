@@ -7,8 +7,8 @@
                  xmlns:dxa="http://schemas.devexpress.com/winfx/2008/xaml/accordion"
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
 				 xmlns:uctrl="clr-namespace:Ch.Hurni.AP_MaJ.Controls"
-                 x:Class="Ch.Hurni.AP_MaJ.MainWindow"
-                 Title="MainWindow" Height="800" Width="1000">
+                 x:Class="Ch.Hurni.AP_MaJ.MainWindow" ResizeMode="CanResizeWithGrip"
+                 Title="MainWindow" Height="800" Width="1000" Padding="0">
     <dx:ThemedWindow.Resources>
         
         <Style TargetType="dxg:GridColumn">
@@ -30,7 +30,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <dxb:BarContainerControl>
+        <dxb:BarContainerControl Margin="2">
             <dxb:ToolBarControl Caption="Projet" GlyphSize="Small">
                 <dxb:BarButtonItem Name="bNew" ItemClick="NewProject_Click" Content="Nouveau projet" ToolTip="Créer un nouveau projet de mise a jour"
                                    Glyph="{dx:DXImage SvgImages/Outlook Inspired/New.svg}" LargeGlyph="{dx:DXImage SvgImages/Outlook Inspired/New.svg}"/>
@@ -82,8 +82,7 @@
         </dxb:BarContainerControl>
 
         <dxg:GridControl Grid.Row="1" Name="MainGridControl" ItemsSource="{Binding Data.Tables[Entities]}" AutoGenerateColumns="None" SelectionMode="Cell" ColumnGeneratorTemplate="{StaticResource DefaultColumnTemplate}" 
-                         CustomUnboundColumnData="MainGridControl_CustomUnboundColumnData" AllowInitiallyFocusedRow="False" ShowBorder="True" Margin="0 4 0 0">
-            
+                         CustomUnboundColumnData="MainGridControl_CustomUnboundColumnData" AllowInitiallyFocusedRow="False" ShowBorder="True" Margin="4 4 4 0">
             <dxg:GridControl.Columns>
                 <dxg:GridColumn FieldName="EntityType"/>
                 <dxg:GridColumn FieldName="Name"/>
@@ -120,8 +119,8 @@
         
         <GridSplitter Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>
 
-        <dx:DXTabControl Grid.Row="3">
-            <dx:DXTabItem Header="Propriété">
+        <dx:DXTabControl Grid.Row="3" Margin="4 0 4 4" Padding="0">
+            <dx:DXTabItem Header="Propriété" BorderThickness="0">
                 <uctrl:PropertyDetailControl>
                     <uctrl:PropertyDetailControl.Style>
                         <Style TargetType="uctrl:PropertyDetailControl">
@@ -172,7 +171,7 @@
             </dx:DXTabItem>
         </dx:DXTabControl>
 
-        <dxb:StatusBarControl Grid.Row="4" ShowSizeGrip="True">
+        <dxb:StatusBarControl Grid.Row="4" ShowSizeGrip="False">
             <dxb:BarButtonItem Name="ActiveProjectBarButtonItem" ItemClick="OpenProjectDir_Click" ToolTip="Ouvre le dossier du projet dans l'explorateur"
                                Glyph="{dx:DXImage 'SvgImages/Actions/Open2.svg'}" IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}">
             </dxb:BarButtonItem>
@@ -192,7 +191,7 @@
                 </dxb:BarStaticItem.Style>
             </dxb:BarStaticItem>
 
-            <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}" GlyphSize="Small"  IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}">
+            <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}" GlyphSize="Small"  IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}"  Margin="0 0 20 0">
                 <dxb:BarStaticItem.SuperTip>
                     <dx:SuperTip>
                         <dx:SuperTipItem Content="Opens a new document in a new tab" >

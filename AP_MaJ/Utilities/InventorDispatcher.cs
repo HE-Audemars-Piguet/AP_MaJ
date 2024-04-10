@@ -4,8 +4,10 @@ using DevExpress.Xpf.Core.ReflectionExtensions.Internal;
 using Inventor;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading;
@@ -16,15 +18,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 {
     public class InventorInstance
     {
+        [DllImport("user32")]
+        private static extern int GetWindowThreadProcessId(int hwnd, ref int lpdwProcessId);
+
         public Inventor.Application InvApp
         {
             get
             {
-                //if(_invApp == null)
-                //{
-                //    ///StartInventor();
-                //}
-
                 return _invApp;
             }
             set
@@ -33,6 +33,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             } 
         }
         private Inventor.Application _invApp = null;
+
+        public int? UsedByProcessId
+        {
+            get
+            {
+                return _usedByProcessId;
+            }
+            set
+            {
+                _usedByProcessId = value;
+            }
+        }
+        private int? _usedByProcessId = null;
 
         public int InventorFileCount
         {
@@ -60,6 +73,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private int _maxInventorFileCount = 100;
 
+        private int _inventorProcessId = -1;
 
         public InventorInstance() { }
 
@@ -83,11 +97,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         internal async Task StartOrRestartInventorAsync()
         {
-            if(_invApp == null)
+            if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
+            {
+                await ForceCloseInventor();
+            }
+
+            if (_invApp == null)
             {
                 Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
 
                 _invApp = await Task.Run(() => System.Activator.CreateInstance(inventorAppType)) as Inventor.Application;
+                
+                GetWindowThreadProcessId(_invApp.MainFrameHWND, ref _inventorProcessId);
+
                 _invApp.Visible = false;
                 _invApp.SilentOperation = true;
                 _invApp.UserInterfaceManager.UserInteractionDisabled = true;
@@ -96,14 +118,28 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     await Task.Delay(1000);
                 }
-
-                InventorFileCount = 0;
             }
-            
-            if(InventorFileCount >= MaxInventorFileCount)
+        }
+
+        internal async Task ForceCloseInventor()
+        {
+            _invApp.Documents.CloseAll();
+            _invApp.Quit();
+
+            await Task.Delay(1000);
+
+            if (_inventorProcessId != -1 && Process.GetProcesses().Where(x => x.Id == _inventorProcessId).Count() > 0)
             {
-
+                Process thisproc = Process.GetProcessById(_inventorProcessId);
+                if (!thisproc.CloseMainWindow()) thisproc.Kill();
             }
+
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
+
+            _invApp = null;
+
+            InventorFileCount = 0;
         }
     }
 
@@ -120,420 +156,163 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        public InventorInstance GetInventorInstance(string fullVaultName = "", int processId = -1, IProgress<ProcessProgressReport> processProgReport = null)
+        public InventorInstance GetInventorInstance(int ProcessId)
         {
+            InventorInstance result = null;
+            int retryCount = 0;
+
             while (true)
             {
-                InventorInstance result = GetFreeInstance();
+                Monitor.Enter(_invInstances);
+                try
+                {
+                    result = _invInstances.Where(x => x.UsedByProcessId == null).FirstOrDefault();
+                    if (result != null)
+                    {
+                        result.UsedByProcessId = ProcessId;
+                        //System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Inventor instance acquired by process '" + ProcessId + "'" + System.Environment.NewLine);
+                    }
+                    else
+                    {
+                        //System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Process '" + ProcessId + "' waiting for inventor instance" + System.Environment.NewLine);
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(_invInstances);
+                }
+
                 if (result != null)
                 {
-                    //if(!result.IsInventorStarted)
-                    //{
-                    //    if(!string.IsNullOrWhiteSpace(fullVaultName) && processId != -1 && processProgReport != null)
-                    //    {
-                    //        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Démarrage d'Inventor...", ProcessIndex = processId });
-                    //    }
-                        
-                    //    result.StartInventor();
-                    //}
                     return result;
                 }
                 else
                 {
-                    if (!string.IsNullOrWhiteSpace(fullVaultName) && processId != -1 && processProgReport != null)
-                    {
-                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
-                    }
                     System.Threading.Thread.Sleep(1000);
-                }
-            }
-        }
+                    retryCount++;
 
-        private InventorInstance GetFreeInstance()
-        {
-            foreach (InventorInstance invInst in _invInstances)
-            {
-                if (Monitor.TryEnter(invInst))
-                {
-                    return invInst;
-                }
-            }
-
-            return null;
-        }
-
-
-        public void ReleaseInventorInstance(InventorInstance invInst)
-        {
-            if (Monitor.IsEntered(invInst)) Monitor.Exit(invInst);
-        }
-
-        public void CloseAllInventor(IProgress<TaskProgressReport> taskProgReport = null)
-        {
-            int TotalInventorCount = _invInstances.Where(x => x.InvApp != null).Count();
-            int ClosedInventorCount = 0;
-
-            do
-            {
-                foreach (InventorInstance invInst in _invInstances.Where(x => x.InvApp != null))
-                {
-                    if (Monitor.TryEnter(invInst))
+                    if (retryCount >= 300)
                     {
-                        ClosedInventorCount++;
-                        
-                        if (taskProgReport != null)
+                        Monitor.Enter(_invInstances);
+                        try
                         {
-                            taskProgReport.Report(new TaskProgressReport() { Message = "Fermeture des instances Inventor " + ClosedInventorCount + " sur " + TotalInventorCount + "..." });
+                            System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Le process '" + ProcessId + "' n'a pas obtenu d'instance Inventor après 5 minutes d'attente..." + System.Environment.NewLine);
+                        }
+                        finally 
+                        { 
+                            Monitor.Exit(_invInstances); 
                         }
 
-                        invInst.InvApp.Quit();
-                        invInst.InvApp = null;
-                        Monitor.Exit(invInst);
+                        return result;
                     }
                 }
-
-                if (_invInstances.Where(x => x.InvApp != null).Count() > 0) System.Threading.Thread.Sleep(1000);
-
-            } while (_invInstances.Where(x => x.InvApp != null).Count() > 0);
+            }
         }
+
+        public void ReleaseInventorInstance(int ProcessId)
+        {
+            Monitor.Enter(_invInstances);
+            try
+            {
+                InventorInstance result = _invInstances.Where(x => x.UsedByProcessId == ProcessId).FirstOrDefault();
+                if (result != null)
+                {
+                    System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Inventor instance released by process '" + ProcessId + "'" + System.Environment.NewLine);
+                    result.UsedByProcessId = null;
+                }
+            }
+            finally
+            {
+                Monitor.Exit(_invInstances);
+            }
+        }
+
+        public async void CloseAllInventor()
+        {
+            Monitor.Enter(_invInstances);
+            try
+            {
+                foreach (InventorInstance invInstance in _invInstances.Where(x => x.UsedByProcessId == null && x.InvApp != null))
+                {
+                    await invInstance.ForceCloseInventor();
+                }
+            }
+            finally
+            {
+                Monitor.Exit(_invInstances);
+            }
+        }
+
+        //public InventorInstance GetInventorInstance()
+        //{
+        //    int retryCount = 0;
+
+        //    while (true)
+        //    {
+        //        InventorInstance result = GetFreeInstance();
+        //        if (result != null)
+        //        {
+        //            return result;
+        //        }
+        //        else
+        //        {
+        //            System.Threading.Thread.Sleep(1000);
+        //            retryCount++;
+
+        //            if (retryCount >= 20) return null;
+        //        }
+        //    }
+        //}
+
+        //private InventorInstance GetFreeInstance()
+        //{
+        //    foreach (InventorInstance invInst in _invInstances)
+        //    {
+        //        if (Monitor.TryEnter(invInst))
+        //        {
+        //            return invInst;
+        //        }
+        //    }
+
+        //    return null;
+        //}
+
+
+        //public void ReleaseInventorInstance(InventorInstance invInst)
+        //{
+        //    if (invInst != null && Monitor.IsEntered(invInst))
+        //    {
+        //        Monitor.Exit(invInst);
+        //    }
+        //}
+
+        //public void CloseAllInventor(IProgress<TaskProgressReport> taskProgReport = null)
+        //{
+        //    int TotalInventorCount = _invInstances.Where(x => x.InvApp != null).Count();
+        //    int ClosedInventorCount = 0;
+
+        //    do
+        //    {
+        //        foreach (InventorInstance invInst in _invInstances.Where(x => x.InvApp != null))
+        //        {
+        //            if (Monitor.TryEnter(invInst))
+        //            {
+        //                ClosedInventorCount++;
+                        
+        //                if (taskProgReport != null)
+        //                {
+        //                    taskProgReport.Report(new TaskProgressReport() { Message = "Fermeture des instances Inventor " + ClosedInventorCount + " sur " + TotalInventorCount + "..." });
+        //                }
+
+        //                invInst.InvApp.Quit();
+        //                invInst.InvApp = null;
+        //                Monitor.Exit(invInst);
+        //            }
+        //        }
+
+        //        if (_invInstances.Where(x => x.InvApp != null).Count() > 0) System.Threading.Thread.Sleep(1000);
+
+        //    } while (_invInstances.Where(x => x.InvApp != null).Count() > 0);
+        //}
     }
-
-    //public class InventorDispatcher1
-    //{
-    //    private List<Inventor.Application> _inventors = new List<Inventor.Application>();
-
-    //    public int MaxInventorAppCount
-    //    {
-    //        get
-    //        {
-    //            return _maxInventorAppCount;
-    //        }
-    //        set
-    //        {
-    //            _maxInventorAppCount = value;
-    //        }
-    //    }
-    //    private int _maxInventorAppCount = 1;
-
-    //    public InventorDispatcher1()
-    //    {
-
-    //    }
-
-    //    private bool Tutu = true;
-
-    //    public Inventor.Application GetInventorInstanceAsync()
-    //    {
-
-    //        //_globalMutex.WaitOne();
-
-    //        Inventor.Application result = GetFreeInstance();
-    //        if (result != null)
-    //        {
-    //            //Monitor.Exit(this);
-    //            //_globalMutex.ReleaseMutex();
-    //            return result;
-    //        }
-
-    //        bool res = false;
-
-    //        while(!res) 
-    //        {
-    //            Monitor.Enter(Tutu, ref res);
-    //            if (res)
-    //            {
-    //                result = CreateInstance();
-    //                Monitor.Exit(Tutu);
-    //            }
-    //            else
-    //            {
-    //                Thread.Sleep(1000);
-    //            }
-    //        }
-            
-    //        if (result != null)
-    //        {
-    //            //Monitor.Exit(this);
-    //            //_globalMutex.ReleaseMutex();
-    //            return result;
-    //        }
-
-    //        //_globalMutex.ReleaseMutex();
-    //        while (true)
-    //        {
-    //            result = GetFreeInstance();
-    //            if (result != null)
-    //                return result;
-    //            else
-    //               System.Threading.Thread.Sleep(1000);
-    //        }
-    //    }
-
-
-    //    private Inventor.Application GetFreeInstance()
-    //    {
-    //        foreach (Inventor.Application invApp in _inventors)
-    //        {
-    //            if (Monitor.TryEnter(invApp))
-    //            {
-    //                return invApp;
-    //            }
-    //        }
-
-    //        return null;
-    //    }
-
-    //    private Inventor.Application CreateInstance()
-    //    {
-    //        if (_inventors.Count >= MaxInventorAppCount) return null;
-
-    //        // Monitor.Enter(this);
-
-    //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
-
-    //        Inventor.Application inv = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-    //        inv.Visible = true;
-    //        inv.SilentOperation = true;
-    //        inv.WindowState = WindowsSizeEnum.kNormalWindow;
-    //        inv.UserInterfaceManager.UserInteractionDisabled = true;
-
-    //        while (inv != null && !inv.Ready)
-    //        {
-    //            System.Threading.Thread.Sleep(1000);
-    //        }
-
-    //        Monitor.TryEnter(inv);
-
-    //        _inventors.Add(inv);
-
-    //        // Monitor.Exit(this);
-
-    //        return inv;
-    //    }
-
-    //    private async Task<Inventor.Application> CreateInstanceAsync()
-    //    {
-    //        if (_inventors.Count >= MaxInventorAppCount) return null;
-
-
-    //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
-
-    //        Inventor.Application inv = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-    //        inv.Visible = true;
-    //        inv.SilentOperation = true;
-    //        inv.WindowState = WindowsSizeEnum.kNormalWindow;
-    //        inv.UserInterfaceManager.UserInteractionDisabled = true;
-
-    //        while (inv != null && !inv.Ready)
-    //        {
-    //            await Task.Delay(1000);
-    //        }
-
-    //        Monitor.TryEnter(inv);
-
-    //        _inventors.Add(inv);
-           
-    //        return inv;
-    //    }
-
-    //    public void ReleaseInventorInstance(Inventor.Application invApp)
-    //    {
-    //        if(Monitor.IsEntered(invApp)) Monitor.Exit(invApp);
-    //    }
-
-    //    public async Task CloseAllInventorAsync()
-    //    {
-    //        do
-    //        {
-    //            for (int i = _inventors.Count - 1 ; i >= 0; i--)
-    //            {
-    //                if (Monitor.TryEnter(_inventors[i]))
-    //                {
-    //                    _inventors[i].Quit();
-    //                    _inventors.RemoveAt(i);
-    //                }
-    //            }
-            
-    //            if (_inventors.Count > 0) await Task.Delay(1000);
-
-    //        } while (_inventors.Count != 0);
-    //    }
-    //}
-
-    //public class InventorDispatcher2
-    //{
-    //    private Dictionary<string, Inventor.Application> _inventors = new Dictionary<string, Inventor.Application>();
-
-    //    public int MaxInventorAppCount
-    //    {
-    //        get
-    //        {
-    //            return _maxInventorAppCount;
-    //        }
-    //        set
-    //        {
-    //            _maxInventorAppCount = value;
-    //        }
-    //    }
-    //    private int _maxInventorAppCount = 1;
-
-    //    private Mutex _globalMutex = new Mutex();
-
-    //    public InventorDispatcher2()
-    //    {
-
-    //    }
-
-    //    private bool Tutu = true;
-
-
-    //    public async Task<(string mutexId, Inventor.Application invApp)> GetInventorInstanceAsync()
-    //    {
-    //        _globalMutex.WaitOne();
-
-    //        (string mutexId, Inventor.Application invApp) result = (null, null);
-
-    //        result = GetFreeInstance();
-
-    //        if (result != (null, null))
-    //        {
-    //            _globalMutex.ReleaseMutex();
-    //            return result;
-    //        }
-    //        else if (_inventors.Count < MaxInventorAppCount)
-    //        {
-    //            result = await CreateInstanceAsync();
-    //            return result;
-    //        }
-    //        else
-    //        {
-    //            _globalMutex.ReleaseMutex();
-    //            while (true)
-    //            {
-    //                result = GetFreeInstance();
-    //                if (result != (null, null))
-    //                    return result;
-    //                else
-    //                    await Task.Delay(1000);
-    //            }
-    //        }
-
-    //        ///if (result != (null, null))
-    //        ///{
-    //        ///    return result;
-    //        ///}
-    //        ///else if (_inventors.Count < _parent.MaxInventorAppCount)
-    //        ///{
-    //        ///    mutexId = Guid.NewGuid().ToString();
-    //        ///    _inventors.Add(mutexId, null);
-    //        ///}
-    //        ///globalMutex.ReleaseMutex();
-    //        ///if (!string.IsNullOrEmpty(mutexId))
-    //        ///{
-    //        ///    return await CreateInstanceAsync(mutexId);
-    //        ///}
-    //        ///else
-    //        ///{
-    //        ///    while (true)
-    //        ///    {
-    //        ///        result = GetFreeInstance();
-    //        ///        if (result != (null, null))
-    //        ///            return result;
-    //        ///        else
-    //        ///            await Task.Delay(1000);
-    //        ///    }
-    //        ///}
-    //        /// }
-    //       /// return (null, null);
-    //        ///(string mutexId, Inventor.Application invApp) result = GetFreeInstance();
-    //        ///if (result != (null, null))
-    //        ///{
-    //        ///    return result;
-    //        ///}
-    //        ///else if (_inventors.Count < _parent.MaxInventorAppCount)
-    //        ///{
-    //        ///    return await CreateInstanceAsync();
-    //        ///}
-    //        ///else
-    //        ///{
-    //        ///    while (true)
-    //        ///    {
-    //        ///        result = GetFreeInstance();
-    //        ///        if (result != (null, null))
-    //        ///            return result;
-    //        ///        else
-    //        ///            await Task.Delay(1000);
-    //        ///    }
-    //        ///}
-    //    }
-
-
-    //    private (string mutexId, Inventor.Application invApp) GetFreeInstance()
-    //    {
-    //        foreach (string mutexId in _inventors.Keys)
-    //        {
-    //            Mutex mutex = new Mutex(false, mutexId);
-
-    //            if (mutex.WaitOne())
-    //            {
-    //                return (mutexId, _inventors[mutexId]);
-    //            }
-    //        }
-
-    //        return (null, null);
-    //    }
-
-    //    private async Task<(string mutexId, Inventor.Application invApp)> CreateInstanceAsync()
-    //    {
-    //        string mutexId = Guid.NewGuid().ToString();
-    //        Mutex mutex = new Mutex(true, mutexId);
-
-    //        _inventors.Add(mutexId, null);
-
-    //        _globalMutex.ReleaseMutex();
-
-    //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
-
-    //        Inventor.Application inv = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-    //        inv.Visible = true;
-    //        inv.SilentOperation = true;
-    //        inv.UserInterfaceManager.UserInteractionDisabled = true;
-
-    //        while (inv != null && !inv.Ready)
-    //        {
-    //            await Task.Delay(1000);
-    //        }
-
-    //        _inventors[mutexId] = inv;
-
-    //        return (mutexId, _inventors[mutexId]);
-    //    }
-
-
-    //    public void ReleaseInventorInstance(string mutexId)
-    //    {
-    //        Mutex mutex = new Mutex(false, mutexId);
-    //        mutex.ReleaseMutex();
-    //    }
-
-    //    public async Task CloseAllInventorAsync()
-    //    {
-    //        do
-    //        {
-    //            foreach (string mutexId in _inventors.Keys)
-    //            {
-    //                Mutex mutex = new Mutex(false, mutexId);
-
-    //                if (mutex.WaitOne(0))
-    //                {
-    //                    _inventors[mutexId].Quit();
-    //                    _inventors.Remove(mutexId);
-    //                }
-    //            }
-
-    //            if (_inventors.Count > 0) await Task.Delay(1000);
-
-    //        } while (_inventors.Count != 0);
-    //    }
-    //}
 }
