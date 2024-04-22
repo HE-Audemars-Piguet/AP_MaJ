@@ -31,6 +31,7 @@ using System.Windows.Threading;
 using static Ch.Hurni.AP_MaJ.Classes.ApplicationOptions;
 using static DevExpress.Utils.SafeXml;
 using System.IO.Compression;
+using System.Data.SQLite;
 
 namespace CH.Hurni.AP_MaJ.Dialogs
 {
@@ -80,7 +81,15 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         private DataSet _data;
         private string _dbFileName = string.Empty;
 
-        private ApplicationOptions appOptions;
+        public ApplicationOptions AppOptions
+        {
+            get
+            {
+                return _appOptions;
+            }
+        }
+        private ApplicationOptions _appOptions;
+        
         private VaultUtility vaultUtility;
         private MaJTask currentTask = null;
         private DispatcherTimer dTimer;
@@ -104,11 +113,11 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         {
             _data = data;
             _dbFileName = dbFileName;
-            _invDispatcher = new InventorDispatcher(appOptions.MaxInventorAppCount, appOptions.MaxInventorFileCount);
+            _invDispatcher = new InventorDispatcher(appOptions);
             
-            this.appOptions = appOptions;
-            this.vaultUtility = new VaultUtility(_invDispatcher);
-
+            _appOptions = appOptions;
+            vaultUtility = new VaultUtility(_invDispatcher);
+            
             MaJTasks = new ObservableCollection<MaJTask>();
 
             MaJTask VaultConnectTask = new MaJTask() { TaskGroup="Vault", Name = "VaultConnect", DisplayName = "Connexion au Vault", IsChecked = true, Index = 0, IsIndeterminate = true };
@@ -208,7 +217,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             if(e.ErrorInc > 0)
             {
                 currentTask.ElementErrorCount = currentTask.ElementErrorCount + e.ErrorInc;
-                if (appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.Stop) TaskCancellationTokenSource.Cancel();
+                if (_appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.Stop) TaskCancellationTokenSource.Cancel();
             }
         }
 
@@ -255,45 +264,67 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     TaskProgReport.ProgressChanged += ShowTaskProgress;
                     ProcessProgReport.ProgressChanged += ShowProcessProgress;
 
-                    currentTask.ProcessingState = StateEnum.Processing;
+                    //currentTask.ProcessingState = StateEnum.Processing;
 
                     if (currentTask.Name.Equals("VaultConnect"))
                     {
-                        vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(appOptions, TaskProgReport, TaskCancellationToken);
-                        if (vaultUtility.VaultConnection == null)
+                        while(true)
                         {
-                            currentTask.ProcessingState = StateEnum.Error;
-                            return;
-                        }
-                        else
-                        {
-                            currentTask.ProcessingState = StateEnum.Completed;
+                            VaultUserPasswordCheckDialog pwdCheckDialog = new VaultUserPasswordCheckDialog(AppOptions.VaultServer, AppOptions.VaultName, AppOptions.VaultUser);
+                            pwdCheckDialog.Owner = this;
+                            pwdCheckDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+                            pwdCheckDialog.ShowDialog();
+
+                            if (pwdCheckDialog.DialogResult == true)
+                            {
+                                currentTask.ProcessingState = StateEnum.Processing;
+
+                                vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(_appOptions, TaskProgReport, TaskCancellationToken, pwdCheckDialog.User, pwdCheckDialog.Password);
+                                if (vaultUtility.VaultConnection != null)
+                                {
+                                    currentTask.ProcessingState = StateEnum.Completed;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                currentTask.ProcessingState = StateEnum.Error;
+                                TaskCancellationTokenSource.Cancel();
+                                break;
+                            }
                         }
                     }
                     else if (currentTask.Name.Equals("ReadVaultConfig"))
                     {
-                        vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        currentTask.ProcessingState = StateEnum.Processing;
+                        vaultUtility.VaultConfig = await vaultUtility.ReadVaultConfigAsync(_appOptions, TaskProgReport, TaskCancellationToken);
                     }                    
                     else if (currentTask.Name.Equals("CreateVaultFolder"))
                     {
+                        currentTask.ProcessingState = StateEnum.Processing;
                         vaultUtility.VaultConfig.FolderPathToFolderDico = await vaultUtility.GetTargetVaultFoldersAsync(_data, TaskProgReport, TaskCancellationToken);
                     }
                     else if (currentTask.Name.Equals("ReadInventorConfig"))
                     {
-                        vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(appOptions, TaskProgReport, TaskCancellationToken);
+                        currentTask.ProcessingState = StateEnum.Processing;
+                        vaultUtility.VaultConfig.InventorMaterials = await vaultUtility.GetInventorMaterialAsync(_appOptions, TaskProgReport, TaskCancellationToken);
                     }
                     else if (currentTask.TaskGroup.Equals("File"))
                     {
-                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                        currentTask.ProcessingState = StateEnum.Processing;
+                        _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, _appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                         _data.SaveToSQLite(_dbFileName);
                     }
                     else if (currentTask.Name.Equals("InventorClose"))
                     {
+                        currentTask.ProcessingState = StateEnum.Processing;
                         await vaultUtility.CloseAllInventorAsync(TaskProgReport, TaskCancellationToken);
                     }
                     else if (currentTask.TaskGroup.Equals("Item"))
                     {
-                        _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
+                        currentTask.ProcessingState = StateEnum.Processing;
+                        _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, _appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
                         _data.SaveToSQLite(_dbFileName);
                     }
 
@@ -302,7 +333,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     else currentTask.ProcessingState = StateEnum.Completed;
 
 
-                    if (appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ProcessingState == StateEnum.Error)
+                    if (_appOptions.ProcessingBehaviour == ProcessingBehaviourEnum.FinishTask && currentTask.ProcessingState == StateEnum.Error)
                     {
                         TaskCancellationTokenSource.Cancel();
                     }
@@ -322,8 +353,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             Page2.Visibility = Visibility.Collapsed;
             Page3.Visibility = Visibility.Visible;
             
-            _data.SaveToSQLite(_dbFileName);
-
             DoneList.ItemsSource = CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index).ToList();
         }
 
@@ -337,6 +366,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Statistics.log");
+
             string Report = "DisplayName;ProcessingState;ElementCount;TotalElementCount;ElementDoneCount;ElementErrorCount;TaskDuration";
             foreach (MaJTask t in CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index))
             {
@@ -347,10 +377,31 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             if(SaveHistory.IsChecked == true)
             {
                 string ZipName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Archive " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".zip");
+
                 using (System.IO.Compression.ZipArchive archive = System.IO.Compression.ZipFile.Open(ZipName, System.IO.Compression.ZipArchiveMode.Create))
                 {
                     archive.CreateEntryFromFile(ReportName, "Statistics.log");
-                    archive.CreateEntryFromFile(_dbFileName, System.IO.Path.GetFileName(_dbFileName));
+                    
+                    int SaveTryCount = 0;
+                    while (true)
+                    {
+                        try
+                        {
+                            archive.CreateEntryFromFile(_dbFileName, System.IO.Path.GetFileName(_dbFileName));
+                            break;
+                        }
+                        catch 
+                        {
+                            if(SaveTryCount >= 10)
+                            {
+                                MessageBox.Show("Impossible de sauver l'historique de la base de données");
+                                break;
+                            }
+                            System.Threading.Thread.Sleep(500);
+                            SaveTryCount++;
+                        }
+                    }
+                    
                     archive.CreateEntryFromFile(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj", System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj"));
                 }
                 System.IO.File.Delete(ReportName);
@@ -358,7 +409,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             
             Close();
         }
-
 
         IEnumerable<MaJTask> CollectSelectedTasks(ObservableCollection<MaJTask> tasks)
         {

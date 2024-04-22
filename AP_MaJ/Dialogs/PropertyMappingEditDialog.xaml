@@ -4,7 +4,7 @@
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
                  xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
-                 Title="PropertyMappingEditDialog" Height="700" Width="700" ResizeMode="CanResizeWithGrip" 
+                 Title="Options de mappage des propriétés" Height="700" Width="700" ResizeMode="CanResizeWithGrip" 
                  WindowStyle="ToolWindow">
 
     

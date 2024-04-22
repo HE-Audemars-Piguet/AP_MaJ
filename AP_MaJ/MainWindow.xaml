@@ -8,7 +8,7 @@
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
 				 xmlns:uctrl="clr-namespace:Ch.Hurni.AP_MaJ.Controls"
                  x:Class="Ch.Hurni.AP_MaJ.MainWindow" ResizeMode="CanResizeWithGrip"
-                 Title="MainWindow" Height="800" Width="1000" Padding="0">
+                 Title="Audemars Piguet - Mise à jour des données Vault" Height="800" Width="1000" Padding="0">
     <dx:ThemedWindow.Resources>
         
         <Style TargetType="dxg:GridColumn">
@@ -74,9 +74,14 @@
                 <dxb:BarButtonItem Name="bViewSave" Content="Enregistrer la vue" ItemClick="GridViewSave_Click" 
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/Save/Save.svg}" LargeGlyph="{dx:DXImage SvgImages/Save/Save.svg}" />
-                <dxb:BarButtonItem Name="bViewSaveAs" Content="Valider les données" ItemClick="GridViewSaveAs_Click" 
+                <dxb:BarButtonItem Name="bViewSaveAs" Content="Enregistrer une nouvelle vue" ItemClick="GridViewSaveAs_Click" 
                                    IsEnabled="{Binding ElementName=ActiveProjectBarButtonItem, Path=IsEnabled}"
                                    Glyph="{dx:DXImage SvgImages/Save/SaveAll.svg}" LargeGlyph="{dx:DXImage SvgImages/Save/SaveAll.svg}" />
+
+                <dxb:BarItemSeparator/>
+
+                <dxb:BarButtonItem Name="bShowHelp" Content="Aide" ItemClick="ShowHelp_Click" 
+                                   Glyph="{dx:DXImage 'SvgImages/DiagramIcons/BindingEditorHelpIcon.svg'}" LargeGlyph="{dx:DXImage 'SvgImages/DiagramIcons/BindingEditorHelpIcon.svg'}" />
 
             </dxb:ToolBarControl>
         </dxb:BarContainerControl>
@@ -191,7 +196,18 @@
                 </dxb:BarStaticItem.Style>
             </dxb:BarStaticItem>
 
-            <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}" GlyphSize="Small"  IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}"  Margin="0 0 20 0">
+            <dxb:BarItemSeparator Alignment="Far"/>
+            <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Dashboards/ServerMode.svg'}" GlyphSize="Small" ToolTip="Nom du serveur Vault"/>
+            <dxb:BarStaticItem Alignment="Far" Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=AppOptions.VaultServer}"/>
+            <dxb:BarItemSeparator Alignment="Far"/>
+            <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}" GlyphSize="Small" ToolTip="Nom du coffre fort"/>
+            <dxb:BarStaticItem Alignment="Far" Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=AppOptions.VaultName}"/>
+            <dxb:BarItemSeparator Alignment="Far"/>
+            <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Icon Builder/Actions_User.svg'}" GlyphSize="Small" ToolTip="Utilisateur Vault"/>
+            <dxb:BarStaticItem Alignment="Far" Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=AppOptions.VaultUser}" Margin="0 0 16 0"/>
+            <dxb:BarItemSeparator Alignment="Far"/>
+            
+            <!--<dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Icon Builder/Business_Safe.svg'}" GlyphSize="Small"  IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}"  Margin="0 0 20 0">
                 <dxb:BarStaticItem.SuperTip>
                     <dx:SuperTip>
                         <dx:SuperTipItem Content="Opens a new document in a new tab" >
@@ -219,7 +235,7 @@
                         </dx:SuperTipItem>
                     </dx:SuperTip>
                 </dxb:BarStaticItem.SuperTip>
-            </dxb:BarStaticItem>
+            </dxb:BarStaticItem>-->
         </dxb:StatusBarControl>
     </Grid>
 

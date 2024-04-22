@@ -4,7 +4,8 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core" 
                  xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
-                 xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm" xmlns:dxb="http://schemas.devexpress.com/winfx/2008/xaml/bars"
+                 xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm" 
+                 xmlns:dxb="http://schemas.devexpress.com/winfx/2008/xaml/bars"
                  Title="Mise à jour des propriétés" Height="500" Width="800" ResizeMode="CanResizeWithGrip" ShowInTaskbar="False"
                  WindowStyle="ToolWindow" ControlBoxButtonSet="None">
     
@@ -400,7 +401,7 @@
                 </dxe:ListBoxEdit.ItemTemplate>
             </dxe:ListBoxEdit>
 
-            <CheckBox Grid.Row="2" HorizontalAlignment="Left" Margin="0 4 0 0" Name="SaveHistory" Content="Sauver l'historique d'execution" IsChecked="True"/>
+            <CheckBox Grid.Row="2" HorizontalAlignment="Left" Margin="0 4 0 0" Name="SaveHistory" Content="Sauver l'historique d'execution" IsChecked="{Binding AppOptions.SaveHistory}"/>
             
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 4 0 0">
                 <Button Content="Terminer" Click="CloseButton_Click" IsDefault="True" IsCancel="True" Margin="4 0 0 0" MinWidth="80"/>

@@ -16,7 +16,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
     public static class DataSetUtility
     {
 
-        private const string ConnectionString = "Data Source={0}; FailIfMissing=False";
+        private const string ConnectionString = "Data Source={0}; FailIfMissing=False; Pooling=False";
         
         internal static DataSet CreateDataSet(ObservableCollection<PropertyFieldMapping> vaultPropertyFieldMappings)
         {
@@ -229,7 +229,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     Transaction.Commit();
                 }
                 Conn.Close();
-
+                
                 ds.AcceptChanges();
             }
         }

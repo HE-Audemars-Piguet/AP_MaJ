@@ -73,6 +73,45 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private int _maxInventorFileCount = 100;
 
+        public bool IsInventorVisible
+        {
+            get
+            {
+                return _isInventorVisible;
+            }
+            set
+            {
+                _isInventorVisible = value;
+            }
+        }
+        private bool _isInventorVisible = false;
+
+        public bool IsInventorSilent
+        {
+            get
+            {
+                return _isInventorSilent;
+            }
+            set
+            {
+                _isInventorSilent = value;
+            }
+        }
+        private bool _isInventorSilent = true;
+
+        public bool IsInventorInteractionEnable
+        {
+            get
+            {
+                return _isInventorInteractionEnable;
+            }
+            set
+            {
+                _isInventorInteractionEnable = value;
+            }
+        }
+        private bool _isInventorInteractionEnable = false;
+
         private int _inventorProcessId = -1;
 
         public InventorInstance() { }
@@ -99,7 +138,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         {
             if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
             {
-                await ForceCloseInventor();
+                await Task.Run(() => ForceCloseInventor());
             }
 
             if (_invApp == null)
@@ -110,9 +149,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 
                 GetWindowThreadProcessId(_invApp.MainFrameHWND, ref _inventorProcessId);
 
-                _invApp.Visible = false;
-                _invApp.SilentOperation = true;
-                _invApp.UserInterfaceManager.UserInteractionDisabled = true;
+                _invApp.Visible = IsInventorVisible; //false;
+                _invApp.SilentOperation = IsInventorSilent; //true;
+                _invApp.UserInterfaceManager.UserInteractionDisabled = !IsInventorInteractionEnable; //true;
 
                 while (_invApp != null && !_invApp.Ready)
                 {
@@ -121,15 +160,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        internal async Task ForceCloseInventor()
+        internal void ForceCloseInventor()
         {
-            _invApp.Documents.CloseAll();
-            _invApp.Quit();
-
-            await Task.Delay(1000);
+            try
+            {
+                _invApp.Documents.CloseAll();
+                _invApp.Quit();
+            }
+            catch (Exception Ex)
+            {
+                System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Inventor is not running anymore..." + System.Environment.NewLine);
+            }
 
             if (_inventorProcessId != -1 && Process.GetProcesses().Where(x => x.Id == _inventorProcessId).Count() > 0)
             {
+                System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Kill Inventor process Id '" + _inventorProcessId + "'..." + System.Environment.NewLine);
                 Process thisproc = Process.GetProcessById(_inventorProcessId);
                 if (!thisproc.CloseMainWindow()) thisproc.Kill();
             }
@@ -148,12 +193,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         private List<InventorInstance> _invInstances = new List<InventorInstance>();
         private List<string> _mutexIds = new List<string>();
 
-        public InventorDispatcher(int MaxInventorInstance, int MaxInventorFileCount = 100)
+        public int? MaxWaitForInventorInstanceInSeconds
         {
-           for (int i = 0; i < MaxInventorInstance; i++)
+            get
             {
-                _invInstances.Add(new InventorInstance() { MaxInventorFileCount = MaxInventorFileCount });
+                return _maxWaitForInventorInstanceInSeconds;
             }
+            set
+            {
+                _maxWaitForInventorInstanceInSeconds = value;
+            }
+        }
+        private int? _maxWaitForInventorInstanceInSeconds = null;
+
+        public InventorDispatcher(ApplicationOptions appOptions)
+        {
+            for (int i = 0; i < appOptions.MaxInventorAppCount; i++)
+            {
+                _invInstances.Add(new InventorInstance() 
+                { 
+                    MaxInventorFileCount = appOptions.MaxInventorFileCount,
+                    IsInventorSilent = appOptions.IsInventorSilent,
+                    IsInventorVisible = appOptions.IsInventorVisible,
+                    IsInventorInteractionEnable = appOptions.IsInventorInteractionEnable
+                });
+            }
+
+            MaxWaitForInventorInstanceInSeconds = appOptions.MaxWaitForInventorInstanceInSeconds;
         }
 
         public InventorInstance GetInventorInstance(int ProcessId)
@@ -170,11 +236,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     if (result != null)
                     {
                         result.UsedByProcessId = ProcessId;
-                        //System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Inventor instance acquired by process '" + ProcessId + "'" + System.Environment.NewLine);
+                        System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Inventor instance acquired by process '" + ProcessId + "'" + System.Environment.NewLine);
                     }
                     else
                     {
-                        //System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Process '" + ProcessId + "' waiting for inventor instance" + System.Environment.NewLine);
+                        System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Process '" + ProcessId + "' waiting for inventor instance" + System.Environment.NewLine);
                     }
                 }
                 finally
@@ -191,7 +257,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     System.Threading.Thread.Sleep(1000);
                     retryCount++;
 
-                    if (retryCount >= 300)
+                    if (MaxWaitForInventorInstanceInSeconds != null && retryCount > MaxWaitForInventorInstanceInSeconds)
                     {
                         Monitor.Enter(_invInstances);
                         try
@@ -227,14 +293,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        public async void CloseAllInventor()
+        public void CloseAllInventor()
         {
             Monitor.Enter(_invInstances);
             try
             {
                 foreach (InventorInstance invInstance in _invInstances.Where(x => x.UsedByProcessId == null && x.InvApp != null))
                 {
-                    await invInstance.ForceCloseInventor();
+                    invInstance.ForceCloseInventor();
                 }
             }
             finally

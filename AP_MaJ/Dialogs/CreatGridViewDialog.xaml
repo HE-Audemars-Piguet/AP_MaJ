@@ -4,7 +4,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core" 
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
-                 Title="CreatGridViewDialog" MinWidth="300" SizeToContent="WidthAndHeight" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
+                 Title="Créer une nouvelle vue" MinWidth="300" SizeToContent="WidthAndHeight" ResizeMode="CanResizeWithGrip" WindowStyle="ToolWindow">
 
     <Grid Margin="8">
         <Grid.RowDefinitions>

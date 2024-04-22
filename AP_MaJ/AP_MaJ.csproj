@@ -140,6 +140,9 @@
     <Compile Include="Controls\PropertyDetailControl.xaml.cs">
       <DependentUpon>PropertyDetailControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Dialogs\VaultUserPasswordCheckDialog.xaml.cs">
+      <DependentUpon>VaultUserPasswordCheckDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Dialogs\CreatGridViewDialog.xaml.cs">
       <DependentUpon>CreatGridViewDialog.xaml</DependentUpon>
     </Compile>
@@ -172,6 +175,10 @@
     <Page Include="Controls\PropertyDetailControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\VaultUserPasswordCheckDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="Dialogs\CreatGridViewDialog.xaml">
       <SubType>Designer</SubType>

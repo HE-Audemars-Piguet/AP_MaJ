@@ -652,6 +652,11 @@ namespace Ch.Hurni.AP_MaJ
                 ActiveGridView = GridViewDlg.NewGridViewNameTextEdit.Text;
             }
         }
+        
+        private void ShowHelp_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+
+        }
         #endregion
 
 

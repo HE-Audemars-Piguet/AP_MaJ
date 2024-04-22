@@ -418,6 +418,19 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private int _maxInventorFileCount = 100;
 
+        public int? MaxWaitForInventorInstanceInSeconds
+        {
+            get
+            {
+                return _maxWaitForInventorInstanceInSeconds;
+            }
+            set
+            {
+                _maxWaitForInventorInstanceInSeconds = value;
+            }
+        }
+        private int? _maxWaitForInventorInstanceInSeconds = null;
+
         public bool IsInventorVisible
         {
             get
@@ -460,7 +473,61 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private bool _isInventorInteractionEnable = false;
 
+        public string SyncPartNumberValue
+        {
+            get
+            {
+                return _syncPartNumberValue;
+            }
+            set
+            {
+                _syncPartNumberValue = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _syncPartNumberValue = "SyncPartNumber";
 
+        public string ClearPropValue
+        {
+            get
+            {
+                return _clearPropValue;
+            }
+            set
+            {
+                _clearPropValue = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _clearPropValue = "ClearPropValue";
+
+        public string InitialLcsValue
+        {
+            get
+            {
+                return _initialLcsValue;
+            }
+            set
+            {
+                _initialLcsValue = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _initialLcsValue = "InitialLcsValue";
+
+        public bool SaveHistory
+        {
+            get
+            {
+                return _saveHistory;
+            }
+            set
+            {
+                _saveHistory = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _saveHistory = true;
         #endregion
 
         #region Constructors
