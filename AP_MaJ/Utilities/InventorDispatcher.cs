@@ -160,6 +160,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
+        internal void StartOrRestartInventor()
+        {
+            if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
+            {
+                ForceCloseInventor();
+            }
+
+            if (_invApp == null)
+            {
+                Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
+
+                _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
+
+                GetWindowThreadProcessId(_invApp.MainFrameHWND, ref _inventorProcessId);
+
+                _invApp.Visible = IsInventorVisible; //false;
+                _invApp.SilentOperation = IsInventorSilent; //true;
+                _invApp.UserInterfaceManager.UserInteractionDisabled = !IsInventorInteractionEnable; //true;
+
+                while (_invApp != null && !_invApp.Ready)
+                {
+                    System.Threading.Thread.Sleep(1000);
+                    //await Task.Delay(1000);
+                }
+            }
+        }
+
         internal void ForceCloseInventor()
         {
             try
@@ -175,8 +202,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (_inventorProcessId != -1 && Process.GetProcesses().Where(x => x.Id == _inventorProcessId).Count() > 0)
             {
                 System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Kill Inventor process Id '" + _inventorProcessId + "'..." + System.Environment.NewLine);
-                Process thisproc = Process.GetProcessById(_inventorProcessId);
-                if (!thisproc.CloseMainWindow()) thisproc.Kill();
+                try
+                {
+                    Process thisproc = Process.GetProcessById(_inventorProcessId);
+                    if (!thisproc.CloseMainWindow()) thisproc.Kill();
+                }
+                catch(Exception Ex)
+                {
+                    System.IO.File.AppendAllText(@"C:\Temp\DispatcherLog.txt", "Inventor process Id '" + _inventorProcessId + "' not found..." + System.Environment.NewLine);
+                }
             }
 
             System.GC.WaitForPendingFinalizers();

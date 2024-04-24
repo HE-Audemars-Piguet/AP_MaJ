@@ -40,6 +40,7 @@ using System.IO;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using Autodesk.DataManagement.Client.Framework.Vault.Results;
+using DevExpress.Xpf.Core.DragDrop.Native;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -1167,7 +1168,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         int ProcessId = i;
                         DataRow PopEntity = EntitiesStack.Pop();
-                        TaskList.Add(Task.Run(() => UpdateFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                        TaskList.Add(Task.Run(() => UpdateFileAsync(ProcessId, PopEntity, processProgReport, appOptions)));
 
                         if (EntitiesStack.Count == 0) break;
                     }
@@ -1203,7 +1204,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
                         {
                             DataRow PopEntity = EntitiesStack.Pop();
-                            TaskList.Add(Task.Run(() => UpdateFile(ProcessId, PopEntity, processProgReport, appOptions)));
+                            TaskList.Add(Task.Run(() => UpdateFileAsync(ProcessId, PopEntity, processProgReport, appOptions)));
                         }
                     }
                 }
@@ -1216,7 +1217,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return ds;
         }
 
-        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFile(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
+        private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFileAsync(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
         {
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
             List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
@@ -1231,28 +1232,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName +" (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = processId, TotalCountInc = 1 });
 
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", "> " + FullVaultName + " (State=" + resultState + ") > UpdateFileCategory");
             if(resultState != StateEnum.Error) resultState = await UpdateFileCategory(FullVaultName, dr, resultState, resultLogs, appOptions);
-
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > MoveFile");
-            if (resultState != StateEnum.Error) resultState = await MoveFile(FullVaultName, dr, resultState, resultLogs, appOptions);
-
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > RenameFile");
+            if (resultState != StateEnum.Error) resultState =await MoveFile(FullVaultName, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await RenameFile(FullVaultName, dr, resultState, resultLogs, appOptions);
-
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > UpdateFileLifeCycle");
             if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycle(FullVaultName, dr, resultState, resultLogs, appOptions);
-
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > UpdateFileRevision");
             if (resultState != StateEnum.Error) resultState = await UpdateFileRevision(FullVaultName, dr, resultState, resultLogs, appOptions);
-            
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > UpdateFileProperty");
             if (resultState != StateEnum.Error) resultState = await UpdateFileProperty(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > UpdateFileLifeCycleState");
             if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleState(FullVaultName, dr, resultState, resultLogs, appOptions);
-
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ") > CreateBomBlobJob");
             if (resultState != StateEnum.Error) resultState = await CreateBomBlobJob(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
 
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
@@ -1566,6 +1552,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     if (UpdateUdps.Count > 0 || UpdateFileProps.Count > 0)
                     {
+                        /*
                         // Checkout
                         ACW.ByteArray downloadTicket = null;
                         file = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, file).EntityIterationId,
@@ -1603,13 +1590,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         // Checkin
                         if (resultState != StateEnum.Error) resultState = RetryCheckInFile(file, "MaJ - Mise à jour des propriétés", uploadTicket, resultState, resultLogs, appOptions, processId);
-
-                        //file = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des propriétés", false,
-                        //                             DateTime.Now, GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket));
-
-                        //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Checkin" + System.Environment.NewLine);
-
-                        //if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Archivage du fichier après mise à jour."));
+                        */
 
                         if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewInventorMaterialName) && System.IO.Path.GetExtension(fullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase))
                         {
@@ -1970,6 +1951,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         System.Threading.Thread.Sleep(10);
                         //await Task.Delay(10);
                         //await invInst.StartOrRestartInventorAsync();
+                        invInst.StartOrRestartInventor();
 
                         processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
                         System.Threading.Thread.Sleep(10);
@@ -3392,25 +3374,52 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 int Level = 1;
                 if (AllFileAssocArray == null || AllFileAssocArray.FileAssocs == null || AllFileAssocArray.FileAssocs.Length == 0) return Level;
 
-                if (AllFileAssocArray.FileAssocs.Where(x => x.Id == -1).Count() > 0 && AllFileAssocArray.FileAssocs.Where(x => x.Id == -1).Select(x => x.CldFile.MasterId).Contains(masterId)) return Level;
+                List<FileAssoc> FileAssocsList = AllFileAssocArray.FileAssocs.ToList();
+                List<long> CurrentLevelMasterIds = new List<long>() { masterId };
 
-                List<long> HaveChildrenMasterIds = AllFileAssocArray.FileAssocs.Where(x => x.Id != -1).Select(x => x.ParFile.MasterId).Distinct().ToList();
-                List<long> CountedLevelIds = AllFileAssocArray.FileAssocs.Where(x => x.Id != -1).Select(x => x.CldFile.MasterId).Distinct().Except(HaveChildrenMasterIds).ToList();
-
-                do
+                while(FileAssocsList.Count > 0)
                 {
                     Level++;
+                    List<long> NextLevelMasterIds = new List<long>();
+                    List<int> FileAssocIndexToRemove = new List<int>();
 
-                    foreach (long mId in HaveChildrenMasterIds)
+                    foreach (FileAssoc fAssoc in FileAssocsList.Where(x => CurrentLevelMasterIds.Contains(x.ParFile.MasterId)))
                     {
-                        List<long> Children = AllFileAssocArray.FileAssocs.Where(x => x.Id != -1 && x.ParFile.MasterId == mId).Select(x => x.CldFile.MasterId).Distinct().ToList();
+                        FileAssocIndexToRemove.Add(FileAssocsList.IndexOf(fAssoc));
 
-                        if (Children.Except(CountedLevelIds).Count() == 0) CountedLevelIds.Add(mId);
+                        if (!NextLevelMasterIds.Contains(fAssoc.CldFile.MasterId))
+                        {
+                            NextLevelMasterIds.Add(fAssoc.CldFile.MasterId);
+                        }
                     }
 
-                    HaveChildrenMasterIds = HaveChildrenMasterIds.Except(CountedLevelIds).ToList();
+                    FileAssocsList.RemoveMultiple(FileAssocIndexToRemove.ToArray());
+                    CurrentLevelMasterIds = NextLevelMasterIds;
+                }
 
-                } while (HaveChildrenMasterIds.Count > 0);
+
+
+
+
+                //if (AllFileAssocArray.FileAssocs.Where(x => x.Id == -1).Count() > 0 && AllFileAssocArray.FileAssocs.Where(x => x.Id == -1).Select(x => x.CldFile.MasterId).Contains(masterId)) return Level;
+
+                //List<long> HaveChildrenMasterIds = AllFileAssocArray.FileAssocs.Where(x => x.Id != -1).Select(x => x.ParFile.MasterId).Distinct().ToList();
+                //List<long> CountedLevelIds = AllFileAssocArray.FileAssocs.Where(x => x.Id != -1).Select(x => x.CldFile.MasterId).Distinct().Except(HaveChildrenMasterIds).ToList();
+
+                //do
+                //{
+                //    Level++;
+
+                //    foreach (long mId in HaveChildrenMasterIds)
+                //    {
+                //        List<long> Children = AllFileAssocArray.FileAssocs.Where(x => x.Id != -1 && x.ParFile.MasterId == mId).Select(x => x.CldFile.MasterId).Distinct().ToList();
+
+                //        if (Children.Except(CountedLevelIds).Count() == 0) CountedLevelIds.Add(mId);
+                //    }
+
+                //    HaveChildrenMasterIds = HaveChildrenMasterIds.Except(CountedLevelIds).ToList();
+
+                //} while (HaveChildrenMasterIds.Count > 0);
 
                 return Level;
             }
