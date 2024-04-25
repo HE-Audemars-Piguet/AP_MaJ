@@ -120,24 +120,24 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
         //private List<string> SystemNames = new List<string>() { "TargetVaultName", "TargetVaultPath", "VaultCatName", "TargetVaultCatName", "TargetVaultLcName", "TempVaultLcsName", "TargetVaultLcsName", "TargetVaultRevSchName", "TargetVaultRevLabel" };
         private void ValidateFieldName(PropertyFieldMapping CurrentItem = null)
         {
-            if (CurrentItem != null && !string.IsNullOrEmpty(CurrentItem.FieldName) && !Regex.IsMatch(CurrentItem.FieldName, "^[a-zA-Z_][a-zA-Z0-9_]*$"))
-            {
-                CurrentItem.IsValidFiledName = false;
-            }
-            else
-            {
-                //List<string> Names = Mappings.Where(x => x.IsSelected == true && !string.IsNullOrWhiteSpace(x.FieldName)).Select(x => x.FieldName).ToList();
+            //if (CurrentItem != null && !string.IsNullOrEmpty(CurrentItem.FieldName) && !Regex.IsMatch(CurrentItem.FieldName, "^[a-zA-Z_][a-zA-Z0-9_]*$"))
+            //{
+            //    CurrentItem.IsValidFiledName = false;
+            //}
+            //else
+            //{
+            //    //List<string> Names = Mappings.Where(x => x.IsSelected == true && !string.IsNullOrWhiteSpace(x.FieldName)).Select(x => x.FieldName).ToList();
 
-                //foreach (PropertyFieldMapping item in Mappings)
-                //{
-                //    if (item.IsSelected == true && string.IsNullOrEmpty(item.FieldName))
-                //    {
-                //        item.IsValidFiledName = null;
-                //        continue;
-                //    }
-                //    //item.IsValidFiledName = !SystemNames.Contains(item.FieldName);
-                //}
-            }
+            //    //foreach (PropertyFieldMapping item in Mappings)
+            //    //{
+            //    //    if (item.IsSelected == true && string.IsNullOrEmpty(item.FieldName))
+            //    //    {
+            //    //        item.IsValidFiledName = null;
+            //    //        continue;
+            //    //    }
+            //    //    //item.IsValidFiledName = !SystemNames.Contains(item.FieldName);
+            //    //}
+            //}
         }
     }
 }

@@ -469,7 +469,6 @@ namespace Ch.Hurni.AP_MaJ
             List<string> EntityColNames = Data.Tables["Entities"].Columns.Cast<DataColumn>().Select(x => x.ColumnName).Intersect(ImportExportDlg.Data.Columns.Cast<DataColumn>().Select(x => x.ColumnName)).ToList();
             List<string> PropColNames = Data.Tables["NewProps"].Columns.Cast<DataColumn>().Select(x => x.ColumnName).Intersect(ImportExportDlg.Data.Columns.Cast<DataColumn>().Select(x => x.ColumnName)).ToList();
 
-
             if (ImportExportDlg.DialogResult == true)
             {
                 HashSet<string> ExistingEntities = new HashSet<string>();

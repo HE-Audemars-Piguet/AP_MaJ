@@ -144,7 +144,15 @@
                                     </UniformGrid>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
-
+                            
+                            <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="En cas d'écheque resoumettre les requete Vault"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCounty, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
+                                                  EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
+                            
                             <dxdo:LayoutGroup Margin="0 4 0 0" >
                                 <dxdo:LabelItem Caption="Comportement en cas d'erreur de traitement"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
@@ -201,10 +209,14 @@
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="Délai d'attente maximum pour l'obtention des fichiers depuis le Vault [secondes]" Margin="16 0 0 0"/>
+                                <dxdo:LabelItem Caption="Délai d'attente maximum pour l'obtention des fichiers depuis le Vault" Margin="16 0 0 0"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
-                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.CancelAcquireFileAfter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="300" Increment="1" 
+                                    <StackPanel Orientation="Horizontal">
+                                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.CancelAcquireFileAfter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="300" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
+                                        <TextBlock Text="secondes" Margin="8 0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>

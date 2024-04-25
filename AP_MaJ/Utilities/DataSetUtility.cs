@@ -357,12 +357,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     if (Reader["name"].ToString().Equals(DeletedColumnName)) continue;
 
-                    NewPropsFieldNames.Add(Reader["name"].ToString());
+                    NewPropsFieldNames.Add("[" + Reader["name"].ToString() + "]");
 
-                    string Val = Reader["name"].ToString() + " " + Reader["type"].ToString();
+                    string Val = "[" + Reader["name"].ToString() + "] " + Reader["type"].ToString();
                     if (Reader["notnull"].ToString().Equals("1")) Val += " NOT NULL";
 
-                    if ((long)Reader["pk"] > 0) NewPropsPrimaryFields.Add((int.Parse(Reader["pk"].ToString()), Reader["name"].ToString()));
+                    if ((long)Reader["pk"] > 0) NewPropsPrimaryFields.Add((int.Parse(Reader["pk"].ToString()), "[" + Reader["name"].ToString() + "]"));
 
                     NewPropsFieldNamesAndType.Add(Val);
                 }

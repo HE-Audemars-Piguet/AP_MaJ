@@ -676,23 +676,24 @@ namespace Ch.Hurni.AP_MaJ.Classes
 
                 if (value == true)
                 {
-                    if (string.IsNullOrWhiteSpace(FieldName))
-                    {
-                        var normalizedString = _vaultPropertyDisplayName.Normalize(NormalizationForm.FormD);
-                        var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
+                    FieldName = _vaultPropertyDisplayName;
+                    //if (string.IsNullOrWhiteSpace(FieldName))
+                    //{
+                    //    var normalizedString = _vaultPropertyDisplayName.Normalize(NormalizationForm.FormD);
+                    //    var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
 
-                        for (int i = 0; i < normalizedString.Length; i++)
-                        {
-                            char c = normalizedString[i];
-                            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-                            {
-                                stringBuilder.Append(c);
-                            }
-                        }
+                    //    for (int i = 0; i < normalizedString.Length; i++)
+                    //    {
+                    //        char c = normalizedString[i];
+                    //        var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                    //        if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                    //        {
+                    //            stringBuilder.Append(c);
+                    //        }
+                    //    }
 
-                        FieldName = stringBuilder.ToString().Normalize(NormalizationForm.FormC).Replace(" ", "");
-                    }
+                    //    FieldName = stringBuilder.ToString().Normalize(NormalizationForm.FormC).Replace(" ", "");
+                    //}
                 }
 
                 NotifyPropertyChanged();

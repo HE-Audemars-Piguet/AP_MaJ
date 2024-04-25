@@ -37,7 +37,13 @@
             </Button>
             <StackPanel Grid.Column="3" Name="ExcelSheetSelector" Orientation="Horizontal" Visibility="Collapsed">
                 <TextBlock Text="Feuille à importer" Margin="8 2 2 2" VerticalAlignment="Center"/>
-                <ComboBox ItemsSource="{Binding ExcelSheets}" Name="ExcelSheetSelectorCombo" SelectedIndex="0" Margin="2" VerticalAlignment="Center" MinWidth="100"/>
+                <ComboBox ItemsSource="{Binding ExcelSheets}" Name="ExcelSheetSelectorCombo" SelectedIndex="0" Margin="2" VerticalAlignment="Center" MinWidth="100">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayName}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </StackPanel>
 
             <Button Grid.Column="5" Margin="2" VerticalAlignment="Center" Click="FileContentLoad_Click" ToolTip="Lire les données">

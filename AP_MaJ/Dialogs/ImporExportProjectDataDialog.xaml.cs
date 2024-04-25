@@ -85,10 +85,13 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                                 
                                 DataTable dtTablesList = oleExcelConnection.GetSchema("Tables");
 
-                                foreach (string ExcelSheet in dtTablesList.AsEnumerable().Where(x => x.Field<string>("TABLE_NAME").EndsWith("$")).Select(x => x.Field<string>("TABLE_NAME").TrimEnd(new char[] {'$'})))
+                                foreach (string ExcelSheet in dtTablesList.AsEnumerable().Select(x => x.Field<string>("TABLE_NAME")))
                                 {
-                                    ExcelSheets.Add(ExcelSheet);
+                                    if (ExcelSheet.EndsWith("$")) ExcelSheets.Add(new ExcelSheetName() { DisplayName = ExcelSheet.Substring(0, ExcelSheet.Length - 1), Name = ExcelSheet });
+                                    else if (ExcelSheet.StartsWith("'") && ExcelSheet.EndsWith("$'")) ExcelSheets.Add(new ExcelSheetName() { DisplayName = ExcelSheet.Substring(1, ExcelSheet.Length - 3), Name = ExcelSheet });
                                 }
+
+                                ExcelSheets = new ObservableCollection<ExcelSheetName>(ExcelSheets.OrderBy(x => x.DisplayName));
 
                                 oleExcelConnection.Close();
 
@@ -169,7 +172,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
         private string _defaultEncodingName = string.Empty;
         private bool _detectEncoding = true;
 
-        public ObservableCollection<string> ExcelSheets
+        public ObservableCollection<ExcelSheetName> ExcelSheets
         {
             get
             {
@@ -181,7 +184,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 NotifyPropertyChanged();
             }
         }
-        private ObservableCollection<string> _excelSheets = new ObservableCollection<string>();
+        private ObservableCollection<ExcelSheetName> _excelSheets = new ObservableCollection<ExcelSheetName>();
 
         public DataTable Data
         {
@@ -305,7 +308,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
         {
             IsWaitIndicatorVisible = true;
 
-            SourceSheetName = ExcelSheetSelectorCombo.SelectedItem?.ToString() ?? "";
+            SourceSheetName = (ExcelSheetSelectorCombo.SelectedItem as ExcelSheetName).Name;
 
             ImportGrid.BeginDataUpdate();
             (DataTable ResultDataTable, SeverityEnum Severity, string Message) Result = await Task.Run(() => ReadFileContent(SourceSheetName));
@@ -389,11 +392,16 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 {
                     oleExcelConnection.Open();
 
-                    OleDbDataAdapter da = new OleDbDataAdapter("Select * From [" + ExcelSheetName + "$]", oleExcelConnection);
+                    OleDbDataAdapter da = new OleDbDataAdapter("Select * From [" + ExcelSheetName + "]", oleExcelConnection);
                     da.Fill(dt);
 
                     oleExcelConnection.Close();
                 }
+            }
+
+            foreach(DataColumn dc in dt.Columns)
+            {
+                if (dc.ColumnName.Contains("#")) dc.ColumnName = dc.ColumnName.Replace("#", ".");
             }
 
             List<string> dtColumnList = dt.Columns.Cast<DataColumn>().Select(x => x.ColumnName).ToList();
@@ -411,7 +419,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             else if (MissingColNames.Count > 0)
             {
                 severity = SeverityEnum.Warning;
-                msg = string.Format("Le fichier '{0}' n'est pas incomplet.\n\nLes colonnes suivantes manquent:\n{1}", SourceFileName, "- " + string.Join(System.Environment.NewLine + "- ", MissingColNames));
+                msg = string.Format("Le fichier '{0}' est incomplet.\n\nLes colonnes suivantes manquent:\n{1}", SourceFileName, "- " + string.Join(System.Environment.NewLine + "- ", MissingColNames));
             }
 
             dt = dt.DefaultView.ToTable(false, CommonColNames.ToArray()).Copy();
@@ -492,5 +500,11 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 ImportGrid.SetCellValue(rowHandle, column, value);
             }
         }
+    }
+
+    public class ExcelSheetName
+    {
+        public string Name { get; set; }
+        public string DisplayName { get; set; }
     }
 }

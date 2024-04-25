@@ -299,17 +299,17 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        internal DataSet ProcessFiles(string FileTaskName, DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
-        {
-            if (FileTaskName.Equals("Update"))
-            {
-                return UpdateFiles(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
-            }
-            else
-            {
-                return null;
-            }
-        }
+        //internal DataSet ProcessFiles(string FileTaskName, DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        //{
+        //    if (FileTaskName.Equals("Update"))
+        //    {
+        //        return UpdateFiles(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
+        //    }
+        //    else
+        //    {
+        //        return null;
+        //    }
+        //}
 
         #region FileValidation
         internal async Task<DataSet> ValidateFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
@@ -1197,18 +1197,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             while (currentLevel <= maxLevel)
             {
-                taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers de niveau " + currentLevel + " sur " + maxLevel });
+                taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers de niveau " + currentLevel + " sur " + maxLevel, TotalEntityCount = TotalCount });
                 Stack<DataRow> EntitiesStack = new Stack<DataRow>(Entities.Where(x => x.Field<int>("VaultLevel") == currentLevel));
 
-                if(EntitiesStack.Count > 0)
+                while (EntitiesStack.Count > 0)
                 {
+                    Stack<DataRow> BatchStack = new Stack<DataRow>(EntitiesStack.Take(1000));
+
                     for (int i = 0; i < appOptions.FileUpdateProcess; i++)
                     {
                         int ProcessId = i;
-                        DataRow PopEntity = EntitiesStack.Pop();
+                        DataRow PopEntity = BatchStack.Pop();
                         TaskList.Add(Task.Run(() => UpdateFileAsync(ProcessId, PopEntity, processProgReport, appOptions)));
 
-                        if (EntitiesStack.Count == 0) break;
+                        if (BatchStack.Count == 0) break;
                     }
 
                     while (TaskList.Any())
@@ -1239,9 +1241,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         TaskList.Remove(finished);
 
-                        if (EntitiesStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
+                        if (BatchStack.Count > 0 && !taskCancellationToken.IsCancellationRequested)
                         {
-                            DataRow PopEntity = EntitiesStack.Pop();
+                            DataRow PopEntity = BatchStack.Pop();
                             TaskList.Add(Task.Run(() => UpdateFileAsync(ProcessId, PopEntity, processProgReport, appOptions)));
                         }
                     }
@@ -1334,7 +1336,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
             else FullVaultName += "/" + dr.Field<string>("Name");
 
-            //processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = processId, TotalCountInc = 1 });
             processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName , ProcessIndex = processId, TotalCountInc = 1 });
 
             if (resultState != StateEnum.Error) resultState = await UpdateFileCategoryAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
@@ -2325,7 +2326,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Ready to get files..." + System.Environment.NewLine);
                 
-                int RetryCount = 1;
+                int RetryCount = 0;
 
 
                 AcquireFilesResults AcquireResults = null;
@@ -2343,16 +2344,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         if (AcquireResults == null || AcquireResults.IsCancelled)
                         {
                             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after " + appOptions.CancelAcquireFileAfter + " sec" + System.Environment.NewLine);
+                            RetryCount++;
                             AcquireResults = null;
                         }
-                        RetryCount = appOptions.MaxRetryCount;
+                        else
+                        {
+                            RetryCount = appOptions.MaxRetryCount;
+                        }
                     }
                     catch (Exception Ex)
                     {
                         System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Get files ERROR (Essai " + RetryCount + "/" + appOptions.MaxRetryCount + " ." + System.Environment.NewLine + Ex.ToString() + System.Environment.NewLine);
                         RetryCount++;
                     }
-                } while (AcquireResults == null || RetryCount < appOptions.MaxRetryCount);
+                } while (RetryCount < appOptions.MaxRetryCount);
 
                 if (AcquireResults != null)
                 {
