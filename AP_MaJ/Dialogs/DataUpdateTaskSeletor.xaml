@@ -165,7 +165,7 @@
                                 <TextBlock Text="{Binding Path=ElementErrorCount}" Margin="0 2"/>
                             </StackPanel>
 
-                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Foreground="Green" BorderThickness="0" HorizontalAlignment="Stretch"
+                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Foreground="#009E21" BorderThickness="0" HorizontalAlignment="Stretch"
                                          Value="{Binding Path=ElementCount}" Maximum="{Binding Path=TotalElementCount}">
                                 <ProgressBar.Style>
                                     <Style TargetType="ProgressBar">
@@ -183,7 +183,7 @@
                                 </ProgressBar.Style>
                             </ProgressBar>
 
-                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Foreground="Green" BorderThickness="0" HorizontalAlignment="Stretch" IsIndeterminate="True">
+                            <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" Height="6" Foreground="#009E21" BorderThickness="0" HorizontalAlignment="Stretch" IsIndeterminate="True">
                                 <ProgressBar.Style>
                                     <Style TargetType="ProgressBar">
                                         <Setter Property="Visibility" Value="Collapsed"/>

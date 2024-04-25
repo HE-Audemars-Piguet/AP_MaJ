@@ -93,6 +93,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             bool ReportProgress = taskProgReport != null;
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Start" });
+            await Task.Delay(50);
 
             string user = appOptions.VaultUser;
             if (confirmedUser != null) user = confirmedUser;
@@ -100,10 +101,34 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             string pwd = appOptions.VaultPassword;
             if (confirmedPwd != null) pwd = confirmedPwd;
 
-            VDF.Vault.Results.LogInResult results = await Task.Run(() => VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, user, pwd,
-                                                                                                                   VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null));
+            VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, user, pwd, VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null);
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
+            await Task.Delay(50);
+
+            if (results.Success) return results.Connection;
+            else return null;
+        }
+
+        internal VDF.Vault.Currency.Connections.Connection ConnectToVault(ApplicationOptions appOptions, string confirmedUser = null, string confirmedPwd = null)
+        {
+            string user = appOptions.VaultUser;
+            if (confirmedUser != null) user = confirmedUser;
+
+            string pwd = appOptions.VaultPassword;
+            if (confirmedPwd != null) pwd = confirmedPwd;
+
+            VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, user, pwd,
+                                                                                              VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null);
+
+            if (results.Success) return results.Connection;
+            else return null;
+        }
+
+        internal VDF.Vault.Currency.Connections.Connection ConnectToVault(ApplicationOptions appOptions)
+        {
+            VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, appOptions.VaultUser, appOptions.VaultPassword,
+                                                                                                                   VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null);
 
             if (results.Success) return results.Connection;
             else return null;
@@ -267,6 +292,18 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             else if (FileTaskName.Equals("WaitForBomBlob"))
             {
                 return await ForceAndWaitForBomBlobCreationFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        internal DataSet ProcessFiles(string FileTaskName, DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        {
+            if (FileTaskName.Equals("Update"))
+            {
+                return UpdateFiles(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             }
             else
             {
@@ -1160,6 +1197,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             while (currentLevel <= maxLevel)
             {
+                taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers de niveau " + currentLevel + " sur " + maxLevel });
                 Stack<DataRow> EntitiesStack = new Stack<DataRow>(Entities.Where(x => x.Field<int>("VaultLevel") == currentLevel));
 
                 if(EntitiesStack.Count > 0)
@@ -1217,6 +1255,72 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return ds;
         }
 
+        internal DataSet UpdateFiles(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
+        {
+            taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
+            DataSet ds = data.Copy();
+
+            List<DataRow> Entities = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
+                                                                               (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
+                                                                                x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                x.Field<long?>("VaultMasterId") != null).ToList(); ;
+
+            foreach (DataRow dr in Entities)
+            {
+                dr["Task"] = TaskTypeEnum.Update;
+                dr["State"] = StateEnum.Pending;
+            }
+
+            int TotalCount = Entities.Count;
+            int currentLevel = 1;
+
+            int maxLevel = currentLevel;
+            if (TotalCount > 0) maxLevel = Entities.Max(x => x.Field<int>("VaultLevel"));
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
+
+            List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
+                                            new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
+
+            while (currentLevel <= maxLevel)
+            {
+                Stack<DataRow> EntitiesStack = new Stack<DataRow>(Entities.Where(x => x.Field<int>("VaultLevel") == currentLevel));
+
+                while(EntitiesStack.Count > 0)
+                {
+                    DataRow PopEntity = EntitiesStack.Pop();
+                    (DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs) result = UpdateFile(PopEntity, processProgReport, appOptions);
+
+                    result.entity["State"] = result.State;
+
+                    foreach (KeyValuePair<string, object> kvp in result.Result)
+                    {
+                        result.entity[kvp.Key] = kvp.Value;
+                    }
+
+                    foreach (Dictionary<string, object> log in result.ResultLogs)
+                    {
+                        DataRow drLog = ds.Tables["Logs"].NewRow();
+                        drLog["EntityId"] = result.entity["Id"];
+
+                        foreach (KeyValuePair<string, object> kvp in log)
+                        {
+                            drLog[kvp.Key] = kvp.Value;
+                        }
+
+                        ds.Tables["Logs"].Rows.Add(drLog);
+                    }
+                }
+
+                currentLevel++;
+            }
+
+            taskProgReport.Report(new TaskProgressReport() { Message = "Mise à jour des fichiers", TotalEntityCount = TotalCount, Timer = "Stop" });
+
+            return ds;
+        }
+
+
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFileAsync(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
         {
             Dictionary<string, object> resultValues = new Dictionary<string, object>();
@@ -1230,16 +1334,17 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
             else FullVaultName += "/" + dr.Field<string>("Name");
 
-            processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName +" (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = processId, TotalCountInc = 1 });
+            //processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = processId, TotalCountInc = 1 });
+            processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName , ProcessIndex = processId, TotalCountInc = 1 });
 
-            if(resultState != StateEnum.Error) resultState = await UpdateFileCategory(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState =await MoveFile(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await RenameFile(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycle(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await UpdateFileRevision(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await UpdateFileProperty(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-            if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleState(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await CreateBomBlobJob(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await UpdateFileCategoryAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState =await MoveFileAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await RenameFileAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await UpdateFileRevisionAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await UpdateFilePropertyAsync(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+            if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleStateAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await CreateBomBlobJobAsync(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
 
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
 
@@ -1250,7 +1355,41 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return (processId, dr, resultValues, resultState, resultLogs);
         }
 
-        private async Task<StateEnum> UpdateFileCategory(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private (DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs) UpdateFile(DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
+        {
+            Dictionary<string, object> resultValues = new Dictionary<string, object>();
+            List<Dictionary<string, object>> resultLogs = new List<Dictionary<string, object>>();
+
+            StateEnum resultState = StateEnum.Processing;
+
+            string FullVaultName = string.Empty;
+
+            FullVaultName = dr.Field<string>("Path");
+            if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
+            else FullVaultName += "/" + dr.Field<string>("Name");
+
+            processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = 0, TotalCountInc = 1 });
+
+            if (resultState != StateEnum.Error) resultState = UpdateFileCategory(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = MoveFile(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = RenameFile(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = UpdateFileLifeCycle(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = UpdateFileRevision(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = UpdateFileProperty(FullVaultName, dr, resultState, resultLogs, appOptions, 0, processProgReport);
+            if (resultState != StateEnum.Error) resultState = UpdateFileLifeCycleState(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = CreateBomBlobJob(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
+
+            if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, ErrorInc = 1 });
+            else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, DoneInc = 1 });
+
+            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + 0 + ".log", " (State=" + resultState + ")." + System.Environment.NewLine);
+            return (dr, resultValues, resultState, resultLogs);
+        }
+
+
+        private async Task<StateEnum> UpdateFileCategoryAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultCatId") != null && dr.Field<long?>("VaultCatId") != dr.Field<long?>("TargetVaultCatId"))
             {
@@ -1280,13 +1419,50 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await UpdateFileCategory(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await UpdateFileCategoryAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> MoveFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private StateEnum UpdateFileCategory(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        {
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultCatId") != null && dr.Field<long?>("VaultCatId") != dr.Field<long?>("TargetVaultCatId"))
+            {
+                try
+                {
+                    ACW.File VaultFile = VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileCategories(new long[] { dr.Field<long>("VaultMasterId") }, new long[] { dr.Field<long>("TargetVaultCatId") }, "MaJ - Changement de catégorie").FirstOrDefault();
+                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La catégorie '" + dr.Field<string>("TargetVaultCatName") + "' a été appliqué au fichier."));
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors du changement de catégorie du fichier (essai " + RetryCount + "/" +
+                                                                                   appOptions.MaxRetryCount + ")."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du changement de catégorie du fichier (essai " + RetryCount + "/" +
+                                                                                   appOptions.MaxRetryCount + ")." + System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = UpdateFileCategory(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
+        }
+
+
+        private async Task<StateEnum> MoveFileAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultFolderId") != null && dr.Field<long?>("VaultFolderId") != dr.Field<long?>("TargetVaultFolderId"))
             {
@@ -1316,13 +1492,50 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await MoveFile(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await MoveFileAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> RenameFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private StateEnum MoveFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        {
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultFolderId") != null && dr.Field<long?>("VaultFolderId") != dr.Field<long?>("TargetVaultFolderId"))
+            {
+                try
+                {
+                    VaultConnection.WebServiceManager.DocumentService.MoveFile(dr.Field<long>("VaultMasterId"), dr.Field<long>("VaultFolderId"), dr.Field<long>("TargetVaultFolderId"));
+                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été déplacé de '" + dr.Field<string>("Path") + "' vers '" + dr.Field<string>("TargetVaultPath") + "'."));
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors du déplacement du fichier (essai " + RetryCount + "/" +
+                                                                                   appOptions.MaxRetryCount + ")."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du déplacement du fichier (essai " + RetryCount + "/" +
+                                                                                   appOptions.MaxRetryCount + ")." + System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = MoveFile(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
+        }
+
+
+        private async Task<StateEnum> RenameFileAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             string Ext = System.IO.Path.GetExtension(dr.Field<string>("Name"));
             string NewName = string.Empty;
@@ -1461,13 +1674,312 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await RenameFile(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await RenameFileAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileProperty(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private StateEnum RenameFile(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        {
+            string Ext = System.IO.Path.GetExtension(dr.Field<string>("Name"));
+            string NewName = string.Empty;
+
+            if (dr.Field<long?>("TargetVaultNumSchId") == null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")))
+            {
+                NewName = dr.Field<string>("TargetVaultName");
+                if (!NewName.EndsWith(Ext, StringComparison.InvariantCultureIgnoreCase)) NewName += Ext;
+            }
+            else if (dr.Field<long?>("TargetVaultNumSchId") != null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")) && dr.Field<string>("TargetVaultName").Equals("NextNumber"))
+            {
+                try
+                {
+                    NewName = VaultConnection.WebServiceManager.DocumentService.GenerateFileNumber(dr.Field<long>("TargetVaultNumSchId"), null);
+                    NewName += Ext;
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") +
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") +
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "." + System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+            else if (dr.Field<long?>("TargetVaultNumSchId") != null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")) && dr.Field<string>("TargetVaultName").StartsWith("NextNumber="))
+            {
+                string NumSchInput = dr.Field<string>("TargetVaultName").Substring("NextNumber=".Length).Trim();
+                try
+                {
+                    NewName = VaultConnection.WebServiceManager.DocumentService.GenerateFileNumber(dr.Field<long>("TargetVaultNumSchId"), NumSchInput.Split('|'));
+                    NewName += Ext;
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") +
+                                                                                   "' et les paramètres '" + NumSchInput + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'optention du nom de fichier avec le schéma '" + dr.Field<string>("TargetVaultNumSchName") +
+                                                                                   "' et les paramètres '" + NumSchInput + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "." +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewName) && NewName != dr.Field<string>("Name"))
+            {
+                FileRenameRestric[] fileRenameRestrics = VaultConnection.WebServiceManager.DocumentService.GetFileRenameRestrictionsByMasterId(dr.Field<long>("VaultMasterId"), NewName);
+
+                try
+                {
+                    VDF.Vault.Settings.AcquireFilesSettings AcquireSettings = new VDF.Vault.Settings.AcquireFilesSettings(VaultConnection);
+
+                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeAttachments = false;
+                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeChildren = false;
+                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeLibraryContents = false;
+                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeParents = false;
+                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeRelatedDocumentation = false;
+                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.VersionGatheringOption = VDF.Vault.Currency.VersionGatheringOption.Actual;
+
+                    ACW.File File = VaultConnection.WebServiceManager.DocumentService.GetLatestFilesByMasterIds(new long[] { dr.Field<long>("VaultMasterId") }).FirstOrDefault();
+
+                    AcquireSettings.AddFileToAcquire(new VDF.Vault.Currency.Entities.FileIteration(VaultConnection, File), VDF.Vault.Settings.AcquireFilesSettings.AcquisitionOption.Checkout);
+
+                    VDF.Vault.Results.AcquireFilesResults AcquireResults = VaultConnection.FileManager.AcquireFiles(AcquireSettings);
+
+                    if (!AcquireResults.IsCancelled && AcquireResults.FileResults.FirstOrDefault().Status == VDF.Vault.Results.FileAcquisitionResult.AcquisitionStatus.Success)
+                    {
+                        FileIteration AcquiredFile = AcquireResults.FileResults.FirstOrDefault().File;
+
+                        ACW.File NewFileVer = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Renommage du fichier", false, DateTime.Now,
+                                                                        GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId")), null, false, NewName,
+                                                                        AcquiredFile.FileClassification, AcquiredFile.IsHidden, null);
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été renommé de '" + dr.Field<string>("Name") + "' en '" + NewName + "'."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le renommage n'est pas possible car le fichier ne peut être extrait."));
+                        resultState = StateEnum.Error;
+                    }
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors du renommage du fichier '" + dr.Field<string>("Name") + "' en '" + NewName +
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du renommage du fichier '" + dr.Field<string>("Name") + "' en '" + NewName +
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." + System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    try
+                    {
+                        ACW.ByteArray downloadTicket;
+                        VaultConnection.WebServiceManager.DocumentService.UndoCheckoutFile(dr.Field<long>("VaultMasterId"), out downloadTicket);
+                    }
+                    catch (Exception UndoEx)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)UndoEx) +
+                                                                                       "' à été retourné lors de l'annulation de l'extraction suite a une erreur de renommage" +
+                                                                                       " (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'annulation de l'extraction suite a une erreur de renommage" +
+                                                                                       " (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." + System.Environment.NewLine + UndoEx.ToString()));
+                        }
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = RenameFile(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
+        }
+
+        private async Task<StateEnum> UpdateFilePropertyAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        {
+            string NewInventorMaterialName = string.Empty;
+
+
+            if (resultState != StateEnum.Error && appOptions.VaultPropertyFieldMappings.Count > 0)
+            {
+                try
+                {
+                    ACW.File file = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+
+                    string FileProviderName = dr.Field<string>("VaultProvider");
+
+                    ContentSourceProvider Provider = VaultConnection.ConfigurationManager.GetContentSourceProviders().Where(x => x.DisplayName == FileProviderName).FirstOrDefault();
+
+                    List<ACW.PropInstParam> UpdateUdps = new List<ACW.PropInstParam>();
+                    List<string> UdpNames = new List<string>();
+                    List<ACW.PropWriteReq> UpdateFileProps = new List<ACW.PropWriteReq>();
+                    List<string> FilePropNames = new List<string>();
+
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Start processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
+
+                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == file.Cat.CatId).FirstOrDefault();
+                    if (catCfg != null)
+                    {
+                        BhvCfg bhvCfg = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
+                        if (bhvCfg != null)
+                        {
+                            foreach (PropertyFieldMapping fMapping in appOptions.VaultPropertyFieldMappings.Where(x => x.VaultPropertySet.Equals("File")))
+                            {
+                                PropertyDefinition pDef = VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.DisplayName.Equals(fMapping.VaultPropertyDisplayName)).FirstOrDefault();
+
+                                if (bhvCfg.BhvArray.Select(x => x.Id).Contains(pDef.Id))
+                                {
+                                    string stringVal = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMapping.FieldName);
+
+                                    if (!string.IsNullOrEmpty(stringVal))
+                                    {
+                                        object objectVal = ToObject(stringVal, pDef.ManagedDataType, file.Name, appOptions.ClearPropValue, appOptions.SyncPartNumberValue);
+
+                                        UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
+                                        UdpNames.Add(pDef.DisplayName);
+
+                                        if (VaultConfig.VaultFilePropertyMapping.ContainsKey(pDef.SystemName) && VaultConfig.VaultFilePropertyMapping[pDef.SystemName].ContainsKey(Provider.SystemName))
+                                        {
+                                            ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping[pDef.SystemName][Provider.SystemName].FirstOrDefault();
+
+                                            if (cSourceMappings.ContentPropertyDefinition.Moniker.Equals("Material!{32853F0F-3444-11D1-9E93-0060B03C1CA6}!nvarchar"))
+                                            {
+                                                NewInventorMaterialName = stringVal;
+                                                UpdateUdps.Remove(UpdateUdps.LastOrDefault());
+                                                UdpNames.Remove(UdpNames.LastOrDefault());
+                                            }
+                                            else
+                                            {
+                                                UpdateFileProps.Add(new ACW.PropWriteReq()
+                                                {
+                                                    CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
+                                                    Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
+                                                    Val = objectVal
+                                                });
+                                                FilePropNames.Add(pDef.DisplayName);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (VaultConfig.VaultFilePropertyMapping.ContainsKey("Revision") && VaultConfig.VaultFilePropertyMapping["Revision"].ContainsKey(Provider.SystemName))
+                    {
+                        ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping["Revision"][Provider.SystemName].FirstOrDefault();
+
+                        UpdateFileProps.Add(new ACW.PropWriteReq()
+                        {
+                            CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
+                            Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
+                            Val = file.FileRev.Label
+                        });
+                        FilePropNames.Add(VaultConfig.VaultFilePropertyDefinitionDictionary["Revision"].DisplayName);
+                    }
+
+                    if (UpdateUdps.Count > 0 || UpdateFileProps.Count > 0)
+                    {
+                        // Checkout
+                        ACW.ByteArray downloadTicket = null;
+                        file = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, file).EntityIterationId,
+                                                    ACW.CheckoutFileOptions.Master, System.Environment.MachineName, "", "MaJ - Mise à jour des propriétés", out downloadTicket));
+
+                        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Checkout" + System.Environment.NewLine);
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Extraction du fichier pour mise à jour."));
+
+                        // update Vault UDPs
+                        if (UpdateUdps.Count > 0)
+                        {
+                            await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") },
+                                                 new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } }));
+
+                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Update UDP" + System.Environment.NewLine);
+
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés du fichier dans Vault:" + System.Environment.NewLine +
+                                                                             string.Join(System.Environment.NewLine, UpdateUdps.Select(x => "   - " + UdpNames[UpdateUdps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
+                        }
+
+                        // Update file properties
+                        ByteArray uploadTicket = null;
+                        if (UpdateFileProps.Count > 0)
+                        {
+                            ACW.PropWriteResults PropUpdateresults;
+                            uploadTicket = await Task.Run(() => VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(file.Name).TrimStart('.'),
+                                                                true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray());
+
+                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Update Properties" + System.Environment.NewLine);
+
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés du fichier:" + System.Environment.NewLine +
+                                                                             string.Join(System.Environment.NewLine, UpdateFileProps.Select(x => "   - " + FilePropNames[UpdateFileProps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
+                        }
+
+                        // Checkin
+                        if (resultState != StateEnum.Error) resultState = await RetryCheckInFileAsync(file, "MaJ - Mise à jour des propriétés", uploadTicket, resultState, resultLogs, appOptions, processId);
+
+                        if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewInventorMaterialName) && System.IO.Path.GetExtension(fullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            resultState = await UpdateInventorMaterialAsync(fullVaultName, NewInventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+                        }
+
+                        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "End processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
+                    }
+                }
+                catch (Exception Ex)
+                {
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > UpdateFileProperty ERROR" + System.Environment.NewLine);
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", Ex.ToString() + System.Environment.NewLine);
+
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de la mise à jour des propriétés du fichier (essais multiples non implémenté)."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la mise à jour des propriétés du fichier (essais multiples non implémenté)." +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            return resultState;
+        }
+
+        private StateEnum UpdateFileProperty(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
         {
             string NewInventorMaterialName = string.Empty;
 
@@ -1594,7 +2106,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewInventorMaterialName) && System.IO.Path.GetExtension(fullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            resultState = UpdateInventorMaterial(fullVaultName, NewInventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+                           // resultState = await UpdateInventorMaterialAsync(fullVaultName, NewInventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
                         }
 
                         System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "End processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
@@ -1664,7 +2176,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         //                                UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
         //                                UdpNames.Add(pDef.DisplayName);
-                                        
+
         //                                if (VaultConfig.VaultFilePropertyMapping.ContainsKey(pDef.SystemName) && VaultConfig.VaultFilePropertyMapping[pDef.SystemName].ContainsKey(Provider.SystemName))
         //                                {
         //                                    ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping[pDef.SystemName][Provider.SystemName].FirstOrDefault();
@@ -1711,9 +2223,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         //                ACW.ByteArray downloadTicket = null;
         //                file = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, file).EntityIterationId,
         //                                            ACW.CheckoutFileOptions.Master, System.Environment.MachineName, "", "MaJ - Mise à jour des propriétés", out downloadTicket));
-                        
+
         //                System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Checkout" + System.Environment.NewLine);
-                        
+
         //                if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Extraction du fichier pour mise à jour."));
 
         //                // update Vault UDPs
@@ -1781,7 +2293,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         //    return resultState;
         //}
 
-        private StateEnum UpdateInventorMaterial(string fullVaultName, string newInventorMaterialName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
+        private async Task<StateEnum> UpdateInventorMaterialAsync(string fullVaultName, string newInventorMaterialName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
         {
             FileAcquisitionResult AcquiredFile = null;
             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Update Inventor material" + System.Environment.NewLine);
@@ -1802,7 +2314,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 AcquireSettings.OptionsResolution.SyncWithRemoteSiteSetting = VDF.Vault.Settings.AcquireFilesSettings.SyncWithRemoteSite.Always;
 
                 AcquireSettings.OptionsThreading.CancellationToken = new CancellationTokenSource();
-                AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(10000);
+
 
                 ACW.File File = VaultConnection.WebServiceManager.DocumentService.GetLatestFilesByMasterIds(new long[] { dr.Field<long>("VaultMasterId") }).FirstOrDefault();
 
@@ -1812,19 +2324,26 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 AcquireSettings.AddFileToAcquire(new VDF.Vault.Currency.Entities.FileIteration(VaultConnection, File), VDF.Vault.Settings.AcquireFilesSettings.AcquisitionOption.Checkout | VDF.Vault.Settings.AcquireFilesSettings.AcquisitionOption.Download);
 
                 System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Ready to get files..." + System.Environment.NewLine);
-                VDF.Vault.Results.AcquireFilesResults AcquireResults = null;
+                
                 int RetryCount = 1;
+
+
+                AcquireFilesResults AcquireResults = null;
 
                 do
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Wait get " + RetryCount + System.Environment.NewLine);
-                        //System.Threading.Thread.Sleep(5000);
-                        AcquireResults = VaultConnection.FileManager.AcquireFiles(AcquireSettings);
-                        if(AcquireResults != null && AcquireResults.IsCancelled)
+                        Task<AcquireFilesResults> acq = VaultConnection.FileManager.AcquireFilesAsync(AcquireSettings);
+                        AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(appOptions.CancelAcquireFileAfter);
+                        await acq;
+
+                        AcquireResults = acq.Result;
+
+                        if (AcquireResults == null || AcquireResults.IsCancelled)
                         {
-                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after 10 sec" + System.Environment.NewLine);
+                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after " + appOptions.CancelAcquireFileAfter + " milisec" + System.Environment.NewLine);
+                            AcquireResults = null;
                         }
                         RetryCount = appOptions.MaxRetryCount;
                     }
@@ -1835,84 +2354,48 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                 } while (AcquireResults == null || RetryCount < appOptions.MaxRetryCount);
 
-
-                //AcquireSettings = new VDF.Vault.Settings.AcquireFilesSettings(VaultConnection);
-
-                //AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeAttachments = false;
-                //AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeChildren = false;
-                //AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.RecurseChildren = false;
-                //AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeLibraryContents = false;
-                //AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeParents = false;
-                //AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeRelatedDocumentation = false;
-
-                //AcquireSettings.OptionsResolution.SyncWithRemoteSiteSetting = VDF.Vault.Settings.AcquireFilesSettings.SyncWithRemoteSite.Always;
-                //AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(10000);
-
-                //AcquireSettings.CheckoutComment = "Blabla";
-
-                //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - file with master ID '" + dr.Field<long>("VaultMasterId") + "' in db has masterId '" + File.MasterId + "' in Vault." + System.Environment.NewLine);
-                //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - file with master ID '" + dr.Field<long>("VaultMasterId") + "' is checked out '" + File.CheckedOut.ToString() + "'." + System.Environment.NewLine);
-
-                //AcquireSettings.AddFileToAcquire(new VDF.Vault.Currency.Entities.FileIteration(VaultConnection, File), VDF.Vault.Settings.AcquireFilesSettings.AcquisitionOption.Checkout);
-
-                //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Ready to checkout files..." + System.Environment.NewLine);
-                //AcquireResults = null;
-                //RetryCount = 1;
-
-                //do
-                //{
-                //    try
-                //    {
-                //        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Wait checkout " + RetryCount + System.Environment.NewLine);
-                //        //System.Threading.Thread.Sleep(5000);
-                //        AcquireResults = VaultConnection.FileManager.AcquireFiles(AcquireSettings);
-                //        if (AcquireResults != null && AcquireResults.IsCancelled)
-                //        {
-                //            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Checkout canceled after 10 sec" + System.Environment.NewLine);
-                //        }
-                //        RetryCount = appOptions.MaxRetryCount;
-                //    }
-                //    catch (Exception Ex)
-                //    {
-                //        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Checkout ERROR (Essai " + RetryCount + "/" + appOptions.MaxRetryCount + " ." + System.Environment.NewLine + Ex.ToString() + System.Environment.NewLine);
-                //        RetryCount++;
-                //    }
-                //} while (AcquireResults == null || RetryCount < appOptions.MaxRetryCount);
-
-                System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Acquire done." + System.Environment.NewLine);
-
-                System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - file acquired '" + AcquireResults.ReturnSuccess().ToString() + "'." + System.Environment.NewLine);
-                System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", string.Join(System.Environment.NewLine, AcquireResults.FileResults.Select(x => "      > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.AcquisitionOption.ToString() + ")")) + System.Environment.NewLine);
-
-                if (AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Success).Count() > 0)
+                if (AcquireResults != null)
                 {
-                    if (appOptions.LogError) 
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Acquire done." + System.Environment.NewLine);
+
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - file acquired '" + AcquireResults.ReturnSuccess().ToString() + "'." + System.Environment.NewLine);
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", string.Join(System.Environment.NewLine, AcquireResults.FileResults.Select(x => "      > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.AcquisitionOption.ToString() + ")")) + System.Environment.NewLine);
+
+                    if (AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Success).Count() > 0)
                     {
-                        string AcqResult = string.Empty;
-                        if (AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Exception).Count() > 0) 
-                            AcqResult = string.Join(System.Environment.NewLine, AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Exception).Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.Exception.ToString() + ", " + x.AcquisitionOption.ToString() + ")"));
+                        if (appOptions.LogError)
+                        {
+                            string AcqResult = string.Empty;
+                            if (AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Exception).Count() > 0)
+                                AcqResult = string.Join(System.Environment.NewLine, AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Exception).Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.Exception.ToString() + ", " + x.AcquisitionOption.ToString() + ")"));
 
-                        if (AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Restriction).Count() > 0) 
-                            AcqResult = string.Join(System.Environment.NewLine, AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Restriction).Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.Exception.ToString() + ", " + x.AcquisitionOption.ToString() + ")"));
+                            if (AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Restriction).Count() > 0)
+                                AcqResult = string.Join(System.Environment.NewLine, AcquireResults.FileResults.Where(x => x.Status == FileAcquisitionResult.AcquisitionStatus.Restriction).Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.Exception.ToString() + ", " + x.AcquisitionOption.ToString() + ")"));
 
-                        if (AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Restriction && x.Status != FileAcquisitionResult.AcquisitionStatus.Exception).Count() > 0) 
-                            AcqResult = string.Join(System.Environment.NewLine, AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Restriction && x.Status != FileAcquisitionResult.AcquisitionStatus.Exception).Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.AcquisitionOption.ToString() + ")"));
+                            if (AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Restriction && x.Status != FileAcquisitionResult.AcquisitionStatus.Exception).Count() > 0)
+                                AcqResult = string.Join(System.Environment.NewLine, AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Restriction && x.Status != FileAcquisitionResult.AcquisitionStatus.Exception).Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.AcquisitionOption.ToString() + ")"));
 
-                        resultLogs.Add(CreateLog("Error", "Les fichiers n'ont pas été extraits correctement lors de la mise à jour de la matière!" + System.Environment.NewLine + AcqResult));      
+                            resultLogs.Add(CreateLog("Error", "Les fichiers n'ont pas été extraits correctement lors de la mise à jour de la matière!" + System.Environment.NewLine + AcqResult));
+                        }
+                        resultState = StateEnum.Error;
                     }
-                    resultState = StateEnum.Error;
+                    else
+                    {
+                        AcquiredFile = AcquireResults.FileResults.Where(x => x.File.EntityMasterId == File.MasterId).FirstOrDefault();
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les fichiers suivants ont été extraits pour changement de la matière." + System.Environment.NewLine +
+                                                                                 string.Join(System.Environment.NewLine, AcquireResults.FileResults.Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.AcquisitionOption.ToString() + ")"))));
+
+
+                        //processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
+                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
+                        await Task.Delay(10);
+                    }
                 }
                 else
                 {
-                    AcquiredFile = AcquireResults.FileResults.Where(x => x.File.EntityMasterId == File.MasterId).FirstOrDefault();
-
-                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les fichiers suivants ont été extraits pour changement de la matière." + System.Environment.NewLine +
-                                                                             string.Join(System.Environment.NewLine, AcquireResults.FileResults.Select(x => " > " + x.LocalPath.FullPath + "(" + x.Status.ToString() + ", " + x.AcquisitionOption.ToString() + ")"))));
-
-                   
-                    processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
-                    System.Threading.Thread.Sleep(10);
-                    //await Task.Delay(10);
+                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > UpdateInventorMaterial (AcquireFile) result is Null" + System.Environment.NewLine);
+                    resultState = StateEnum.Error;
                 }
             }
             catch (Exception Ex)
@@ -1939,23 +2422,23 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 InventorInstance invInst = null;
                 try
                 {
-                    processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
-                    System.Threading.Thread.Sleep(10);
-                    //await Task.Delay(10);
+                    //processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
+                    processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
+                    await Task.Delay(10);
 
                     invInst = _invDispatcher.GetInventorInstance(processId);
 
                     if(invInst != null)
                     {
-                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Démarrage ou redémarrage d'Inventor...", ProcessIndex = processId });
+                        //processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Démarrage ou redémarrage d'Inventor...", ProcessIndex = processId });
+                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Démarrage ou redémarrage d'Inventor...", ProcessIndex = processId });
                         System.Threading.Thread.Sleep(10);
-                        //await Task.Delay(10);
-                        //await invInst.StartOrRestartInventorAsync();
-                        invInst.StartOrRestartInventor();
+                        await Task.Delay(10);
+                        await invInst.StartOrRestartInventorAsync();
 
-                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
-                        System.Threading.Thread.Sleep(10);
-                        //await Task.Delay(10);
+                        //processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
+                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Mise à jour de la matière Inventor...", ProcessIndex = processId });
+                        await Task.Delay(10);
 
                         invInst.InventorFileCount++;
                         Inventor.PartDocument invPartDoc = invInst.InvApp.Documents.Open(AcquiredFile.LocalPath.FullPath) as Inventor.PartDocument;
@@ -1970,7 +2453,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         invInst.InvApp.Documents.CloseAll();
                         System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - File closed" + System.Environment.NewLine);
 
-                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = processId });
+                        //processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")", ProcessIndex = processId });
+                        processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
 
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La matière du fichier Inventor a été changée pour '" + newInventorMaterialName + "'."));
                     }
@@ -1996,7 +2480,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                                                                    System.Environment.NewLine + Ex.ToString()));
                     }
 
-                    //if (invInst != null) await Task.Run(() => invInst.ForceCloseInventor());
+                    if (invInst != null) await Task.Run(() => invInst.ForceCloseInventor());
 
                     resultState = StateEnum.Error;
                 }
@@ -2015,7 +2499,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             { 
                 try
                 {
-                    //if (resultState != StateEnum.Error) resultState = await RetryCheckInFile(AcquiredFile.File, "MaJ - Changement matière Inventor", AcquiredFile.LocalPath.FullPath, resultState, resultLogs, appOptions, processId);
+                    if (resultState != StateEnum.Error) resultState = await RetryCheckInFileAsync(AcquiredFile.File, "MaJ - Changement matière Inventor", AcquiredFile.LocalPath.FullPath, resultState, resultLogs, appOptions, processId);
                 }
                 catch (Exception Ex)
                 {
@@ -2042,7 +2526,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 try
                 {
                     ACW.ByteArray downloadTicket;
-                   // await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UndoCheckoutFile(dr.Field<long>("VaultMasterId"), out downloadTicket));
+                    await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UndoCheckoutFile(dr.Field<long>("VaultMasterId"), out downloadTicket));
 
                     System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - File checkout canceled" + System.Environment.NewLine);
 
@@ -2071,7 +2555,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileLifeCycle(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private async Task<StateEnum> UpdateFileLifeCycleAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcId") != null)
             {
@@ -2088,22 +2572,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le cycle de vie '" + dr.Field<string>("TargetVaultLcName") + "' et l'état '" + DefaultLcs.DispName + "' ont été appliqués au fichier."));
                     }
-
-
-
-                    //if (dr.Field<long?>("TempVaultLcsId") != null)
-                    //{
-                    //    await Task.Run (() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleDefinitions(new long[] { dr.Field<long>("VaultMasterId") }, 
-                    //                          new long[] { dr.Field<long>("TargetVaultLcId") }, new long[] { dr.Field<long>("TempVaultLcsId") }, "MaJ - Changement de cycle de vie et d'état"));
-                    //}
-                    //else
-                    //{
-                    //    long DefaultLcsId = VaultConfig.VaultLifeCycleDefinitionList.Where(x => x.Id == dr.Field<long>("TargetVaultLcId")).FirstOrDefault().StateArray.Where(y => y.IsDflt).FirstOrDefault().Id;
-                    //    await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleDefinitions(new long[] { dr.Field<long>("VaultMasterId") }, 
-                    //                         new long[] { dr.Field<long>("TargetVaultLcId") }, new long[] { DefaultLcsId }, "MaJ - Changement de cycle de vie"));
-                    //}
-
-                    //if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le cycle de vie '"+ dr.Field<string>("TargetVaultLcName") + "' à été appliqué au fichier."));
                 }
                 catch (Exception Ex)
                 {
@@ -2135,13 +2603,67 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await UpdateFileLifeCycle(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await UpdateFileLifeCycleAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileRevision(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private StateEnum UpdateFileLifeCycle(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        {
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcId") != null)
+            {
+                try
+                {
+                    ACW.File VaultFile = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+
+                    if (VaultFile != null & dr.Field<long?>("TargetVaultLcId") != VaultFile.FileLfCyc.LfCycDefId)
+                    {
+                        LfCycState DefaultLcs = VaultConfig.VaultLifeCycleDefinitionList.Where(x => x.Id == dr.Field<long>("TargetVaultLcId")).FirstOrDefault().StateArray.Where(y => y.IsDflt).FirstOrDefault();
+
+                        VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleDefinitions(new long[] { dr.Field<long>("VaultMasterId") },
+                                                new long[] { dr.Field<long>("TargetVaultLcId") }, new long[] { DefaultLcs.Id }, "MaJ - Changement de cycle de vie");
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le cycle de vie '" + dr.Field<string>("TargetVaultLcName") + "' et l'état '" + DefaultLcs.DispName + "' ont été appliqués au fichier."));
+                    }
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if ((Ex as VaultServiceErrorException).ErrorCode == 3109)
+                        {
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier est déjà dans le cycle de vie '" + dr.Field<string>("TargetVaultLcName") + "'."));
+                            RetryCount = appOptions.MaxRetryCount;
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                              "' à été retourné lors du changement de cycle de vie du fichier vers '" + dr.Field<string>("TargetVaultLcName") +
+                                                                              "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
+                        }
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du changement de cycle de vie du fichier vers '" + dr.Field<string>("TargetVaultLcName") +
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = UpdateFileLifeCycle(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
+        }
+
+        private async Task<StateEnum> UpdateFileRevisionAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultRevLabel")))
             {
@@ -2199,13 +2721,77 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await UpdateFileRevision(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await UpdateFileRevisionAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> UpdateFileLifeCycleState(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private StateEnum UpdateFileRevision(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        {
+            if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultRevLabel")))
+            {
+                string Label = dr.Field<string>("TargetVaultRevLabel");
+                if (Label.Equals("NextPrimary") || Label.Equals("NextSecondary") || Label.Equals("NextTertiary"))
+                {
+                    StringArray revArray = VaultConnection.WebServiceManager.RevisionService.GetNextRevisionNumbersByMasterIds(new long[] { dr.Field<long>("VaultMasterId") },
+                                                                new long[] { dr.Field<long>("TargetVaultRevSchId") }).FirstOrDefault();
+
+                    if (Label.Equals("NextPrimary")) Label = revArray.Items[0];
+                    else if (Label.Equals("NextSecondary")) Label = revArray.Items[1];
+                    else if (Label.Equals("NextTertiary")) Label = revArray.Items[2];
+                }
+
+                try
+                {
+                    ACW.File VaultFile = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+
+                    if (dr.Field<long?>("TargetVaultRevSchId") != null && dr.Field<long>("TargetVaultRevSchId") != VaultFile.FileRev.RevDefId)
+                    {
+                        VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateRevisionDefinitionAndNumbers(new long[] { VaultFile.Id },
+                                             new long[] { dr.Field<long>("TargetVaultRevSchId") }, new string[] { Label }, "MaJ - Changement de révision");
+                    }
+                    else if (dr.Field<long>("TargetVaultRevSchId") == VaultFile.FileRev.RevDefId && Label != VaultFile.FileRev.Label)
+                    {
+                        VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileRevisionNumbers(new long[] { VaultFile.Id },
+                                             new string[] { Label }, "MaJ - Changement de révision");
+                    }
+
+                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La révison a été changée pour '" + Label + "'."));
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de la mise à jour de la révision du fichier (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." +
+                                                                                   System.Environment.NewLine + "TargetVaultRevSchName = " + dr.Field<string>("TargetVaultRevSchName") +
+                                                                                   System.Environment.NewLine + "VaultRevSchName = " + dr.Field<string>("VaultRevSchName") +
+                                                                                   System.Environment.NewLine + "Label = " + Label));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la mise à jour de la révision du fichier (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." +
+                                                                                   System.Environment.NewLine + "TargetVaultRevSchName = " + dr.Field<string>("TargetVaultRevSchName") +
+                                                                                   System.Environment.NewLine + "VaultRevSchName = " + dr.Field<string>("VaultRevSchName") +
+                                                                                   System.Environment.NewLine + "Label = " + Label +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = UpdateFileRevision(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
+        }
+
+        private async Task<StateEnum> UpdateFileLifeCycleStateAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             ACW.File VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId")));
 
@@ -2240,29 +2826,71 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await UpdateFileLifeCycleState(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await UpdateFileLifeCycleStateAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private void SyncFileProperties(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
+        private StateEnum UpdateFileLifeCycleState(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
-            if (resultState != StateEnum.Error)
+            ACW.File VaultFile = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+
+            if (resultState != StateEnum.Error && dr.Field<long?>("TargetVaultLcsId") != null && dr.Field<long?>("TargetVaultLcsId") != VaultFile.FileLfCyc.LfCycStateId)
             {
                 try
                 {
-                    resultLogs.Add(CreateLog("System", "La synchro des propriétés de fichier n'est pas encore possible..."));
+                    VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileLifeCycleStates(new long[] { dr.Field<long>("VaultMasterId") },
+                                         new long[] { dr.Field<long>("TargetVaultLcsId") }, "MaJ - Changement d'état");
+
+                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'état de cycle de vie '" + dr.Field<string>("TargetVaultLcsName") + "' à été appliqué au fichier."));
                 }
-                catch (VaultServiceErrorException VltEx)
+                catch (Exception Ex)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la mise à jour des propriétés du fichier '" + fullVaultName + "'."));
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors du changement d'état de cycle de vie du fichier vers '" +
+                                                                                   dr.Field<string>("TargetVaultLcsName") + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du changement d'état de cycle de vie du fichier vers '" +
+                                                                                   dr.Field<string>("TargetVaultLcsName") + "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")." +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
                     resultState = StateEnum.Error;
                 }
             }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = UpdateFileLifeCycleState(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
         }
 
-        private async Task<StateEnum> CreateBomBlobJob(string fullVaultName, DataRow dr, Dictionary<string, object> resultValues, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+
+        //private void SyncFileProperties(string fullVaultName, DataRow dr, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions)
+        //{
+        //    if (resultState != StateEnum.Error)
+        //    {
+        //        try
+        //        {
+        //            resultLogs.Add(CreateLog("System", "La synchro des propriétés de fichier n'est pas encore possible..."));
+        //        }
+        //        catch (VaultServiceErrorException VltEx)
+        //        {
+        //            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de la mise à jour des propriétés du fichier '" + fullVaultName + "'."));
+        //            resultState = StateEnum.Error;
+        //        }
+        //    }
+        //}
+
+        private async Task<StateEnum> CreateBomBlobJobAsync(string fullVaultName, DataRow dr, Dictionary<string, object> resultValues, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error)
             {
@@ -2323,11 +2951,79 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await CreateBomBlobJob(fullVaultName, dr, resultValues, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+                resultState = await CreateBomBlobJobAsync(fullVaultName, dr, resultValues, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
+        
+        private StateEnum CreateBomBlobJob(string fullVaultName, DataRow dr, Dictionary<string, object> resultValues, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        {
+            if (resultState != StateEnum.Error)
+            {
+                try
+                {
+                    string Ext = System.IO.Path.GetExtension(dr.Field<string>("Name"));
+
+                    if (Ext.Equals(".ipt", StringComparison.InvariantCultureIgnoreCase) || Ext.Equals(".iam", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        int Count = 1;
+                        if (dr.Field<int?>("JobSubmitCount") != null) Count = dr.Field<int>("JobSubmitCount") + 1;
+
+                        resultValues.Add("JobSubmitCount", Count++);
+
+                        JobParam param1 = new JobParam();
+                        param1.Name = "EntityClassId";
+                        param1.Val = "File";
+
+                        JobParam param2 = new JobParam();
+                        param2.Name = "FileMasterId";
+                        param2.Val = dr.Field<long>("VaultMasterId").ToString();
+
+                        Job job = VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + fullVaultName,
+                                                       new JobParam[] { param1, param2 }, 10);
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis."));
+                    }
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if ((Ex as VaultServiceErrorException).ErrorCode == 237)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de la soumission du job de création du BOM Blob." +
+                                                                                       "Le job est déjà présent dans la queue du job processeur!"));
+                            RetryCount = appOptions.MaxRetryCount;
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de la soumission du job de création du BOM Blob (essai " + RetryCount + "/" +
+                                                                                       appOptions.MaxRetryCount + ")."));
+                        }
+
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la soumission du job de création du BOM Blob (essai " + RetryCount + "/" +
+                                                                                   appOptions.MaxRetryCount + ")." + System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+            RetryCount++;
+            if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
+            {
+                resultState = CreateBomBlobJob(fullVaultName, dr, resultValues, StateEnum.Processing, resultLogs, appOptions, RetryCount);
+            }
+
+            return resultState;
+        }
+
         #endregion
 
         #region FileWaitForBomBlob
@@ -3395,6 +4091,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     FileAssocsList.RemoveMultiple(FileAssocIndexToRemove.ToArray());
                     CurrentLevelMasterIds = NextLevelMasterIds;
+
+                    if(FileAssocIndexToRemove.Count == 0 || NextLevelMasterIds.Count == 0)
+                    {
+                        Level = -666;
+                        break;
+                    }
                 }
 
 
@@ -3423,7 +4125,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 return Level;
             }
-            catch
+            catch(Exception Ex)
             {
                 return 0;
             }
@@ -3449,16 +4151,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         }
 
-        private StateEnum RetryCheckInFile(ACW.File file, string comment, ByteArray uploadTicket, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, int RetryCount = 1)
+        private async Task<StateEnum> RetryCheckInFileAsync(ACW.File file, string comment, ByteArray uploadTicket, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error)
             {
                 try
                 {
-                    //await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(file.MasterId, "MaJ - Mise à jour des propriétés", false,
-                    //                        DateTime.Now, GetFileAssocParamByMasterId(file.MasterId), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket));
-                    VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(file.MasterId, "MaJ - Mise à jour des propriétés", false,
-                                            DateTime.Now, GetFileAssocParamByMasterId(file.MasterId), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket);
+                    await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(file.MasterId, comment, false,
+                                            DateTime.Now, GetFileAssocParamByMasterId(file.MasterId), null, true, file.Name, file.FileClass, file.Hidden, uploadTicket));
 
                     System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Checkin" + System.Environment.NewLine);
 
@@ -3483,13 +4183,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = RetryCheckInFile(file, comment,uploadTicket, StateEnum.Processing, resultLogs, appOptions, processId, RetryCount);
+                resultState = await RetryCheckInFileAsync(file, comment, uploadTicket, StateEnum.Processing, resultLogs, appOptions, processId, RetryCount);
             }
 
             return resultState;;
         }
 
-        private async Task<StateEnum> RetryCheckInFile(FileIteration file, string comment, string fullFileName, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, int RetryCount = 1)
+        private async Task<StateEnum> RetryCheckInFileAsync(FileIteration file, string comment, string fullFileName, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, int RetryCount = 1)
         {
             if (resultState != StateEnum.Error)
             {
@@ -3497,7 +4197,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     using (System.IO.StreamReader stream = new System.IO.StreamReader(fullFileName))
                     {
-                        await Task.Run(() => VaultConnection.FileManager.CheckinFile(file, "MaJ - Mise à jour des propriétés", false,
+                        await Task.Run(() => VaultConnection.FileManager.CheckinFile(file, comment, false,
                                             DateTime.Now, GetFileAssocParamByMasterId(file.EntityMasterId), null, false, file.EntityName, file.FileClassification, file.IsHidden, stream.BaseStream));
                     }
 
@@ -3524,7 +4224,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             RetryCount++;
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                resultState = await RetryCheckInFile(file, comment, fullFileName, StateEnum.Processing, resultLogs, appOptions, processId, RetryCount);
+                resultState = await RetryCheckInFileAsync(file, comment, fullFileName, StateEnum.Processing, resultLogs, appOptions, processId, RetryCount);
             }
 
             return resultState;

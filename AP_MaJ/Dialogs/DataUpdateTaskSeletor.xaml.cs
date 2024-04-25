@@ -264,7 +264,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     TaskProgReport.ProgressChanged += ShowTaskProgress;
                     ProcessProgReport.ProgressChanged += ShowProcessProgress;
 
-                    //currentTask.ProcessingState = StateEnum.Processing;
+                    IProgress<TaskProgressReport> taskProgReport = TaskProgReport as IProgress<TaskProgressReport>;
 
                     if (currentTask.Name.Equals("VaultConnect"))
                     {
@@ -279,20 +279,62 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                             if (pwdCheckDialog.DialogResult == true)
                             {
                                 currentTask.ProcessingState = StateEnum.Processing;
+                                await Task.Delay(100);
+                                taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Start" });
+                                await Task.Delay(100);
 
-                                vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(_appOptions, TaskProgReport, TaskCancellationToken, pwdCheckDialog.User, pwdCheckDialog.Password);
+                                vaultUtility.VaultConnection = vaultUtility.ConnectToVault(_appOptions, pwdCheckDialog.User, pwdCheckDialog.Password);
                                 if (vaultUtility.VaultConnection != null)
                                 {
                                     currentTask.ProcessingState = StateEnum.Completed;
+                                    await Task.Delay(100);
+                                    taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Stop" });
+                                    await Task.Delay(100);
+
+                                    break;
+                                }
+                                else
+                                {
+                                    currentTask.ProcessingState = StateEnum.Error;
+                                    TaskCancellationTokenSource.Cancel();
+                                    await Task.Delay(100);
+                                    taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Stop" });
+                                    await Task.Delay(100);
+                                    
                                     break;
                                 }
                             }
                             else
                             {
-                                currentTask.ProcessingState = StateEnum.Error;
+                                currentTask.ProcessingState = StateEnum.Canceled;
                                 TaskCancellationTokenSource.Cancel();
+
                                 break;
                             }
+
+                            //if (pwdCheckDialog.DialogResult == true)
+                            //{
+                            //    currentTask.ProcessingState = StateEnum.Processing;
+                            //    vaultUtility.VaultConnection = await vaultUtility.ConnectToVaultAsync(_appOptions, TaskProgReport, TaskCancellationToken, pwdCheckDialog.User, pwdCheckDialog.Password);
+
+                            //    if (vaultUtility.VaultConnection != null)
+                            //    {
+                            //        currentTask.ProcessingState = StateEnum.Completed;
+                            //        break;
+                            //    }
+                            //    else
+                            //    {
+                            //        currentTask.ProcessingState = StateEnum.Error;
+                            //        TaskCancellationTokenSource.Cancel();
+                            //        break;
+                            //    }
+                            //}
+                            //else
+                            //{
+                            //    currentTask.ProcessingState = StateEnum.Error;
+                            //    TaskCancellationTokenSource.Cancel();
+                            //    break;
+                            //}
                         }
                     }
                     else if (currentTask.Name.Equals("ReadVaultConfig"))
@@ -328,7 +370,8 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                         _data.SaveToSQLite(_dbFileName);
                     }
 
-                    if (TaskCancellationToken.IsCancellationRequested) currentTask.ProcessingState = StateEnum.Canceled;
+                    if (TaskCancellationToken.IsCancellationRequested && currentTask.ProcessingState == StateEnum.Error) currentTask.ProcessingState = StateEnum.Error;
+                    else if (TaskCancellationToken.IsCancellationRequested && currentTask.ProcessingState != StateEnum.Error) currentTask.ProcessingState = StateEnum.Canceled;
                     else if (currentTask.ElementErrorCount > 0) currentTask.ProcessingState = StateEnum.Error;
                     else currentTask.ProcessingState = StateEnum.Completed;
 

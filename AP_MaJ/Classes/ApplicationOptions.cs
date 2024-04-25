@@ -501,6 +501,19 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private string _clearPropValue = "ClearPropValue";
 
+        public int CancelAcquireFileAfter
+        {
+            get
+            {
+                return _cancelAcquireFileAfter;
+            }
+            set
+            {
+                _cancelAcquireFileAfter = value;
+            }
+        }
+        private int _cancelAcquireFileAfter = 10000;
+
         public string InitialLcsValue
         {
             get
