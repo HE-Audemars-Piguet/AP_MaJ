@@ -2335,14 +2335,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     try
                     {
                         Task<AcquireFilesResults> acq = VaultConnection.FileManager.AcquireFilesAsync(AcquireSettings);
-                        AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(appOptions.CancelAcquireFileAfter);
+                        AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(appOptions.CancelAcquireFileAfter * 1000);
                         await acq;
 
                         AcquireResults = acq.Result;
 
                         if (AcquireResults == null || AcquireResults.IsCancelled)
                         {
-                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after " + appOptions.CancelAcquireFileAfter + " milisec" + System.Environment.NewLine);
+                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after " + appOptions.CancelAcquireFileAfter + " sec" + System.Environment.NewLine);
                             AcquireResults = null;
                         }
                         RetryCount = appOptions.MaxRetryCount;

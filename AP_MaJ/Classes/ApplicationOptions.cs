@@ -512,7 +512,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 _cancelAcquireFileAfter = value;
             }
         }
-        private int _cancelAcquireFileAfter = 10000;
+        private int _cancelAcquireFileAfter = 5;
 
         public string InitialLcsValue
         {

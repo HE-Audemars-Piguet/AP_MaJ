@@ -201,6 +201,13 @@
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="Délai d'attente maximum pour l'obtention des fichiers depuis le Vault [secondes]" Margin="16 0 0 0"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.CancelAcquireFileAfter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="300" Increment="1" 
+                                                  EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
+                            <dxdo:LayoutGroup>
                                 <dxdo:LabelItem Caption="Nombre maximum d'instances Inventor simultanées" Margin="16 0 0 0"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxInventorAppCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
