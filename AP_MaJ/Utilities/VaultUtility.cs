@@ -1352,7 +1352,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
             else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
 
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + processId + ".log", " (State=" + resultState + ")." + System.Environment.NewLine);
             return (processId, dr, resultValues, resultState, resultLogs);
         }
 
@@ -1385,7 +1384,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, ErrorInc = 1 });
             else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, DoneInc = 1 });
 
-            System.IO.File.AppendAllText(@"C:\Temp\FileProcess" + 0 + ".log", " (State=" + resultState + ")." + System.Environment.NewLine);
             return (dr, resultValues, resultState, resultLogs);
         }
 
