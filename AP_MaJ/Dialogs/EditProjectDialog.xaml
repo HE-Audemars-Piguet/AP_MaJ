@@ -146,9 +146,9 @@
                             </dxdo:LayoutGroup>
                             
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="En cas d'écheque resoumettre les requete Vault"/>
+                                <dxdo:LabelItem Caption="En cas d'écheque resoumettre les requetes Vault"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
-                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCounty, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
+                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCount, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
@@ -177,6 +177,23 @@
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
+                            <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="Concidérer les liens AnyCAD comme des erreurs" Margin="16 0 0 0"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:CheckEdit EditValue="{Binding Path=AppOptions.IsAnyCadFileAnError, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
+                            <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="Extention des fichiers AnyCAD" Margin="16 0 0 0"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:ComboBoxEdit NullText="Sélectionner les extentions des fichiers AnyCAD" IsTextEditable="False" ShowCustomItems="True" 
+                                                      ItemsSource="{Binding Path=AppOptions.AllAnyCadFileExt}" EditValue="{Binding Path=AppOptions.SelectedAnyCadFileExt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <dxe:ComboBoxEdit.StyleSettings>
+                                            <dxe:CheckedComboBoxStyleSettings />
+                                        </dxe:ComboBoxEdit.StyleSettings>
+                                    </dxe:ComboBoxEdit>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
                                 <dxdo:LabelItem Caption="Nombre de processeur lors du changement d'état temporaire des fichiers" />
@@ -191,7 +208,6 @@
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePurgePropsProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
-
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>

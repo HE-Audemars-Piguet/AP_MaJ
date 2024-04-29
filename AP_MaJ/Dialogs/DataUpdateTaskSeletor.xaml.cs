@@ -356,7 +356,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     {
                         currentTask.ProcessingState = StateEnum.Processing;
                         _data = await vaultUtility.ProcessFilesAsync(currentTask.Name, _data, _appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
-                        _data.SaveToSQLite(_dbFileName);
                     }
                     else if (currentTask.Name.Equals("InventorClose"))
                     {
@@ -367,7 +366,6 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     {
                         currentTask.ProcessingState = StateEnum.Processing;
                         _data = await vaultUtility.ProcessItemsAsync(currentTask.Name, _data, _appOptions, TaskProgReport, ProcessProgReport, TaskCancellationToken);
-                        _data.SaveToSQLite(_dbFileName);
                     }
 
                     if (TaskCancellationToken.IsCancellationRequested && currentTask.ProcessingState == StateEnum.Error) currentTask.ProcessingState = StateEnum.Error;
@@ -380,6 +378,8 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     {
                         TaskCancellationTokenSource.Cancel();
                     }
+
+                    if(currentTask.TaskGroup.Equals("File") || currentTask.TaskGroup.Equals("Item")) _data.SaveToSQLite(_dbFileName);
 
                     await Task.Delay(100);
 

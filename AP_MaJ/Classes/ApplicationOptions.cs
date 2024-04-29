@@ -501,6 +501,47 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private string _clearPropValue = "ClearPropValue";
 
+        public bool IsAnyCadFileAnError
+        {
+            get
+            {
+                return _isAnyCadFileAnError;
+            }
+            set
+            {
+                _isAnyCadFileAnError = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _isAnyCadFileAnError = true;
+
+        public List<object> AllAnyCadFileExt
+        {
+            get
+            {
+                return _allAnyCadFileExt;
+            }
+            set
+            {
+                _allAnyCadFileExt = value;
+            }
+        }
+        private List<object> _allAnyCadFileExt = new List<object>() { ".stp", ".ste", ".step", ".stpz", ".prt", ".sldprt", ".asm", ".sldasm", ".par", ".psm" };
+
+        public List<object> SelectedAnyCadFileExt
+        {
+            get
+            {
+                return _selectedAnyCadFileExt;
+            }
+            set
+            {
+                _selectedAnyCadFileExt = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private List<object> _selectedAnyCadFileExt = new List<object>() { ".stp", ".step", ".prt", ".sldprt", ".asm", ".sldasm" };
+
         public int CancelAcquireFileAfter
         {
             get
