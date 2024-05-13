@@ -2580,12 +2580,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 return;
             }
 
-            if (vaultItem.Locked)
-            {
-                resultLogs.Add(CreateLog("Error", "L'article '" + vaultItemNumber + "' est vérouillé, il ne peut pas être traité."));
-                resultState = StateEnum.Error;
-                return;
-            }
+            //if (vaultItem.Locked)
+            //{
+            //    resultLogs.Add(CreateLog("Error", "L'article '" + vaultItemNumber + "' est vérouillé, il ne peut pas être traité."));
+            //    resultState = StateEnum.Error;
+            //    return;
+            //}
         }
 
         private void ValidateItemSystemProperties(ACW.Item vaultItem, DataRow dr, Dictionary<string, object> resultValues, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs)
@@ -2603,7 +2603,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
             else
             {
-                resultLogs.Add(CreateLog("Error", "Provider incorrecte."));
+                resultLogs.Add(CreateLog("Warning", "Provider '" + "'."));
+                resultValues.Add("VaultProvider", "");
             }
 
             string CompliancePropName = VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.Id == VaultConfig.CompliancePropId).FirstOrDefault().DisplayName;
@@ -2844,11 +2845,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private void ValidateItemRevisionInfo(ACW.Item vaultItem, DataRow dr, Dictionary<string, object> resultValues, ref StateEnum resultState, List<Dictionary<string, object>> resultLogs)
         {
+            
             long RevSchId = VaultConnection.WebServiceManager.RevisionService.GetRevisionDefinitionIdsByMasterIds(new long[] { vaultItem.MasterId }).FirstOrDefault();
             RevDef CurrentRevDef = VaultConfig.VaultRevisionDefinitionList.Where(x => x.Id == RevSchId).FirstOrDefault();
 
-            resultValues.Add("VaultRevSchId", RevSchId);
-            resultValues.Add("VaultRevSchName", VaultConfig.VaultRevisionDefinitionList.Where(x => x.Id == RevSchId).FirstOrDefault().DispName);
+            resultValues.Add("VaultRevSchId", CurrentRevDef.Id);
+            resultValues.Add("VaultRevSchName", CurrentRevDef.DispName);
 
             string targetVaultRevisionSchName = dr.Field<string>("TargetVaultRevSchName");
             if (!string.IsNullOrWhiteSpace(targetVaultRevisionSchName))
@@ -3081,7 +3083,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         #endregion
 
-        #region FilePurgeProperties
+        #region ItemPurgeProperties
         internal async Task<DataSet> PurgePropertyItemsAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
@@ -3258,7 +3260,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         #endregion
 
-        #region FileUpdate
+        #region ItemUpdate
         internal async Task<DataSet> UpdateItemsAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
@@ -3364,7 +3366,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             //if (resultState != StateEnum.Error) resultState = await RenameItemAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await UpdateItemLifeCycleAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await UpdateItemRevisionAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
-            //if (resultState != StateEnum.Error) resultState = await UpdateItemPropertyAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+            if (resultState != StateEnum.Error) resultState = await UpdateItemPropertyAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions, processId, processProgReport);
             if (resultState != StateEnum.Error) resultState = await UpdateItemLifeCycleStateAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
 
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
@@ -3633,11 +3635,16 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultRevLabel")))
             {
+                long? RevSchId = null;
+                long? ItemCurrentRevSchId = dr.Field<long?>("VaultRevSchId");
+                if (dr.Field<long?>("TargetVaultRevSchId") != null) RevSchId = dr.Field<long>("TargetVaultRevSchId");
+                else if (dr.Field<long?>("VaultRevSchId") != null) RevSchId = dr.Field<long>("VaultRevSchId");
+
                 string Label = dr.Field<string>("TargetVaultRevLabel");
-                if (Label.Equals("NextPrimary") || Label.Equals("NextSecondary") || Label.Equals("NextTertiary"))
+                if (RevSchId != null && (Label.Equals("NextPrimary") || Label.Equals("NextSecondary") || Label.Equals("NextTertiary")))
                 {
                     StringArray revArray = await Task.Run(() => VaultConnection.WebServiceManager.RevisionService.GetNextRevisionNumbersByMasterIds(new long[] { dr.Field<long>("VaultMasterId") },
-                                                                new long[] { dr.Field<long>("TargetVaultRevSchId") }).FirstOrDefault());
+                                                                new long[] { RevSchId.Value }).FirstOrDefault());
 
                     if (Label.Equals("NextPrimary")) Label = revArray.Items[0];
                     else if (Label.Equals("NextSecondary")) Label = revArray.Items[1];
@@ -3647,17 +3654,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 try
                 {
                     ACW.Item VaultItem = await Task.Run(() => VaultConnection.WebServiceManager.ItemService.GetLatestItemByItemMasterId(dr.Field<long>("VaultMasterId")));
-
-                    if (dr.Field<long?>("TargetVaultRevSchId") != null && dr.Field<long>("TargetVaultRevSchId") != VaultItem.RevId)
+                    if (RevSchId != null && ItemCurrentRevSchId != null)
                     {
-                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateRevisionDefinitionAndNumbers(new long[] { VaultItem.Id },
-                                             new long[] { dr.Field<long>("TargetVaultRevSchId") }, new string[] { Label }, "MaJ - Changement de révision"));
+                        if (RevSchId != ItemCurrentRevSchId)
+                        {
+                            await Task.Run(() => VaultConnection.WebServiceManager.ItemService.UpdateRevisionDefinitionAndNumbers(new long[] { VaultItem.Id },
+                                                 new long[] { RevSchId.Value }, new string[] { Label }, "MaJ - Changement de révision"));
+                        }
+                        else if (RevSchId == ItemCurrentRevSchId && Label != VaultItem.RevNum)
+                        {
+                            await Task.Run(() => VaultConnection.WebServiceManager.ItemService.UpdateItemRevisionNumbers(new long[] { VaultItem.Id },
+                                                 new string[] { Label }, "MaJ - Changement de révision"));
+                        }
                     }
-                    else if (dr.Field<long>("TargetVaultRevSchId") == VaultItem.RevId && Label != VaultItem.RevNum)
-                    {
-                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileRevisionNumbers(new long[] { VaultItem.Id },
-                                             new string[] { Label }, "MaJ - Changement de révision"));
-                    }
+                    
 
                     if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La révison a été changée pour '" + Label + "'."));
                 }
@@ -3701,6 +3711,117 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private async Task<StateEnum> UpdateItemPropertyAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, IProgress<ProcessProgressReport> processProgReport)
         {
+            if (resultState != StateEnum.Error && appOptions.VaultPropertyFieldMappings.Count > 0)
+            {
+                ACW.Item item = VaultConnection.WebServiceManager.ItemService.GetLatestItemByItemMasterId(dr.Field<long>("VaultMasterId"));
+
+                bool HasPrimaryLink = dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals("Primary")).Count() == 1;
+
+                string ItemProviderName = dr.Field<string>("VaultProvider");
+                ContentSourceProvider Provider = VaultConnection.ConfigurationManager.GetContentSourceProviders().Where(x => x.DisplayName == ItemProviderName).FirstOrDefault();
+
+                (bool NeedsUpdate, string Value) UpdateItemTitle = (false, null);
+                (bool NeedsUpdate, string Value) UpdateItemDescription = (false, null);
+
+                List<ACW.PropInstParam> UpdateUdps = new List<ACW.PropInstParam>();
+                List<string> UdpNames = new List<string>();
+
+                System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Start processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
+
+                PropertyDefinition pDefDescription = VaultConfig.VaultItemPropertyDefinitionDictionary.Values.Where(x => x.SystemName.Equals("Description(Item,CO)")).FirstOrDefault();
+                if (pDefDescription != null)
+                {
+                    PropertyFieldMapping fMappingDescription = appOptions.VaultPropertyFieldMappings.Where(x => x.VaultPropertySet.Equals("Item") && x.VaultPropertyDisplayName.Equals(pDefDescription.DisplayName)).FirstOrDefault();
+
+                    ContentSourcePropertyMapping cSourceMappingsDescription = null;
+                    if (Provider != null && VaultConfig.VaultItemPropertyMapping.ContainsKey(pDefDescription.SystemName) && VaultConfig.VaultItemPropertyMapping[pDefDescription.SystemName].ContainsKey(Provider.SystemName))
+                    {
+                        cSourceMappingsDescription = VaultConfig.VaultItemPropertyMapping[pDefDescription.SystemName][Provider.SystemName].FirstOrDefault();
+                    }
+
+                    if(fMappingDescription != null && cSourceMappingsDescription == null)
+                    {
+                        UpdateItemDescription = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName));
+                    }
+                    else if (fMappingDescription != null && cSourceMappingsDescription != null)
+                    {
+                        resultLogs.Add(CreateLog("Warning", "La 'Description' de l'article ne peut pas être mise à jour car elle est mappée avec la propriété du fichier pimaire '" + cSourceMappingsDescription.ContentPropertyDefinition.DisplayName + "'." +
+                                                            "\nElle sera mise à jour par le lien primaire."));
+                        UpdateItemDescription = (false, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName));
+                    }
+                }
+
+                PropertyDefinition pDefTitle = VaultConfig.VaultItemPropertyDefinitionDictionary.Values.Where(x => x.SystemName.Equals("Title(Item,CO)")).FirstOrDefault();
+                if (pDefTitle != null)
+                {
+                    PropertyFieldMapping fMappingTitle = appOptions.VaultPropertyFieldMappings.Where(x => x.VaultPropertySet.Equals("Item") && x.VaultPropertyDisplayName.Equals(pDefTitle.DisplayName)).FirstOrDefault();
+
+                    ContentSourcePropertyMapping cSourceMappingsTitle = null;
+                    if (Provider != null && VaultConfig.VaultItemPropertyMapping.ContainsKey(pDefTitle.SystemName) && VaultConfig.VaultItemPropertyMapping[pDefTitle.SystemName].ContainsKey(Provider.SystemName))
+                    {
+                        cSourceMappingsTitle = VaultConfig.VaultItemPropertyMapping[pDefTitle.SystemName][Provider.SystemName].FirstOrDefault();
+                    }
+
+                    if (fMappingTitle != null && cSourceMappingsTitle == null)
+                    {
+                        UpdateItemTitle = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName));
+                    }
+                    else if (fMappingTitle != null && cSourceMappingsTitle != null)
+                    {
+                        resultLogs.Add(CreateLog("Warning", "Le 'Titre' de l'article ne peut pas être mis à jour car il est mappé avec la propriété du fichier pimaire '" + cSourceMappingsTitle.ContentPropertyDefinition.DisplayName + "'." +
+                                                            "\nIl sera mis à jour par le lien primaire."));
+                        UpdateItemTitle = (false, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName));
+                    }
+                }
+
+                CatCfg catCfg = VaultConfig.VaultItemCategoryBehavioursList.Where(x => x.Cat.Id == item.Cat.CatId).FirstOrDefault();
+                if (catCfg != null)
+                {
+                    BhvCfg bhvCfg = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
+                    if (bhvCfg != null)
+                    {
+                        foreach (PropertyFieldMapping fMapping in appOptions.VaultPropertyFieldMappings.Where(x => x.VaultPropertySet.Equals("Item")))
+                        {
+                            PropertyDefinition pDef = VaultConfig.VaultItemPropertyDefinitionDictionary.Values.Where(x => x.DisplayName.Equals(fMapping.VaultPropertyDisplayName)).FirstOrDefault();
+
+                            if (bhvCfg.BhvArray.Select(x => x.Id).Contains(pDef.Id))
+                            {
+                                string stringVal = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMapping.FieldName);
+
+                                if (!string.IsNullOrEmpty(stringVal))
+                                {
+                                    object objectVal = ToObject(stringVal, pDef.ManagedDataType, string.Empty, appOptions.ClearPropValue, appOptions.SyncPartNumberValue);
+
+                                    UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
+                                    UdpNames.Add(pDef.DisplayName);
+
+                                    if (Provider != null && VaultConfig.VaultItemPropertyMapping.ContainsKey(pDef.SystemName) && VaultConfig.VaultItemPropertyMapping[pDef.SystemName].ContainsKey(Provider.SystemName))
+                                    {
+                                        ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultItemPropertyMapping[pDef.SystemName][Provider.SystemName].FirstOrDefault();
+
+                                        if (cSourceMappings != null)
+                                        {
+                                            resultLogs.Add(CreateLog("Warning", "La propriété '" + UdpNames.LastOrDefault() + "' de l'article ne peut pas être mise à jour car elle est mappée avec la propriété du fichier pimaire '" + cSourceMappings.ContentPropertyDefinition.DisplayName + "'." +
+                                                                                "\nElle sera mise à jour par le lien primaire."));
+                                            UpdateUdps.Remove(UpdateUdps.LastOrDefault());
+                                            UdpNames.Remove(UdpNames.LastOrDefault());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if(UpdateItemTitle.NeedsUpdate || UpdateItemDescription.NeedsUpdate || UpdateUdps.Count > 0)
+                {
+                    
+                }
+            }
+
+            return resultState;
+            /*
+
             //TODO globalize retry and Error/Warning logs...
             string NewInventorMaterialName = string.Empty;
 
@@ -3708,7 +3829,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             {
                 try
                 {
-                    ACW.File file = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+                    ACW.Item item = VaultConnection.WebServiceManager.ItemService.GetLatestItemByItemMasterId(dr.Field<long>("VaultMasterId"));
 
                     string FileProviderName = dr.Field<string>("VaultProvider");
 
@@ -3721,7 +3842,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Start processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
 
-                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == file.Cat.CatId).FirstOrDefault();
+                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == item.Cat.CatId).FirstOrDefault();
                     if (catCfg != null)
                     {
                         BhvCfg bhvCfg = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
@@ -3737,7 +3858,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                                     if (!string.IsNullOrEmpty(stringVal))
                                     {
-                                        object objectVal = ToObject(stringVal, pDef.ManagedDataType, file.Name, appOptions.ClearPropValue, appOptions.SyncPartNumberValue);
+                                        object objectVal = ToObject(stringVal, pDef.ManagedDataType, item.Name, appOptions.ClearPropValue, appOptions.SyncPartNumberValue);
 
                                         UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
                                         UdpNames.Add(pDef.DisplayName);
@@ -3777,7 +3898,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         {
                             CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
                             Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
-                            Val = file.FileRev.Label
+                            Val = item.FileRev.Label
                         });
                         FilePropNames.Add(VaultConfig.VaultFilePropertyDefinitionDictionary["Revision"].DisplayName);
                     }
@@ -3786,7 +3907,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         // Checkout
                         ACW.ByteArray downloadTicket = null;
-                        file = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, file).EntityIterationId,
+                        item = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, item).EntityIterationId,
                                                     ACW.CheckoutFileOptions.Master, System.Environment.MachineName, "", "MaJ - Mise à jour des propriétés", out downloadTicket));
 
                         System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Checkout" + System.Environment.NewLine);
@@ -3810,7 +3931,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         if (UpdateFileProps.Count > 0)
                         {
                             ACW.PropWriteResults PropUpdateresults;
-                            uploadTicket = await Task.Run(() => VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(file.Name).TrimStart('.'),
+                            uploadTicket = await Task.Run(() => VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(item.Name).TrimStart('.'),
                                                                 true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray());
 
                             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Update Properties" + System.Environment.NewLine);
@@ -3820,7 +3941,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         }
 
                         // Checkin
-                        if (resultState != StateEnum.Error) resultState = await RetryCheckInFileAsync(file, "MaJ - Mise à jour des propriétés", uploadTicket, resultState, resultLogs, appOptions, processId);
+                        if (resultState != StateEnum.Error) resultState = await RetryCheckInFileAsync(item, "MaJ - Mise à jour des propriétés", uploadTicket, resultState, resultLogs, appOptions, processId);
 
                         if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewInventorMaterialName) && System.IO.Path.GetExtension(fullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase))
                         {
@@ -3850,7 +3971,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
             }
 
-            return resultState;
+            return resultState;*/
         }
 
 
@@ -3971,7 +4092,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             
             if (inputString.Equals(ClearValue)) return null;
             
-            if (inputString.Equals(SyncPartNumber)) inputString = System.IO.Path.GetFileNameWithoutExtension(fileName);
+            if (inputString.Equals(SyncPartNumber) && !string.IsNullOrWhiteSpace(fileName)) inputString = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
             if (OutputTypeObject == typeof(string))
             {
