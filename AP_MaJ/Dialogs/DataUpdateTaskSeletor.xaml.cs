@@ -138,18 +138,21 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 22 });
             FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 23 });
             FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Update", DisplayName = "Mise à jour", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 24 });
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 25 });
+            //FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 25 });
             MaJTasks.Add(FileTask);
 
             MaJTask InventorCloseTask = new MaJTask() { TaskGroup = "Inventor", Name = "InventorClose", DisplayName = "Fermeture des sessions Inventor", IsChecked = true, Index = 30, IsIndeterminate = true };
             MaJTasks.Add(InventorCloseTask);
 
-            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 40 };
+            MaJTask WaitForBomBlob = new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 40 };
+            MaJTasks.Add(WaitForBomBlob);
+
+            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 50 };
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 41 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 42 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 43 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 44 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 51 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 52 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 53 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 54 });
             MaJTasks.Add(ItemTask);
 
             MaJToDoTasks = new ObservableCollection<string>();

@@ -42,6 +42,9 @@ using System.Xml.Linq;
 using Autodesk.DataManagement.Client.Framework.Vault.Results;
 using DevExpress.Xpf.Core.DragDrop.Native;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
+using DevExpress.Mvvm.POCO;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using DevExpress.Services.Internal;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -88,6 +91,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             _invDispatcher = dispatcher;
         }
 
+        private static DateTime JobSearchStartDate = DateTime.MinValue;
         #region VaultConnection
         internal async Task<VDF.Vault.Currency.Connections.Connection> ConnectToVaultAsync(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken, string confirmedUser = null, string confirmedPwd = null)
         {
@@ -281,6 +285,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
             else if (FileTaskName.Equals("Update"))
             {
+                JobSearchStartDate = DateTime.Now;
                 return await UpdateFilesAsync(data, appOptions, taskProgReport, processProgReport, taskCancellationToken);
             }
             else if (FileTaskName.Equals("WaitForBomBlob"))
@@ -305,7 +310,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Validation des fichiers", TotalEntityCount = TotalCount, Timer = "Start" });
 
-            List<string> FieldsMustMatchInventorMaterial = appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial).Select(x => x.FieldName).ToList();
+            List<string> FieldsMustMatchInventorMaterial = appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial && x.VaultPropertySet.Equals("File")).Select(x => x.FieldName).ToList();
 
             if (TotalCount > 0)
             {
@@ -577,11 +582,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     if (VaultConfig.InventorMaterials.Contains(MaterialToCheck))
                     {
-                        resultLogs.Add(CreateLog("Info", "La matière est valide."));
+                        resultLogs.Add(CreateLog("Info", "La propriété '" + MustMatchFieldName + "' contient une matière est valide."));
                     }
                     else
                     {
-                        resultLogs.Add(CreateLog("Error", "La matière '" + MaterialToCheck + "' n'existe pas dans la bibliothèque de matières d'Inventor par défaut."));
+                        resultLogs.Add(CreateLog("Error", "La propriété '" + MustMatchFieldName + "' contient une matière '" + MaterialToCheck + "' qui n'existe pas dans la bibliothèque de matières d'Inventor par défaut."));
                         resultState = StateEnum.Error;
                     }
                 }
@@ -2188,7 +2193,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         param2.Val = dr.Field<long>("VaultMasterId").ToString();
 
                         Job job = await Task.Run(() => VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + fullVaultName, 
-                                                       new JobParam[] { param1, param2 }, 10));
+                                                       new JobParam[] { param1, param2 }, 100));
 
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis."));
                     }                    
@@ -2264,12 +2269,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<long> ErrorJobMasterIds = new List<long>();
             List<long> DoneJobMasterIds = new List<long>();
 
-            TimeSpan from = new TimeSpan(24, 0, 0);
-            
+            //TimeSpan from = new TimeSpan(24, 0, 0);
+            int maxJobCount = Entities.Count * 20;
+
             while (Entities.Count > 0)
             {
                 processProgReport.Report(new ProcessProgressReport() { Message = "Contrôle de la file d'attente du job processeur...", ProcessIndex = 0 });
-                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(10000, DateTime.Now.Subtract(from)));
+                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(maxJobCount, JobSearchStartDate));
 
                 if (AllBomBlobJobs != null)
                 {
@@ -2339,7 +2345,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                     param2.Name = "FileMasterId";
                                     param2.Val = dr.Field<long>("VaultMasterId").ToString();
 
-                                    VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + dr.Field<string>("Name"), new JobParam[] { param1, param2 }, 10);
+                                    try
+                                    {
+                                        VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob (retry " + dr.Field<int>("JobSubmitCount") + "): " + dr.Field<string>("Name"), new JobParam[] { param1, param2 }, 100);
+                                    }
+                                    catch(Exception Ex)
+                                    {
+                                        System.IO.File.WriteAllText(System.IO.Path.Combine("C:\\Temp", "JobError.log"), Ex.ToString());
+                                    }
                                 }
                                 else
                                 {
@@ -2409,7 +2422,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<long> FileMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<long?>("VaultMasterId") != null).Select(x => x.Field<long>("VaultMasterId")).ToList();
             if (FileMasterIds == null) FileMasterIds = new List<long>();
 
-            List<string> FieldsMustMatchInventorMaterial = appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial).Select(x => x.FieldName).ToList();
+            List<string> FieldsMustMatchInventorMaterial = appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial && x.VaultPropertySet.Equals("Item")).Select(x => x.FieldName).ToList();
 
             if (TotalCount > 0)
             {
@@ -2626,11 +2639,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     if (VaultConfig.InventorMaterials.Contains(MaterialToCheck))
                     {
-                        resultLogs.Add(CreateLog("Info", "La matière '" + MaterialToCheck + "' est valide."));
+                        resultLogs.Add(CreateLog("Info", "La propriété '" + MustMatchFieldName + "' contient une matière est valide."));
                     }
                     else
                     {
-                        resultLogs.Add(CreateLog("Error", "La matière '" + MaterialToCheck + "' n'existe pas dans la bibliothèque de matières d'Inventor par défaut."));
+                        resultLogs.Add(CreateLog("Error", "La propriété '" + MustMatchFieldName + "' contient une matière '" + MaterialToCheck + "' qui n'existe pas dans la bibliothèque de matières d'Inventor par défaut."));
                         resultState = StateEnum.Error;
                     }
                 }
@@ -3813,165 +3826,173 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                 }
 
-                if(UpdateItemTitle.NeedsUpdate || UpdateItemDescription.NeedsUpdate || UpdateUdps.Count > 0)
-                {
-                    
-                }
-            }
-
-            return resultState;
-            /*
-
-            //TODO globalize retry and Error/Warning logs...
-            string NewInventorMaterialName = string.Empty;
-
-            if (resultState != StateEnum.Error && appOptions.VaultPropertyFieldMappings.Count > 0)
-            {
                 try
                 {
-                    ACW.Item item = VaultConnection.WebServiceManager.ItemService.GetLatestItemByItemMasterId(dr.Field<long>("VaultMasterId"));
-
-                    string FileProviderName = dr.Field<string>("VaultProvider");
-
-                    ContentSourceProvider Provider = VaultConnection.ConfigurationManager.GetContentSourceProviders().Where(x => x.DisplayName == FileProviderName).FirstOrDefault();
-
-                    List<ACW.PropInstParam> UpdateUdps = new List<ACW.PropInstParam>();
-                    List<string> UdpNames = new List<string>();
-                    List<ACW.PropWriteReq> UpdateFileProps = new List<ACW.PropWriteReq>();
-                    List<string> FilePropNames = new List<string>();
-
-                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Start processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
-
-                    CatCfg catCfg = VaultConfig.VaultFileCategoryBehavioursList.Where(x => x.Cat.Id == item.Cat.CatId).FirstOrDefault();
-                    if (catCfg != null)
-                    {
-                        BhvCfg bhvCfg = catCfg.BhvCfgArray.Where(x => x.Name.Equals("UserDefinedProperty")).FirstOrDefault();
-                        if (bhvCfg != null)
-                        {
-                            foreach (PropertyFieldMapping fMapping in appOptions.VaultPropertyFieldMappings.Where(x => x.VaultPropertySet.Equals("File")))
-                            {
-                                PropertyDefinition pDef = VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.DisplayName.Equals(fMapping.VaultPropertyDisplayName)).FirstOrDefault();
-
-                                if (bhvCfg.BhvArray.Select(x => x.Id).Contains(pDef.Id))
-                                {
-                                    string stringVal = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMapping.FieldName);
-
-                                    if (!string.IsNullOrEmpty(stringVal))
-                                    {
-                                        object objectVal = ToObject(stringVal, pDef.ManagedDataType, item.Name, appOptions.ClearPropValue, appOptions.SyncPartNumberValue);
-
-                                        UpdateUdps.Add(new ACW.PropInstParam() { PropDefId = pDef.Id, Val = objectVal });
-                                        UdpNames.Add(pDef.DisplayName);
-
-                                        if (VaultConfig.VaultFilePropertyMapping.ContainsKey(pDef.SystemName) && VaultConfig.VaultFilePropertyMapping[pDef.SystemName].ContainsKey(Provider.SystemName))
-                                        {
-                                            ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping[pDef.SystemName][Provider.SystemName].FirstOrDefault();
-
-                                            if (cSourceMappings.ContentPropertyDefinition.Moniker.Equals("Material!{32853F0F-3444-11D1-9E93-0060B03C1CA6}!nvarchar"))
-                                            {
-                                                NewInventorMaterialName = stringVal;
-                                                UpdateUdps.Remove(UpdateUdps.LastOrDefault());
-                                                UdpNames.Remove(UdpNames.LastOrDefault());
-                                            }
-                                            else
-                                            {
-                                                UpdateFileProps.Add(new ACW.PropWriteReq()
-                                                {
-                                                    CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
-                                                    Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
-                                                    Val = objectVal
-                                                });
-                                                FilePropNames.Add(pDef.DisplayName);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (VaultConfig.VaultFilePropertyMapping.ContainsKey("Revision") && VaultConfig.VaultFilePropertyMapping["Revision"].ContainsKey(Provider.SystemName))
-                    {
-                        ContentSourcePropertyMapping cSourceMappings = VaultConfig.VaultFilePropertyMapping["Revision"][Provider.SystemName].FirstOrDefault();
-
-                        UpdateFileProps.Add(new ACW.PropWriteReq()
-                        {
-                            CanCreate = cSourceMappings.ContentPropertyDefinition.SupportCreate,
-                            Moniker = cSourceMappings.ContentPropertyDefinition.Moniker,
-                            Val = item.FileRev.Label
-                        });
-                        FilePropNames.Add(VaultConfig.VaultFilePropertyDefinitionDictionary["Revision"].DisplayName);
-                    }
-
-                    if (UpdateUdps.Count > 0 || UpdateFileProps.Count > 0)
-                    {
-                        // Checkout
-                        ACW.ByteArray downloadTicket = null;
-                        item = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, item).EntityIterationId,
-                                                    ACW.CheckoutFileOptions.Master, System.Environment.MachineName, "", "MaJ - Mise à jour des propriétés", out downloadTicket));
-
-                        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Checkout" + System.Environment.NewLine);
-
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Extraction du fichier pour mise à jour."));
-
-                        // update Vault UDPs
-                        if (UpdateUdps.Count > 0)
-                        {
-                            await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") },
-                                                 new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } }));
-
-                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Update UDP" + System.Environment.NewLine);
-
-                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés du fichier dans Vault:" + System.Environment.NewLine +
-                                                                             string.Join(System.Environment.NewLine, UpdateUdps.Select(x => "   - " + UdpNames[UpdateUdps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
-                        }
-
-                        // Update file properties
-                        ByteArray uploadTicket = null;
-                        if (UpdateFileProps.Count > 0)
-                        {
-                            ACW.PropWriteResults PropUpdateresults;
-                            uploadTicket = await Task.Run(() => VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(item.Name).TrimStart('.'),
-                                                                true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray());
-
-                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > Update Properties" + System.Environment.NewLine);
-
-                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés du fichier:" + System.Environment.NewLine +
-                                                                             string.Join(System.Environment.NewLine, UpdateFileProps.Select(x => "   - " + FilePropNames[UpdateFileProps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
-                        }
-
-                        // Checkin
-                        if (resultState != StateEnum.Error) resultState = await RetryCheckInFileAsync(item, "MaJ - Mise à jour des propriétés", uploadTicket, resultState, resultLogs, appOptions, processId);
-
-                        if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewInventorMaterialName) && System.IO.Path.GetExtension(fullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            //resultState = await UpdateInventorMaterialAsync(fullVaultName, NewInventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
-                        }
-
-                        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "End processing file '" + dr.Field<string>("Name") + "'" + System.Environment.NewLine);
-                    }
+                    item = VaultConnection.WebServiceManager.ItemService.EditItems(new long[] { item.RevId }).FirstOrDefault();
                 }
-                catch (Exception Ex)
+                catch(Exception Ex)
                 {
-                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > UpdateFileProperty ERROR" + System.Environment.NewLine);
-                    System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", Ex.ToString() + System.Environment.NewLine);
-
                     if (Ex is VaultServiceErrorException)
                     {
                         if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
-                                                                                   "' à été retourné lors de la mise à jour des propriétés du fichier (essais multiples non implémenté)."));
+                                                                                   "' à été retourné lors de l'édition de l'article (essais multiples non implémenté)."));
                     }
                     else
                     {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la mise à jour des propriétés du fichier (essais multiples non implémenté)." +
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'édition de l'article (essais multiples non implémenté)." +
                                                                                    System.Environment.NewLine + Ex.ToString()));
                     }
 
                     resultState = StateEnum.Error;
                 }
+                
+                
+                if (resultState != StateEnum.Error && (UpdateItemTitle.NeedsUpdate || UpdateItemDescription.NeedsUpdate || UpdateUdps.Count > 0))
+                {
+                    try
+                    {
+                        if (UpdateItemTitle.NeedsUpdate)
+                        {
+                            item.Title = UpdateItemTitle.Value;
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour du titre de l'article Vault:" + System.Environment.NewLine +
+                                                                                     "   - Title(Item, CO) = " + UpdateItemTitle.Value ?? ""));
+
+                        }
+                        if (UpdateItemDescription.NeedsUpdate)
+                        {
+                            item.Detail = UpdateItemDescription.Value;
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour de la description de l'article Vault:" + System.Environment.NewLine +
+                                                                                    "   - Description(Item,CO) = " + UpdateItemDescription.Value ?? ""));
+                        }
+                        if (UpdateUdps.Count > 0)
+                        {
+                            VaultConnection.WebServiceManager.ItemService.UpdateItemProperties(new long[] { item.RevId }, new PropInstParamArray[] { new PropInstParamArray() { Items = UpdateUdps.ToArray() } });
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés de l'article dans Vault:" + System.Environment.NewLine +
+                                                                                 string.Join(System.Environment.NewLine, UpdateUdps.Select(x => "   - " + UdpNames[UpdateUdps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
+                        }
+                    }
+                    catch (Exception Ex)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de la mise à jour des propriétés de l'article (essais multiples non implémenté)."));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la mise à jour des propriétés de l'article (essais multiples non implémenté)." +
+                                                                                       System.Environment.NewLine + Ex.ToString()));
+                        }
+
+                        resultState = StateEnum.Error;
+                    }
+                }
+
+                if(resultState != StateEnum.Error && HasPrimaryLink)
+                {
+                    string MoreLog = "";
+                    try
+                    {
+                        DataRow PrimaryLink = dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals("Primary")).FirstOrDefault();
+                        ACW.File primaryFile = null;
+
+                        if (PrimaryLink != null)
+                        {
+                            long? MasterId = PrimaryLink.Field<long?>("LinkMasterId");
+                            MoreLog += "Primary file MasterId = " + MasterId.Value + System.Environment.NewLine;
+                            if (MasterId != null) primaryFile = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(MasterId.Value);
+                        }
+
+                        if(primaryFile != null)
+                        {
+                            MoreLog += "Primary file MasterId = " + primaryFile.Id + System.Environment.NewLine;
+                            VaultConnection.WebServiceManager.ItemService.AddFilesToPromote(new long[] { primaryFile.Id }, ItemAssignAll.Default, true);
+
+                            
+                            DateTime timestamp;
+                            GetPromoteOrderResults getPromoteOrderResults = VaultConnection.WebServiceManager.ItemService.GetPromoteComponentOrder(out timestamp);
+
+                            MoreLog += "PrimaryArray.Count = " + getPromoteOrderResults.PrimaryArray.Length + System.Environment.NewLine;
+                            MoreLog += "NonPrimaryArray.Count = " + getPromoteOrderResults.NonPrimaryArray.Length + System.Environment.NewLine;
+
+                            foreach (long compId in getPromoteOrderResults.PrimaryArray)
+                            {
+                                VaultConnection.WebServiceManager.ItemService.PromoteComponents(timestamp, new long[] { compId });
+                            }
+
+                            ItemsAndFiles result = VaultConnection.WebServiceManager.ItemService.GetPromoteComponentsResults(timestamp);
+                            item = result.ItemRevArray.FirstOrDefault();
+                        }
+
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'article a été mis a jour avec les données du fichier en lien primaire." + "\n" + MoreLog));
+                    }
+                    catch (Exception Ex)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de la mise à jour de l'article (essais multiples non implémenté)." + "\n" + MoreLog));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la mise à jour de l'article (essais multiples non implémenté)." + "\n" + MoreLog +
+                                                                                       System.Environment.NewLine + Ex.ToString()));
+                        }
+
+                        resultState = StateEnum.Error;
+                    }
+                }
+                
+                if(item.Locked && resultState != StateEnum.Error)
+                {
+                    try
+                    {
+                        VaultConnection.WebServiceManager.ItemService.UpdateAndCommitItems(new ACW.Item[] { item });
+                    }
+                    catch(Exception Ex)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de la sauvegarde de l'article (essais multiples non implémenté)."));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de la sauvegarde de l'article (essais multiples non implémenté)." +
+                                                                                       System.Environment.NewLine + Ex.ToString()));
+                        }
+
+                        resultState = StateEnum.Error;
+                    }
+                    
+                }
+
+                if (item.Locked && resultState == StateEnum.Error)
+                {
+                    try
+                    {
+                        VaultConnection.WebServiceManager.ItemService.UndoEditItems(new long[] { item.RevId });
+                    }
+                    catch(Exception Ex)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de l'annulation de l'édition de l'article (essais multiples non implémenté)."));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'annulation de l'édition de l'article (essais multiples non implémenté)." +
+                                                                                       System.Environment.NewLine + Ex.ToString()));
+                        }
+
+                        resultState = StateEnum.Error;
+                    }
+                }
+                
             }
 
-            return resultState;*/
+            return resultState;
         }
 
 
