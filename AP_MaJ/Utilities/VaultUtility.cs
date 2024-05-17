@@ -91,6 +91,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             _invDispatcher = dispatcher;
         }
 
+        private static int RetryDelay = 500; // in ms.
+
         private static DateTime JobSearchStartDate = DateTime.MinValue;
         #region VaultConnection
         internal async Task<VDF.Vault.Currency.Connections.Connection> ConnectToVaultAsync(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken, string confirmedUser = null, string confirmedPwd = null)
@@ -484,8 +486,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
 
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
-
-            if(resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
+            
+            if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
             else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
 
             return (processId, dr, resultValues, resultState, resultLogs);
@@ -999,7 +1001,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 (int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs) Result = await TempChangeStateFileAsync(processId, dr, processProgReport, appOptions, RetryCount);
                 resultValues = resultValues.Concat(Result.Result).ToDictionary<string,object>();
                 resultState = Result.State;
@@ -1355,7 +1357,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateFileCategoryAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -1398,14 +1400,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await MoveFileAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> RenameFileAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private async Task<StateEnum> RenameFileAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 0)
         {
             //TODO globalize retry and Error/Warning logs...
 
@@ -1767,7 +1769,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             
                             RetryCount++;
                             AcquireResults = null;
-                            await Task.Delay(100);
+                            await Task.Delay(RetryDelay);
                         }
                         else
                         {
@@ -1797,7 +1799,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                                 RetryCount++;
                                 AcquireResults = null;
-                                await Task.Delay(100);
+                                await Task.Delay(RetryDelay);
                             }
                         }
                     }
@@ -1820,7 +1822,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Get files ERROR (Essai " + RetryCount + "/" + appOptions.MaxRetryCount + " ." + System.Environment.NewLine + Ex.ToString() + System.Environment.NewLine);
                         RetryCount++;
                         AcquireResults = null;
-                        await Task.Delay(100);
+                        await Task.Delay(RetryDelay);
                     }
                 } while (RetryCount < appOptions.MaxRetryCount);
 
@@ -2039,7 +2041,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateFileLifeCycleAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -2111,7 +2113,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateFileRevisionAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -2160,7 +2162,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateFileLifeCycleStateAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -2236,7 +2238,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await CreateBomBlobJobAsync(fullVaultName, dr, resultValues, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -3426,14 +3428,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateItemCategoryAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> RenameItemAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 1)
+        private async Task<StateEnum> RenameItemAsync(string fullVaultName, DataRow dr, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int RetryCount = 0)
         {
             //TODO globalize retry and Error/Warning logs...
             //TODO try to update item number!!!
@@ -3635,7 +3637,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateItemLifeCycleAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -3715,7 +3717,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateItemRevisionAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -3727,7 +3729,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState != StateEnum.Error && appOptions.VaultPropertyFieldMappings.Count > 0)
             {
                 ACW.Item item = VaultConnection.WebServiceManager.ItemService.GetLatestItemByItemMasterId(dr.Field<long>("VaultMasterId"));
-
+             
                 bool HasPrimaryLink = dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals("Primary")).Count() == 1;
 
                 string ItemProviderName = dr.Field<string>("VaultProvider");
@@ -3828,6 +3830,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 try
                 {
+                    if(item.Locked)
+                    {
+                        VaultConnection.WebServiceManager.ItemService.UndoEditItems(new long[] { item.RevId });
+                    }
+
                     item = VaultConnection.WebServiceManager.ItemService.EditItems(new long[] { item.RevId }).FirstOrDefault();
                 }
                 catch(Exception Ex)
@@ -3845,8 +3852,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     resultState = StateEnum.Error;
                 }
-                
-                
+
+                bool MainItemUpdated = false;
                 if (resultState != StateEnum.Error && (UpdateItemTitle.NeedsUpdate || UpdateItemDescription.NeedsUpdate || UpdateUdps.Count > 0))
                 {
                     try
@@ -3854,6 +3861,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         if (UpdateItemTitle.NeedsUpdate)
                         {
                             item.Title = UpdateItemTitle.Value;
+                            MainItemUpdated = true;
                             if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour du titre de l'article Vault:" + System.Environment.NewLine +
                                                                                      "   - Title(Item, CO) = " + UpdateItemTitle.Value ?? ""));
 
@@ -3861,14 +3869,16 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         if (UpdateItemDescription.NeedsUpdate)
                         {
                             item.Detail = UpdateItemDescription.Value;
+                            MainItemUpdated = true;
                             if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour de la description de l'article Vault:" + System.Environment.NewLine +
                                                                                     "   - Description(Item,CO) = " + UpdateItemDescription.Value ?? ""));
                         }
                         if (UpdateUdps.Count > 0)
                         {
                             VaultConnection.WebServiceManager.ItemService.UpdateItemProperties(new long[] { item.RevId }, new PropInstParamArray[] { new PropInstParamArray() { Items = UpdateUdps.ToArray() } });
+                            MainItemUpdated = true; 
                             if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Mise à jour des propriétés de l'article dans Vault:" + System.Environment.NewLine +
-                                                                                 string.Join(System.Environment.NewLine, UpdateUdps.Select(x => "   - " + UdpNames[UpdateUdps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
+                                                                                     string.Join(System.Environment.NewLine, UpdateUdps.Select(x => "   - " + UdpNames[UpdateUdps.IndexOf(x)] + " = " + (x.Val?.ToString() ?? "")))));
                         }
                     }
                     catch (Exception Ex)
@@ -3888,7 +3898,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     }
                 }
 
-                if(resultState != StateEnum.Error && HasPrimaryLink)
+                List<ACW.Item> UpdateItems = new List<ACW.Item>();
+                if (resultState != StateEnum.Error && HasPrimaryLink)
                 {
                     string MoreLog = "";
                     try
@@ -3905,23 +3916,57 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         if(primaryFile != null)
                         {
-                            MoreLog += "Primary file MasterId = " + primaryFile.Id + System.Environment.NewLine;
+                            MoreLog += "Primary file Id = " + primaryFile.Id + System.Environment.NewLine;
                             VaultConnection.WebServiceManager.ItemService.AddFilesToPromote(new long[] { primaryFile.Id }, ItemAssignAll.Default, true);
 
                             
                             DateTime timestamp;
                             GetPromoteOrderResults getPromoteOrderResults = VaultConnection.WebServiceManager.ItemService.GetPromoteComponentOrder(out timestamp);
 
-                            MoreLog += "PrimaryArray.Count = " + getPromoteOrderResults.PrimaryArray.Length + System.Environment.NewLine;
-                            MoreLog += "NonPrimaryArray.Count = " + getPromoteOrderResults.NonPrimaryArray.Length + System.Environment.NewLine;
-
-                            foreach (long compId in getPromoteOrderResults.PrimaryArray)
+                            if(getPromoteOrderResults.PrimaryArray != null)
                             {
-                                VaultConnection.WebServiceManager.ItemService.PromoteComponents(timestamp, new long[] { compId });
+                                MoreLog += "PrimaryArray.Count = " + getPromoteOrderResults.PrimaryArray.Length + " (" + string.Join(";", getPromoteOrderResults.PrimaryArray.Select(x => x.ToString())) + ")" + System.Environment.NewLine;
+                            }
+                            else
+                            {
+                                MoreLog += "PrimaryArray is 'null'" + System.Environment.NewLine;
+                            }
+                            if (getPromoteOrderResults.NonPrimaryArray != null)
+                            {
+                                MoreLog += "NonPrimaryArray.Count = " + getPromoteOrderResults.NonPrimaryArray.Length + " (" + string.Join(";", getPromoteOrderResults.NonPrimaryArray.Select(x => x.ToString())) + ")" + System.Environment.NewLine;
+                            }
+                            else
+                            {
+                                MoreLog += "NonPrimaryArray is 'null'" + System.Environment.NewLine;
+                            }
+
+                            if (getPromoteOrderResults.PrimaryArray != null && getPromoteOrderResults.PrimaryArray.Length > 0)
+                            {
+                                foreach (long compId in getPromoteOrderResults.PrimaryArray)
+                                {
+                                    VaultConnection.WebServiceManager.ItemService.PromoteComponents(timestamp, new long[] { compId });
+                                }
+                            }
+
+                            if (getPromoteOrderResults.NonPrimaryArray != null && getPromoteOrderResults.NonPrimaryArray.Length > 0)
+                            {
+                                foreach (long compId in getPromoteOrderResults.NonPrimaryArray)
+                                {
+                                    VaultConnection.WebServiceManager.ItemService.PromoteComponentLinks(new long[] { compId });
+                                }
                             }
 
                             ItemsAndFiles result = VaultConnection.WebServiceManager.ItemService.GetPromoteComponentsResults(timestamp);
-                            item = result.ItemRevArray.FirstOrDefault();
+                            if (result.ItemRevArray != null && result.ItemRevArray.Length > 0)
+                            {
+                                for (int i = 0; i < result.ItemRevArray.Length; ++i)
+                                {
+                                    if (result.StatusArray[i] > 1) // 1 means unchanged, 2 means new item was created, 4 means existing item was updated
+                                    {
+                                        UpdateItems.Add(result.ItemRevArray[i]);
+                                    }
+                                }
+                            }
                         }
 
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'article a été mis a jour avec les données du fichier en lien primaire." + "\n" + MoreLog));
@@ -3942,12 +3987,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         resultState = StateEnum.Error;
                     }
                 }
-                
-                if(item.Locked && resultState != StateEnum.Error)
+
+                if (UpdateItems.Count == 0 && MainItemUpdated) UpdateItems.Add(item);
+
+                if(item.Locked && resultState != StateEnum.Error && UpdateItems.Count > 0)
                 {
                     try
                     {
-                        VaultConnection.WebServiceManager.ItemService.UpdateAndCommitItems(new ACW.Item[] { item });
+                        VaultConnection.WebServiceManager.ItemService.UpdateAndCommitItems(UpdateItems.ToArray());
                     }
                     catch(Exception Ex)
                     {
@@ -4038,7 +4085,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await UpdateItemLifeCycleStateAsync(fullVaultName, dr, StateEnum.Processing, resultLogs, appOptions, RetryCount);
             }
 
@@ -4405,14 +4452,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await RetryCheckInFileAsync(file, comment, uploadTicket, StateEnum.Processing, resultLogs, appOptions, processId, RetryCount);
             }
 
             return resultState;
         }
 
-        private async Task<StateEnum> RetryCheckInFileAsync(FileIteration file, string comment, string fullFileName, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, int RetryCount = 1)
+        private async Task<StateEnum> RetryCheckInFileAsync(FileIteration file, string comment, string fullFileName, StateEnum resultState, List<Dictionary<string, object>> resultLogs, ApplicationOptions appOptions, int processId, int RetryCount = 0)
         {
             RetryCount++;
 
@@ -4453,7 +4500,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             if (resultState == StateEnum.Error && RetryCount <= appOptions.MaxRetryCount)
             {
-                await Task.Delay(100);
+                await Task.Delay(RetryDelay);
                 resultState = await RetryCheckInFileAsync(file, comment, fullFileName, StateEnum.Processing, resultLogs, appOptions, processId, RetryCount);
             }
 
