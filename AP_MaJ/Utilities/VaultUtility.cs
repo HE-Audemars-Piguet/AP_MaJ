@@ -46,6 +46,7 @@ using DevExpress.Mvvm.POCO;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 using DevExpress.Services.Internal;
 using DevExpress.Internal.WinApi.Windows.UI.Notifications;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -1230,7 +1231,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>> TaskList =
                                             new List<Task<(int processId, DataRow entity, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)>>();
 
-            DateTime LastJobErroResubmit = DateTime.Now;
+            DateTime NextJobErroResubmit = DateTime.Now.AddMinutes(5);
 
             while (currentLevel <= maxLevel)
             {
@@ -1277,7 +1278,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             ds.Tables["Logs"].Rows.Add(drLog);
                         }
 
-                        LastJobErroResubmit = await ReSubmitJobsWithError(LastJobErroResubmit);
+                        NextJobErroResubmit = await ReSubmitJobsWithError(NextJobErroResubmit);
 
                         TaskList.Remove(finished);
 
@@ -1297,23 +1298,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return ds;
         }
 
-        private async Task<DateTime> ReSubmitJobsWithError(DateTime lastJobErroResubmit)
+        private async Task<DateTime> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
         {
-            if(DateTime.Now.Subtract(lastJobErroResubmit).TotalMinutes > 5)
+            if(DateTime.Now > nextJobErroResubmit)
             {
-                DateTime nextLastJobErroResubmit = DateTime.Now;
-
-                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(100000, lastJobErroResubmit));                
+                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(100000, JobSearchStartDate));                
                 
-                foreach(Job job in AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Failure))
+                foreach(Job job in AllBomBlobJobs.Where(x => (x.Typ.Equals("autodesk.vault.extractbom.inventor") || x.Typ.Equals("Autodesk.Vault.SyncProperties")) && x.StatusCode == JobStatus.Failure))
                 {
                     await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
                 }
 
-                lastJobErroResubmit = nextLastJobErroResubmit;
+                nextJobErroResubmit = DateTime.Now.AddMinutes(5);
             }
 
-            return lastJobErroResubmit;
+            return nextJobErroResubmit;
         }
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFileAsync(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
@@ -2284,8 +2283,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             List<DataRow> Entities = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                                          x.Field<int?>("JobSubmitCount") != null &&
-                                                                                          x.Field<long?>("VaultMasterId") != null).ToList();
+                                                                                x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Update && x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                x.Field<int?>("JobSubmitCount") != null && x.Field<long?>("VaultMasterId") != null).ToList();
 
             foreach (DataRow dr in Entities)
             {
@@ -2301,13 +2300,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<long> ErrorJobMasterIds = new List<long>();
             List<long> DoneJobMasterIds = new List<long>();
 
-            //TimeSpan from = new TimeSpan(24, 0, 0);
-            //int maxJobCount = Entities.Count * 20;
-
             while (Entities.Count > 0)
             {
                 processProgReport.Report(new ProcessProgressReport() { Message = "Contrôle de la file d'attente du job processeur...", ProcessIndex = 0 });
-                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(50000, JobSearchStartDate));
+                Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(100000, JobSearchStartDate));
 
                 if (AllBomBlobJobs != null)
                 {
@@ -2331,7 +2327,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         RunningJobMasterIds.Clear();
                     }
 
-                    jobs = AllBomBlobJobs.Where(x => (x.Typ.Equals("autodesk.vault.extractbom.inventor") || x.Typ.Equals("Autodesk.Vault.SyncProperties")) && x.StatusCode == JobStatus.Failure).ToList();
+                    jobs = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Failure).ToList();
                     if (jobs != null && jobs.Count > 0)
                     {
                         ErrorJobMasterIds = jobs.Where(x => x.ParamArray != null && x.ParamArray.Length >= 2).Select(x => long.Parse(x.ParamArray[1].Val)).ToList();
@@ -2358,12 +2354,52 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         if(dr.Field<int>("JobSubmitCount") < appOptions.MaxJobSubmitionCount)
                         {
-                            dr["JobSubmitCount"] = dr.Field<int>("JobSubmitCount") + 1;
-                            dr["State"] = StateEnum.Pending;
-                            await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(AllBomBlobJobs.Where(x => long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault().Id));
+                            Job job = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault();
+                            
+                            if(job != null)
+                            {
+                                if (appOptions.LogInfo)
+                                {
+                                    DataRow Log = ds.Tables["Logs"].NewRow();
+                                    Log["EntityId"] = dr["Id"];
+                                    Log["Severity"] = "Info";
+                                    Log["Date"] = DateTime.Now;
+                                    Log["Message"] = "Le job de publication des informations de nomenclature a été re-soumis (" + (dr.Field<int>("JobSubmitCount") + 1) + ")";
+                                    ds.Tables["Logs"].Rows.Add(Log);
+                                }
+
+                                dr["JobSubmitCount"] = dr.Field<int>("JobSubmitCount") + 1;
+                                dr["State"] = StateEnum.Pending;
+                                await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+                            }
+                            else
+                            {
+                                if (appOptions.LogError)
+                                {
+                                    DataRow Log = ds.Tables["Logs"].NewRow();
+                                    Log["EntityId"] = dr["Id"];
+                                    Log["Severity"] = "Error";
+                                    Log["Date"] = DateTime.Now;
+                                    Log["Message"] = "Aucun job de publication des informations de nomenclature n'a été trouvé.";
+                                    ds.Tables["Logs"].Rows.Add(Log);
+                                }
+
+                                dr["State"] = StateEnum.Error;
+                                processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
+                            }
                         }
                         else
                         {
+                            if (appOptions.LogError)
+                            {
+                                DataRow Log = ds.Tables["Logs"].NewRow();
+                                Log["EntityId"] = dr["Id"];
+                                Log["Severity"] = "Error";
+                                Log["Date"] = DateTime.Now;
+                                Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tantatives.";
+                                ds.Tables["Logs"].Rows.Add(Log);
+                            }
+
                             dr["State"] = StateEnum.Error;
                             processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
                         }
@@ -4023,7 +4059,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             await Task.Run(() => VaultConnection.WebServiceManager.ItemService.AddFilesToPromote(new long[] { primaryFile.Id }, ItemAssignAll.Default, true));
 
                             
-                            DateTime timestamp;
+                            DateTime timestamp = DateTime.MinValue;
                             GetPromoteOrderResults getPromoteOrderResults = await Task.Run(() => VaultConnection.WebServiceManager.ItemService.GetPromoteComponentOrder(out timestamp));
 
                             if(getPromoteOrderResults.PrimaryArray != null)

@@ -6,7 +6,7 @@
                  xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
                  xmlns:dxa="http://schemas.devexpress.com/winfx/2008/xaml/accordion"
                  xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"
-				 xmlns:uctrl="clr-namespace:Ch.Hurni.AP_MaJ.Controls"
+				 xmlns:ctrl="clr-namespace:Ch.Hurni.AP_MaJ.Controls"
                  x:Class="Ch.Hurni.AP_MaJ.MainWindow" ResizeMode="CanResizeWithGrip"
                  Title="Audemars Piguet - Mise à jour des données Vault" Height="800" Width="1000" Padding="0">
     <dx:ThemedWindow.Resources>
@@ -126,17 +126,17 @@
 
         <dx:DXTabControl Grid.Row="3" Margin="4 0 4 4" Padding="0">
             <dx:DXTabItem Header="Propriété" BorderThickness="0">
-                <uctrl:PropertyDetailControl>
-                    <uctrl:PropertyDetailControl.Style>
-                        <Style TargetType="uctrl:PropertyDetailControl">
+                <ctrl:PropertyDetailControl>
+                    <ctrl:PropertyDetailControl.Style>
+                        <Style TargetType="ctrl:PropertyDetailControl">
                             <Style.Triggers>
                                 <Trigger Property="IsVisible" Value="True">
                                     <Setter Property="SelectedItem" Value="{Binding ElementName=MainGridControl, Path=SelectedItem, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
-                    </uctrl:PropertyDetailControl.Style>
-                </uctrl:PropertyDetailControl>
+                    </ctrl:PropertyDetailControl.Style>
+                </ctrl:PropertyDetailControl>
             </dx:DXTabItem>
             <dx:DXTabItem Header="Liens">
                 <dx:DXTabItem.Style>
@@ -149,30 +149,30 @@
                         </Style.Triggers>
                     </Style>
                 </dx:DXTabItem.Style>
-                <uctrl:LinkDetailControl>
-                    <uctrl:LinkDetailControl.Style>
-                        <Style TargetType="uctrl:LinkDetailControl">
+                <ctrl:LinkDetailControl>
+                    <ctrl:LinkDetailControl.Style>
+                        <Style TargetType="ctrl:LinkDetailControl">
                             <Style.Triggers>
                                 <Trigger Property="IsVisible" Value="True">
                                     <Setter Property="SelectedItem" Value="{Binding ElementName=MainGridControl, Path=SelectedItem, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
-                    </uctrl:LinkDetailControl.Style>
-                </uctrl:LinkDetailControl>
+                    </ctrl:LinkDetailControl.Style>
+                </ctrl:LinkDetailControl>
             </dx:DXTabItem>
             <dx:DXTabItem Header="Logs">
-                <uctrl:LogDetailControl>
-                    <uctrl:LogDetailControl.Style>
-                        <Style TargetType="uctrl:LogDetailControl">
+                <ctrl:LogDetailControl>
+                    <ctrl:LogDetailControl.Style>
+                        <Style TargetType="ctrl:LogDetailControl">
                             <Style.Triggers>
                                 <Trigger Property="IsVisible" Value="True">
                                     <Setter Property="SelectedItem" Value="{Binding ElementName=MainGridControl, Path=SelectedItem, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
-                    </uctrl:LogDetailControl.Style>
-                </uctrl:LogDetailControl>
+                    </ctrl:LogDetailControl.Style>
+                </ctrl:LogDetailControl>
             </dx:DXTabItem>
         </dx:DXTabControl>
 
