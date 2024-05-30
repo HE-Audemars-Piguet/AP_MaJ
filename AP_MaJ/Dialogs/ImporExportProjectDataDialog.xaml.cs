@@ -289,7 +289,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
                 bool oledb12Installed = new System.Data.OleDb.OleDbEnumerator().GetElements().AsEnumerable().Any(x => x.Field<string>("SOURCES_NAME") == "Microsoft.ACE.OLEDB.12.0");
 
-                if (!System.IO.Path.GetExtension(openFileDialog.FileName).Equals("csv", StringComparison.InvariantCultureIgnoreCase) && !oledb12Installed)
+                if (!System.IO.Path.GetExtension(openFileDialog.FileName).Equals(".csv", StringComparison.InvariantCultureIgnoreCase) && !oledb12Installed)
                 {
                     MessageBox.Show("To allow Excel file import, you must install 'Microsoft.ACE.OLEDB.12.0' on your computer." + System.Environment.NewLine +
                                     "You can download the installer from the Microsoft web site." + System.Environment.NewLine +
@@ -308,7 +308,10 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
         {
             IsWaitIndicatorVisible = true;
 
-            SourceSheetName = (ExcelSheetSelectorCombo.SelectedItem as ExcelSheetName).Name;
+            if (ExcelSheetSelectorCombo.SelectedItem != null)
+            {
+                SourceSheetName = (ExcelSheetSelectorCombo.SelectedItem as ExcelSheetName).Name;
+            }
 
             ImportGrid.BeginDataUpdate();
             (DataTable ResultDataTable, SeverityEnum Severity, string Message) Result = await Task.Run(() => ReadFileContent(SourceSheetName));

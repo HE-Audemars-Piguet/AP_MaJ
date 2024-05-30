@@ -102,7 +102,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private ProcessingBehaviourEnum _processingBehaviour = ProcessingBehaviourEnum.FinishTask;
+        private ProcessingBehaviourEnum _processingBehaviour = ProcessingBehaviourEnum.Continue;
 
         [JsonIgnore]
         public List<PropertySyncModeEnum> PropertySyncModes { get; set; } = new List<PropertySyncModeEnum>() { PropertySyncModeEnum.PurgeAndAdd, PropertySyncModeEnum.Purge, PropertySyncModeEnum.Add };
@@ -147,7 +147,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _fileValidationProcess = 1;
+        private int _fileValidationProcess = 5;
 
         public int FileTempChangeStateProcess
         {
@@ -161,7 +161,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _fileTempChangeStateProcess = 1;
+        private int _fileTempChangeStateProcess = 5;
 
         public int FilePurgePropsProcess
         {
@@ -175,7 +175,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _filePurgePropsProcess = 1;
+        private int _filePurgePropsProcess = 5;
 
         public int FileUpdateProcess
         {
@@ -189,21 +189,21 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _fileUpdateProcess = 1;
+        private int _fileUpdateProcess = 5;
 
-        public int FilePropSyncProcess
-        {
-            get
-            {
-                return _filePropSyncProcess;
-            }
-            set
-            {
-                _filePropSyncProcess = value;
-                NotifyPropertyChanged();
-            }
-        }
-        private int _filePropSyncProcess = 1;
+        //public int FilePropSyncProcess
+        //{
+        //    get
+        //    {
+        //        return _filePropSyncProcess;
+        //    }
+        //    set
+        //    {
+        //        _filePropSyncProcess = value;
+        //        NotifyPropertyChanged();
+        //    }
+        //}
+        //private int _filePropSyncProcess = 5;
 
         public PropertySyncModeEnum ItemPropertySyncMode
         {
@@ -231,7 +231,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _itemValidationProcess = 1;
+        private int _itemValidationProcess = 5;
 
         public int ItemTempChangeStateProcess
         {
@@ -245,7 +245,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _itemTempChangeStateProcess = 1;
+        private int _itemTempChangeStateProcess = 5;
 
         public int ItemPurgePropsProcess
         {
@@ -259,7 +259,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _itemPurgePropsProcess = 1;
+        private int _itemPurgePropsProcess = 5;
 
         public int ItemUpdateProcess
         {
@@ -273,21 +273,21 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _itemUpdateProcess = 1;
+        private int _itemUpdateProcess = 5;
 
-        public int ItemPropSyncProcess
-        {
-            get
-            {
-                return _itemPropSyncProcess;
-            }
-            set
-            {
-                _itemPropSyncProcess = value;
-                NotifyPropertyChanged();
-            }
-        }
-        private int _itemPropSyncProcess = 1;
+        //public int ItemPropSyncProcess
+        //{
+        //    get
+        //    {
+        //        return _itemPropSyncProcess;
+        //    }
+        //    set
+        //    {
+        //        _itemPropSyncProcess = value;
+        //        NotifyPropertyChanged();
+        //    }
+        //}
+        //private int _itemPropSyncProcess = 5;
 
 
         public string VaultServer
@@ -331,19 +331,6 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private string _vaultuserr = string.Empty;
-
-        public int MaxJobSubmitionCount
-        {
-            get 
-            {
-                return _maxJobSubmitionCount;
-            }
-            set
-            {
-                _maxJobSubmitionCount = value;
-            }
-        }
-        private int _maxJobSubmitionCount = 5;
 
         [JsonConverter(typeof(JsonStringEncription))]
         public string VaultPassword
@@ -403,7 +390,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 _maxInventorAppCount = value;
             }
         }
-        private int _maxInventorAppCount = 3;
+        private int _maxInventorAppCount = 2;
 
         public int MaxInventorFileCount
         {
@@ -416,7 +403,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 _maxInventorFileCount = value;
             }
         }
-        private int _maxInventorFileCount = 100;
+        private int _maxInventorFileCount = 250;
 
         public int? MaxWaitForInventorInstanceInSeconds
         {
@@ -501,6 +488,20 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private string _clearPropValue = "ClearPropValue";
 
+        public string InitialLcsValue
+        {
+            get
+            {
+                return _initialLcsValue;
+            }
+            set
+            {
+                _initialLcsValue = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private string _initialLcsValue = "InitialLcsValue";
+
         public bool IsAnyCadFileAnError
         {
             get
@@ -542,6 +543,19 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private List<object> _selectedAnyCadFileExt = new List<object>() { ".stp", ".step", ".prt", ".sldprt", ".asm", ".sldasm" };
 
+        public int MaxJobSubmitionCount
+        {
+            get
+            {
+                return _maxJobSubmitionCount;
+            }
+            set
+            {
+                _maxJobSubmitionCount = value;
+            }
+        }
+        private int _maxJobSubmitionCount = 5;
+
         public int CancelAcquireFileAfter
         {
             get
@@ -554,20 +568,6 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private int _cancelAcquireFileAfter = 5;
-
-        public string InitialLcsValue
-        {
-            get
-            {
-                return _initialLcsValue;
-            }
-            set
-            {
-                _initialLcsValue = value;
-                NotifyPropertyChanged();
-            }
-        }
-        private string _initialLcsValue = "InitialLcsValue";
 
         public bool SaveHistory
         {

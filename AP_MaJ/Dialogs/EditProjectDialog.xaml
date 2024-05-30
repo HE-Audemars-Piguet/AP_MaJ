@@ -54,7 +54,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 8 0 0">
-                                <dxdo:LabelItem Caption="Mappage des propriété Vault avec les colonnes Excel/csv" CaptionTemplate="{DynamicResource TitleCaptionTemplate}"/>
+                                <dxdo:LabelItem Caption="Mappage des propriétés Vault avec les colonnes Excel/csv" CaptionTemplate="{DynamicResource TitleCaptionTemplate}"/>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
                                 <dxdo:LayoutControlItem>
@@ -135,7 +135,7 @@
                                 <dxdo:LabelItem Caption="Comportement général" CaptionTemplate="{DynamicResource TitleCaptionTemplate}"/>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup >
-                                <dxdo:LabelItem Caption="Enregistrer les log de traitement pour"/>
+                                <dxdo:LabelItem Caption="Enregistrer les logs de traitement pour"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <UniformGrid Columns="3">
                                         <dxe:CheckEdit Grid.Column="0" EditValue="{Binding Path=AppOptions.LogError, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Content="Erreur" IsEnabled="False"/>
@@ -146,7 +146,7 @@
                             </dxdo:LayoutGroup>
                             
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="En cas d'écheque resoumettre les requetes Vault"/>
+                                <dxdo:LabelItem Caption="En cas d'échec resoumettre les requetes Vault"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCount, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -161,7 +161,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0" >
-                                <dxdo:LabelItem Caption="Conserver l'historique d'execution des mise a jour"/>
+                                <dxdo:LabelItem Caption="Conserver l'historique d'execution des mises à jour"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:CheckEdit EditValue="{Binding Path=AppOptions.SaveHistory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </dxdo:LayoutControlItem>
@@ -171,7 +171,7 @@
                                 <dxdo:LabelItem Caption="Mise à jour des fichiers" CaptionTemplate="{DynamicResource TitleCaptionTemplate}"/>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la validation des fichiers"/>
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la validation des fichiers"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FileValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -196,7 +196,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
-                                <dxdo:LabelItem Caption="Nombre de processeur lors du changement d'état temporaire des fichiers" />
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors du changement d'état temporaire des fichiers" />
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FileTempChangeStateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="left" ShowBorder="True" Width="100"/>
@@ -204,7 +204,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la purge des propriétés des fichiers"/>
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la purge des propriétés des fichiers"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePurgePropsProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -218,7 +218,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la mise à jour des fichiers"/>
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la mise à jour des fichiers"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FileUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -263,8 +263,8 @@
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
 
-                            <dxdo:LayoutGroup Margin="0 4 0 0" IsEnabled="False" >
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la synchronisation des propriétés des fichiers"/>
+                            <dxdo:LayoutGroup Margin="0 4 0 0" IsEnabled="False" Visibility="Collapsed">
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la synchronisation des propriétés des fichiers"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePropSyncProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -275,7 +275,7 @@
                                 <dxdo:LabelItem Caption="Mise à jour des articles" CaptionTemplate="{DynamicResource TitleCaptionTemplate}"/>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la validation des articles"/>
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la validation des articles"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemValidationProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -283,7 +283,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
-                                <dxdo:LabelItem Caption="Nombre de processeur lors du changement d'état temporaire des articles" />
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors du changement d'état temporaire des articles" />
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemTempChangeStateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -291,7 +291,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la purge des propriétés des articles"/>
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la purge des propriétés des articles"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePurgePropsProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -305,15 +305,15 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la mise à jour des articles"/>
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la mise à jour des articles"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
 
-                            <dxdo:LayoutGroup Margin="0 4 0 0" IsEnabled="False" >
-                                <dxdo:LabelItem Caption="Nombre de processeur lors de la synchronisation des propriétés des articles"/>
+                            <dxdo:LayoutGroup Margin="0 4 0 0" IsEnabled="False" Visibility="Collapsed">
+                                <dxdo:LabelItem Caption="Nombre de processeurs lors de la synchronisation des propriétés des articles"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemPropSyncProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>

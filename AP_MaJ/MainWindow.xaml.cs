@@ -30,6 +30,7 @@ using System.Diagnostics.Eventing.Reader;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -329,10 +330,66 @@ namespace Ch.Hurni.AP_MaJ
         public MainWindow()
         {
             App.Current.DispatcherUnhandledException += Current_DispatcherUnhandledException;
-
+            this.ContentRendered += MainWindow_ContentRendered;
+            
             DataContext = this;
             
             InitializeComponent();
+
+           
+        }
+
+        private void MainWindow_ContentRendered(object sender, EventArgs e)
+        {
+            bool isInventorStarted = IsInventorStarted();
+            bool isVaultStarted = IsVaultStarted();
+
+            string message = string.Empty;
+
+            if(isVaultStarted && isInventorStarted)
+            {
+                message += "Vault et Inventor sont déjà démarrés.\nPour effectuer une mise à jour vous devez quitter Vault et Inventor puis redémarrer l'outil de mise à jour.\n\n";
+            }
+            else if (isVaultStarted && !isInventorStarted)
+            {
+                message = "Vault est déjà démarré.\nPour effectuer une mise à jour vous devez quitter Vault puis redémarrer l'outil de mise à jour.\n\n";
+            }
+            else if (!isVaultStarted && isInventorStarted)
+            {
+                message = "Inventor est déjà démarré.\nPour effectuer une mise à jour vous devez quitter Inventor puis redémarrer l'outil de mise à jour.\n\n";
+            }
+
+            if (isInventorStarted || isVaultStarted)
+            {
+                bUpdate.IsEnabled = false;
+
+                message += "Vous pouvez continuer d'utiliser l'application mais sans pouvoir executer de mise à jour.";
+
+                ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    AllowTextSelection = true
+                };
+
+                MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Redémarrer l'application", message, MessageBoxButton.OKCancel, MessageBoxResult.OK, msgBoxParam);
+
+                if(messageBoxResult == MessageBoxResult.Cancel)
+                {
+                    Close();
+                }
+            }
+            else
+            {
+                if(!DesableVaultAddIn()) bUpdate.IsEnabled = false;
+                if (!DesableInventorAddIn()) bUpdate.IsEnabled = false;
+            }
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            EnableVaultAddIn();
+            EnableInventorAddIn();
         }
         #endregion
 
@@ -581,6 +638,8 @@ namespace Ch.Hurni.AP_MaJ
             Data = DataSetUtility.CreateDataSet(AppOptions.VaultPropertyFieldMappings);
 
             Data.SaveToSQLite(ActiveProjectDataBase);
+
+            MainGridControl.SelectedItem = null;
         }
 
         private void ExportLog_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
@@ -695,6 +754,122 @@ namespace Ch.Hurni.AP_MaJ
 
 
         #region PrivateMethod
+        private bool IsVaultStarted()
+        {
+            //Process[] processes = Process.GetProcessesByName("Connectivity.VaultPro");
+
+            //if(processes != null && processes.Length > 0)
+            //{
+            //    //string toto = processes[0].StartInfo;
+            //}
+            //else
+            //{
+            //    return false;
+            //}
+            return Process.GetProcessesByName("Connectivity.VaultPro").Length > 0;
+        }
+        private List<string> VaultAddInList = new List<string>()
+        {
+            @"C:\ProgramData\Autodesk\Vault 2023\Extensions\APVaultEventsAddin\APVaultEventsAddin.vcet.config"
+        };
+        private bool DesableVaultAddIn()
+        {
+            bool AllAddInDesabled = true;
+
+            foreach (string AddIn in VaultAddInList)
+            {
+                if (System.IO.File.Exists(AddIn))
+                {
+                    try
+                    {
+                        System.IO.File.Move(AddIn, AddIn + "-off");
+                    }
+                    catch (Exception Ex)
+                    {
+                        AllAddInDesabled = false;
+
+                        ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                        {
+                            Owner = this,
+                            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                            AllowTextSelection = true
+                        };
+
+                        MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Désactivation d'AddIn impossible", "Impossible de désactiver l'add-in Vault suivant:\n" + AddIn, MessageBoxButton.OKCancel, MessageBoxResult.OK, msgBoxParam);
+                    }
+                }
+            }
+
+            return AllAddInDesabled;
+        }
+        private void EnableVaultAddIn()
+        {
+            foreach (string AddIn in VaultAddInList)
+            {
+                if (System.IO.File.Exists(AddIn + "-off"))
+                {
+                    try
+                    {
+                        System.IO.File.Move(AddIn + "-off", AddIn);
+                    }
+                    catch (Exception Ex)
+                    {
+                        ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                        {
+                            Owner = this,
+                            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                            AllowTextSelection = true
+                        };
+
+                        MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Réactivation d'AddIn impossible", "Impossible de réactiver l'add-in Vault suivant:\n" + AddIn, MessageBoxButton.OKCancel, MessageBoxResult.OK, msgBoxParam);
+                    }
+                }
+            }
+        }
+
+        private bool IsInventorStarted()
+        {
+            return Process.GetProcessesByName("Inventor").Length > 0;
+        }
+        private List<string> InventorAddInList = new List<string>()
+        {
+
+        };
+        private bool DesableInventorAddIn()
+        {
+            bool AllAddInEnabled = true;
+
+            foreach (string AddIn in InventorAddInList)
+            {
+                if (System.IO.File.Exists(AddIn))
+                {
+                    try
+                    {
+                        System.IO.File.Move(AddIn, AddIn + "-off");
+                    }
+                    catch (Exception Ex)
+                    {
+                        AllAddInEnabled = false;
+
+                        ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                        {
+                            Owner = this,
+                            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                            AllowTextSelection = true
+                        };
+
+                        MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Désactivation d'AddIn impossible", "Impossible de désactiver l'add-in Inventor suivant:\n" + AddIn, MessageBoxButton.OKCancel, MessageBoxResult.OK, msgBoxParam);
+                    }
+                }
+            }
+
+            return AllAddInEnabled;
+        }
+        private void EnableInventorAddIn()
+        {
+
+        }
+        
         private async void OpenProject()
         {
             IsWaitIndicatorVisible = true;
@@ -801,5 +976,7 @@ namespace Ch.Hurni.AP_MaJ
             else return val.ToString();
         }
         #endregion
+
+
     }
 }
