@@ -10,11 +10,18 @@
     
     <Grid Margin="4">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <dxg:GridControl Grid.Row="0" ItemsSource="{Binding Path=Mappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        <Button Grid.Row="0" Click="AutoMapping_Click" ToolTip="Auto mapping" VerticalAlignment="Top" HorizontalAlignment="left" Margin="0 4">
+            <Button.Content>
+                <Image Source="{dx:DXImage 'SvgImages/Outlook Inspired/ProductQuickComparisons.svg'}" Height="16"/>
+            </Button.Content>
+        </Button>
+        
+        <dxg:GridControl Grid.Row="1" ItemsSource="{Binding Path=Mappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          AutoGenerateColumns="None" ShowBorder="True"
                          HorizontalAlignment="Left" Width="Auto">
             <dxg:GridControl.View>
@@ -67,7 +74,7 @@
             <dxg:GridColumn FieldName="IsValidFiledName" Header="Field name is valid" Width="25" Visible="False" ShowInColumnChooser="False" AllowEditing="False"/>
         </dxg:GridControl>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 8 0 0">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0 8 0 0">
             <Button Content="Save" Name="ReportSaveAs" Click="Save_Click" Margin="0 0 4 0" IsDefault="True"/>
             <Button Content="Cancel" IsCancel="True"/>
         </StackPanel>

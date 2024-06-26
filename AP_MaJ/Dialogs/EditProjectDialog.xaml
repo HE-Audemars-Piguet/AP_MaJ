@@ -15,7 +15,7 @@
             <Border Width="{Binding RelativeSource={RelativeSource AncestorType=dxdo:LabelItem}, Path=ActualWidth}" BorderThickness="0 0 0 1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}">
                 <TextBlock Text="{Binding}" FontSize="14" />
             </Border>
-            
+
         </DataTemplate>
     </dx:ThemedWindow.Resources>
 
@@ -59,8 +59,12 @@
                             <dxdo:LayoutGroup>
                                 <dxdo:LayoutControlItem>
                                     <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="377*"/>
+                                            <ColumnDefinition Width="6*"/>
+                                        </Grid.ColumnDefinitions>
                                         <dxg:GridControl Grid.Column="0" ItemsSource="{Binding Path=AppOptions.VaultPropertyFieldMappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="100" MaxHeight="250"
-                                                         AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" HorizontalAlignment="Stretch">
+                                                         AutoGenerateColumns="None" SelectionMode="Row" ShowBorder="True" Grid.ColumnSpan="2">
                                             <dxg:GridControl.View>
                                                 <dxg:TableView AllowBandMultiRow="False" AllowColumnFiltering="False" ShowGroupPanel="False" ShowDataNavigator="False" AllowEditing="False" ShowIndicator="False"/>
                                             </dxg:GridControl.View>
@@ -90,7 +94,7 @@
                                             <dxg:GridColumn FieldName="MustMatchInventorMaterial" Header="Corespondance matière" HeaderToolTip="Corespondance avec les matières d'Inventor" Width="25" AllowResizing="False"/>
                                             <dxg:GridColumn FieldName="FieldName" Header="Titre colonne" HeaderToolTip="Nom de la colonne dans le fichier Excel" Width="*" MinWidth="100"/>
                                         </dxg:GridControl>
-                                        <Button Grid.Column="0" Click="Mapping_Edit_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0 -30 0 0">
+                                        <Button Grid.Column="0" Click="Mapping_Edit_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0 -30 0 0" Grid.ColumnSpan="2">
                                             <Button.Content>
                                                 <Image Source="{dx:DXImage 'SvgImages/Snap/ModifyTableStyle.svg'}" Height="16"/>
                                             </Button.Content>
@@ -144,7 +148,7 @@
                                     </UniformGrid>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
-                            
+
                             <dxdo:LayoutGroup>
                                 <dxdo:LabelItem Caption="En cas d'échec resoumettre les requetes Vault"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
@@ -152,7 +156,7 @@
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
-                            
+
                             <dxdo:LayoutGroup Margin="0 4 0 0" >
                                 <dxdo:LabelItem Caption="Comportement en cas d'erreur de traitement"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
@@ -166,7 +170,7 @@
                                     <dxe:CheckEdit EditValue="{Binding Path=AppOptions.SaveHistory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
-                            
+
                             <dxdo:LayoutGroup Margin="0 8 0 0">
                                 <dxdo:LabelItem Caption="Mise à jour des fichiers" CaptionTemplate="{DynamicResource TitleCaptionTemplate}"/>
                             </dxdo:LayoutGroup>
@@ -232,7 +236,7 @@
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                         <TextBlock Text="secondes" Margin="8 0" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    
+
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
@@ -323,7 +327,7 @@
                     </dxdo:LayoutGroup>
                 </dxdo:DockLayoutManager>
             </ScrollViewer>
- 
+
         </dx:DXTabItem>
     </dx:DXTabControl>
 

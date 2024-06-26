@@ -74,7 +74,7 @@ namespace Ch.Hurni.AP_MaJ
             }
             set
             {
-                if(!System.IO.File.Exists(value))
+                if (!System.IO.File.Exists(value))
                 {
                     System.IO.File.WriteAllText(value, JsonSerializer.Serialize(new ApplicationOptions(), typeof(ApplicationOptions), JsonOptions));
                 }
@@ -84,7 +84,7 @@ namespace Ch.Hurni.AP_MaJ
                 OpenProject();
 
                 NotifyPropertyChanged();
-            } 
+            }
         }
         private string _activeProjectName = string.Empty;
 
@@ -170,7 +170,7 @@ namespace Ch.Hurni.AP_MaJ
                 }
 
                 NotifyPropertyChanged();
-            } 
+            }
         }
         private string _activeGridView = "Default";
 
@@ -304,15 +304,15 @@ namespace Ch.Hurni.AP_MaJ
             {
                 _data = value;
                 NotifyPropertyChanged();
-            } 
+            }
         }
         private DataSet _data = null;
 
         public ApplicationOptions AppOptions
         {
-            get 
-            { 
-                return _appOptions; 
+            get
+            {
+                return _appOptions;
             }
             set
             {
@@ -331,12 +331,12 @@ namespace Ch.Hurni.AP_MaJ
         {
             App.Current.DispatcherUnhandledException += Current_DispatcherUnhandledException;
             this.ContentRendered += MainWindow_ContentRendered;
-            
+
             DataContext = this;
-            
+
             InitializeComponent();
 
-           
+
         }
 
         private void MainWindow_ContentRendered(object sender, EventArgs e)
@@ -346,7 +346,7 @@ namespace Ch.Hurni.AP_MaJ
 
             string message = string.Empty;
 
-            if(isVaultStarted && isInventorStarted)
+            if (isVaultStarted && isInventorStarted)
             {
                 message += "Vault et Inventor sont déjà démarrés.\nPour effectuer une mise à jour vous devez quitter Vault et Inventor puis redémarrer l'outil de mise à jour.\n\n";
             }
@@ -374,14 +374,14 @@ namespace Ch.Hurni.AP_MaJ
 
                 MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Redémarrer l'application", message, MessageBoxButton.OKCancel, MessageBoxResult.OK, msgBoxParam);
 
-                if(messageBoxResult == MessageBoxResult.Cancel)
+                if (messageBoxResult == MessageBoxResult.Cancel)
                 {
                     Close();
                 }
             }
             else
             {
-                if(!DesableVaultAddIn()) bUpdate.IsEnabled = false;
+                if (!DesableVaultAddIn()) bUpdate.IsEnabled = false;
                 if (!DesableInventorAddIn()) bUpdate.IsEnabled = false;
             }
         }
@@ -460,10 +460,10 @@ namespace Ch.Hurni.AP_MaJ
         private void NewProject_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
             System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
-            
-            if(!string.IsNullOrWhiteSpace(ActiveProjectName)) saveFileDialog.InitialDirectory = new System.IO.FileInfo(ActiveProjectName).Directory.Parent.Name;
+
+            if (!string.IsNullOrWhiteSpace(ActiveProjectName)) saveFileDialog.InitialDirectory = new System.IO.FileInfo(ActiveProjectName).Directory.Parent.Name;
             else saveFileDialog.InitialDirectory = _rootProjectDir;
-            
+
             saveFileDialog.DefaultExt = ".maj";
             //saveFileDialog.FileName = "Default.maj";
             saveFileDialog.AddExtension = true;
@@ -650,11 +650,11 @@ namespace Ch.Hurni.AP_MaJ
             Report.Columns.Add(new DataColumn("Path", typeof(string)));
             Report.Columns.Add(new DataColumn("Name", typeof(string)));
 
-            foreach(DataRow dr in Data.Tables["Entities"].Rows)
+            foreach (DataRow dr in Data.Tables["Entities"].Rows)
             {
                 DataRow[] dataRows = dr.GetChildRows("EntityLogs");
 
-                if(dataRows.Length > 0)
+                if (dataRows.Length > 0)
                 {
                     foreach (DataRow log in dataRows)
                     {
@@ -708,7 +708,7 @@ namespace Ch.Hurni.AP_MaJ
 
             GridViewDlg.ShowDialog();
 
-            if(GridViewDlg.DialogResult == true)
+            if (GridViewDlg.DialogResult == true)
             {
                 GridViewList.Add(GridViewDlg.NewGridViewNameTextEdit.Text);
 
@@ -717,7 +717,7 @@ namespace Ch.Hurni.AP_MaJ
                 ActiveGridView = GridViewDlg.NewGridViewNameTextEdit.Text;
             }
         }
-        
+
         private void ShowHelp_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
             string helpFile = System.IO.Path.Combine(ApplicationDir, "Help", "AP_MaJ_Help.chm");
@@ -770,7 +770,9 @@ namespace Ch.Hurni.AP_MaJ
         }
         private List<string> VaultAddInList = new List<string>()
         {
-            @"C:\ProgramData\Autodesk\Vault 2023\Extensions\APVaultEventsAddin\APVaultEventsAddin.vcet.config"
+            @"C:\ProgramData\Autodesk\Vault 2023\Extensions\APVaultEventsAddin\APVaultEventsAddin.vcet.config",
+            @"C:\ProgramData\Autodesk\Vault 2023\Extensions\SoveliaVault.Vault2023\SoveliaVault.Vault2023.vcet.config",
+            @"C:\ProgramData\Autodesk\Vault 2023\Extensions\SoveliaVault.Vault2023\SoveliaVault.FavouriteActionSets.vcet.config"
         };
         private bool DesableVaultAddIn()
         {
@@ -869,7 +871,7 @@ namespace Ch.Hurni.AP_MaJ
         {
 
         }
-        
+
         private async void OpenProject()
         {
             IsWaitIndicatorVisible = true;
@@ -927,7 +929,7 @@ namespace Ch.Hurni.AP_MaJ
             if (!System.IO.File.Exists(DefaultGridViewName))
             {
                 string SourceFile = System.IO.Directory.EnumerateFiles(ApplicationDir, "Default.xml", SearchOption.AllDirectories).FirstOrDefault();
-                if(!string.IsNullOrWhiteSpace(SourceFile)) 
+                if (!string.IsNullOrWhiteSpace(SourceFile))
                 {
                     System.IO.File.Copy(SourceFile, DefaultGridViewName);
                 }
@@ -940,7 +942,7 @@ namespace Ch.Hurni.AP_MaJ
                         AllowTextSelection = true
                     };
 
-                    ThemedMessageBox.Show("Erreur de configuration","La vue par défaut de la grille '" + SourceFile + "' n'existe pas!", msgBoxParam);
+                    ThemedMessageBox.Show("Erreur de configuration", "La vue par défaut de la grille '" + SourceFile + "' n'existe pas!", msgBoxParam);
                 }
             }
 

@@ -17,7 +17,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-
+using System.Data;
 
 namespace Ch.Hurni.AP_MaJ.Dialogs
 {
@@ -138,6 +138,32 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             //    //    //item.IsValidFiledName = !SystemNames.Contains(item.FieldName);
             //    //}
             //}
+        }
+
+        private void AutoMapping_Click(object sender, RoutedEventArgs e)
+        {
+            List<string> ColList = new List<string>();
+
+            ImporExportProjectDataDialog ImportExportDlg = new ImporExportProjectDataDialog(ColList, (Application.Current.MainWindow as MainWindow).ActiveProjectName, "Windows-1252", false);
+            ImportExportDlg.Owner = this;
+            ImportExportDlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+            ImportExportDlg.ShowDialog();
+
+            if(ImportExportDlg.DialogResult == true)
+            {
+                foreach (DataColumn dc in ImportExportDlg.Data.Columns)
+                {
+                    if(Mappings.Select(x => x.VaultPropertyDisplayName).Contains(dc.ColumnName))
+                    {
+                        foreach(var mapping in Mappings.Where(x => x.VaultPropertyDisplayName == dc.ColumnName))
+                        {
+                            mapping.IsSelected = true;
+                        }
+                    }
+                }
+            }
+
         }
     }
 }
