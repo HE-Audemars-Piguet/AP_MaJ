@@ -91,7 +91,13 @@
                 <dxg:TableView AutoWidth="True" CellValueChanged="MainGridView_CellValueChanged" 
                                AllowBandMultiRow="False" AllowColumnFiltering="True" AllowConditionalFormattingMenu="True" 
                                ShowGroupPanel="True" ShowEmptyText="True" ShowIndicator="False" ShowHorizontalLines="True" 
-                               ShowVerticalLines="True" ShowSearchPanelMode="Always" ShowTotalSummary="False"/>
+                               ShowVerticalLines="True" ShowSearchPanelMode="Always" ShowTotalSummary="False">
+                    <dxg:TableView.FormatConditions>
+                        <dxg:UniqueDuplicateRuleFormatCondition FieldName="Name" ApplyToRow="True" >
+                            <dx:Format Foreground="#D9A61200" Background="#E9FFD9D9"/>
+                        </dxg:UniqueDuplicateRuleFormatCondition>
+                    </dxg:TableView.FormatConditions>
+                </dxg:TableView>
             </dxg:GridControl.View>
         </dxg:GridControl>
 

@@ -15,11 +15,19 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Button Grid.Row="0" Click="AutoMapping_Click" ToolTip="Auto mapping" VerticalAlignment="Top" HorizontalAlignment="left" Margin="0 4">
-            <Button.Content>
-                <Image Source="{dx:DXImage 'SvgImages/Outlook Inspired/ProductQuickComparisons.svg'}" Height="16"/>
-            </Button.Content>
-        </Button>
+        <StackPanel Orientation="Horizontal" Grid.Row="0" >
+            <Button Click="ImportColumn_Click" ToolTip="Importer les noms de colonnes" VerticalAlignment="Top" HorizontalAlignment="left" Margin="0 4">
+                <Button.Content>
+                    <Image Source="{dx:DXImage 'SvgImages/Dashboards/ColumnHeaders.svg'}" Height="16"/>
+                </Button.Content>
+            </Button>
+            <Button Click="AutoMappe_Click" ToolTip="Mapping automatique" VerticalAlignment="Top" HorizontalAlignment="left" Margin="4 4 0 4"
+                    IsEnabled="{Binding CanAutoImport, UpdateSourceTrigger=PropertyChanged}">
+                <Button.Content>
+                    <Image Source="{dx:DXImage 'SvgImages/Outlook Inspired/ProductQuickComparisons.svg'}" Height="16"/>
+                </Button.Content>
+            </Button>
+        </StackPanel>
         
         <dxg:GridControl Grid.Row="1" ItemsSource="{Binding Path=Mappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          AutoGenerateColumns="None" ShowBorder="True"
@@ -68,7 +76,11 @@
             <dxg:GridColumn FieldName="VaultPropertyType" Header="Type" HeaderToolTip="Type de la propriété dans Vault" Width="Auto" MinWidth="50" AllowEditing="False"/>
 
             <dxg:GridColumn FieldName="MustMatchInventorMaterial" Header="Corespondance matière" HeaderToolTip="Corespondance avec les matières d'Inventor" Width="25" AllowResizing="False" AllowEditing="True"/>
-            <dxg:GridColumn FieldName="FieldName" Header="Titre colonne" HeaderToolTip="Nom de la colonne dans le fichier Excel" Width="*" MinWidth="100"/>
+            <dxg:GridColumn FieldName="FieldName" Header="Titre colonne" HeaderToolTip="Nom de la colonne dans le fichier Excel" Width="*" MinWidth="100">
+                <dxg:GridColumn.EditSettings>
+                    <dxe:ComboBoxEditSettings ItemsSource="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=dx:ThemedWindow}, Path=AllFieldNames}" IsTextEditable="True" IncrementalFiltering="True"/>
+                </dxg:GridColumn.EditSettings>
+            </dxg:GridColumn>
 
             <dxg:GridColumn FieldName="IsValid" Header="IsValid" Width="25" Visible="False" ShowInColumnChooser="False" AllowEditing="False"/>
             <dxg:GridColumn FieldName="IsValidFiledName" Header="Field name is valid" Width="25" Visible="False" ShowInColumnChooser="False" AllowEditing="False"/>

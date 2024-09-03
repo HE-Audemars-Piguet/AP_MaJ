@@ -18,14 +18,27 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Data;
+using DevExpress.Mvvm;
+using DevExpress.ClipboardSource.SpreadsheetML;
+using System.Runtime.CompilerServices;
+using DevExpress.Mvvm.Native;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Ch.Hurni.AP_MaJ.Dialogs
 {
     /// <summary>
     /// Interaction logic for PropertyMappingEditDialog.xaml
     /// </summary>
-    public partial class PropertyMappingEditDialog : ThemedWindow
-    {
+    public partial class PropertyMappingEditDialog : ThemedWindow, INotifyPropertyChanged
+        {
+        #region Events
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
+
         public ObservableCollection<PropertyFieldMapping> Mappings
         {
             get
@@ -40,9 +53,34 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
         }
         private ObservableCollection<PropertyFieldMapping> _mappings = null;
 
-        public PropertyMappingEditDialog(ObservableCollection<Classes.PropertyFieldMapping> PropertyMappings, VaultConfig VltCongif)
+        public List<string> AllFieldNames
+        {
+            get
+            {
+                return _allFieldNames;
+            }
+            set
+            {
+                _allFieldNames = value;
+                NotifyPropertyChanged();
+                NotifyPropertyChanged("CanAutoImport");
+            }
+        }
+        private List<string> _allFieldNames = new List<string>();
+
+        public bool CanAutoImport
+        {
+            get
+            {
+                return AllFieldNames.Count > 0;
+            }
+        }
+        //private List<string> _excludedFields = null;
+
+        public PropertyMappingEditDialog(ObservableCollection<Classes.PropertyFieldMapping> PropertyMappings, VaultConfig VltCongif/*, List<string> excludedFields = null*/)
         {
             Mappings = new ObservableCollection<Classes.PropertyFieldMapping>();
+            //_excludedFields = excludedFields;
 
             Mappings.CollectionChanged += Mappings_CollectionChanged;
 
@@ -140,30 +178,83 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             //}
         }
 
-        private void AutoMapping_Click(object sender, RoutedEventArgs e)
+        private void ImportColumn_Click(object sender, RoutedEventArgs e)
         {
-            List<string> ColList = new List<string>();
+            string importFile = string.Empty;
+            DataSet ds = new DataSet();
 
-            ImporExportProjectDataDialog ImportExportDlg = new ImporExportProjectDataDialog(ColList, (Application.Current.MainWindow as MainWindow).ActiveProjectName, "Windows-1252", false);
-            ImportExportDlg.Owner = this;
-            ImportExportDlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            System.Windows.Forms.OpenFileDialog openFileDialog = new System.Windows.Forms.OpenFileDialog();
+            openFileDialog.Title = "Select a file to import column names from";
+            openFileDialog.InitialDirectory = "";
+            openFileDialog.AddExtension = true;
+            openFileDialog.CheckFileExists = false;
+            openFileDialog.Multiselect = false;
+            openFileDialog.DefaultExt = ".xlsx";
 
-            ImportExportDlg.ShowDialog();
+            openFileDialog.Filter = "Excel file (*.xlsx)|*.xlsx|Excel file (*.xls)|*.xls|Csv file (*.csv)|*.csv|DB file (*.db)|*.db";
 
-            if(ImportExportDlg.DialogResult == true)
+            if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                foreach (DataColumn dc in ImportExportDlg.Data.Columns)
-                {
-                    if(Mappings.Select(x => x.VaultPropertyDisplayName).Contains(dc.ColumnName))
-                    {
-                        foreach(var mapping in Mappings.Where(x => x.VaultPropertyDisplayName == dc.ColumnName))
-                        {
-                            mapping.IsSelected = true;
-                        }
-                    }
-                }
+                importFile = openFileDialog.FileName;
             }
 
+
+
+            DXSplashScreenViewModel dXSplashScreenViewModel = new DXSplashScreenViewModel()
+            {
+                Status = "Loading data from file..."
+            };
+
+            SplashScreenManager.CreateWaitIndicator(dXSplashScreenViewModel).Show(Application.Current.MainWindow, WindowStartupLocation.CenterOwner);
+
+            ds.ReadFromFile(importFile);
+
+            if (ds != null)
+            {
+                ColumnImportDialog cImport = new ColumnImportDialog(/*ds, */this.Foreground, this.Background, "Import column names", Icon);
+                cImport.Data = ds;
+
+                SplashScreenManager.CloseAll();
+
+                cImport.ShowDialog();
+
+                if(cImport != null && cImport.ColumnList != null)
+                {
+                    AllFieldNames = cImport.ColumnList.Select(x => x.ColumnName).ToList();
+                    if(AllFieldNames != null )
+                    {
+                        if (AllFieldNames.Contains("EntityType")) AllFieldNames.Remove("EntityType");
+                        if (AllFieldNames.Contains("Path")) AllFieldNames.Remove("Path");
+                        if (AllFieldNames.Contains("Name")) AllFieldNames.Remove("Name");
+                        if (AllFieldNames.Contains("TargetVaultPath")) AllFieldNames.Remove("TargetVaultPath");
+                        if (AllFieldNames.Contains("TargetVaultNumSchName")) AllFieldNames.Remove("TargetVaultNumSchName");
+                        if (AllFieldNames.Contains("TargetVaultName")) AllFieldNames.Remove("TargetVaultName");
+                        if (AllFieldNames.Contains("TempVaultLcsName")) AllFieldNames.Remove("TempVaultLcsName");
+                        if (AllFieldNames.Contains("TargetVaultCatName")) AllFieldNames.Remove("TargetVaultCatName");
+                        if (AllFieldNames.Contains("TargetVaultLcName")) AllFieldNames.Remove("TargetVaultLcName");
+                        if (AllFieldNames.Contains("TargetVaultLcsName")) AllFieldNames.Remove("TargetVaultLcsName");
+                        if (AllFieldNames.Contains("TargetVaultRevSchName")) AllFieldNames.Remove("TargetVaultRevSchName");
+                        if (AllFieldNames.Contains("TargetVaultRevLabel")) AllFieldNames.Remove("TargetVaultRevLabel");
+                    }
+
+                }
+                else
+                {
+                    AllFieldNames.Clear();
+                }
+            }
+            else
+            {
+                SplashScreenManager.CloseAll();
+            }
+        }
+
+        private void AutoMappe_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (PropertyFieldMapping mapping in Mappings.Where(x => x.IsSelected != true))
+            {
+                if (AllFieldNames.Contains(mapping.VaultPropertyDisplayName)) mapping.IsSelected = true;
+            }
         }
     }
 }

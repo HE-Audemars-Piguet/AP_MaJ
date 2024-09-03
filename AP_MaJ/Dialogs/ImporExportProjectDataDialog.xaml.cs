@@ -350,6 +350,24 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                                                                           MessageBoxButton.OK, MessageBoxResult.OK, msgBoxParam);
             }
 
+            if(Data.AsEnumerable().Select(x =>x.Field<string>("Name")).Distinct().Count() != Data.Rows.Count)
+            {
+                ThemedMessageBoxParameters msgBoxParam = msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Warning.GetMessageBoxIcon())
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    AllowTextSelection = true
+                };
+
+                MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Problème lors de la lecture du fichier", "Le fichier importé contient des noms ('Name') dupliqués.\nLes duplicatas seront ignorés\n\nVoulez vous tout de même importer ces données?",
+                                                                          MessageBoxButton.YesNo, MessageBoxResult.Yes, msgBoxParam);
+
+                if (messageBoxResult == MessageBoxResult.No)
+                {
+                    Data.Clear();
+                }
+            }
+
             ImportGrid.EndDataUpdate();
 
             CanImport = Data.Rows.Count > 0;
@@ -450,7 +468,12 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
         }
 
         private void Import_Click(object sender, RoutedEventArgs e)
-        {
+        { 
+            if (Data.AsEnumerable().Select(x => x.Field<string>("Name")).Distinct().Count() != Data.Rows.Count)
+            {
+                Data = Data.AsEnumerable().GroupBy(x => x.Field<string>("Name")).Select(g => g.First()).CopyToDataTable();
+            }
+
             DialogResult = true;
             Close();
         }

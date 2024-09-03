@@ -85,6 +85,12 @@
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
+    <Reference Include="ExcelDataReader, Version=3.7.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelDataReader.3.7.0\lib\net462\ExcelDataReader.dll</HintPath>
+    </Reference>
+    <Reference Include="ExcelDataReader.DataSet, Version=3.7.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelDataReader.DataSet.3.7.0\lib\net462\ExcelDataReader.DataSet.dll</HintPath>
+    </Reference>
     <Reference Include="GenericParsing, Version=1.5.0.0, Culture=neutral, PublicKeyToken=43ae7af96c6e059c, processorArchitecture=MSIL">
       <HintPath>..\packages\GenericParsing.1.5.0\lib\netstandard2.0\GenericParsing.dll</HintPath>
     </Reference>
@@ -141,6 +147,9 @@
     <Compile Include="Controls\PropertyDetailControl.xaml.cs">
       <DependentUpon>PropertyDetailControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Dialogs\ColumnImportDialog.xaml.cs">
+      <DependentUpon>ColumnImportDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Dialogs\VaultUserPasswordCheckDialog.xaml.cs">
       <DependentUpon>VaultUserPasswordCheckDialog.xaml</DependentUpon>
     </Compile>
@@ -176,6 +185,10 @@
     <Page Include="Controls\PropertyDetailControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\ColumnImportDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="Dialogs\VaultUserPasswordCheckDialog.xaml">
       <Generator>MSBuild:Compile</Generator>

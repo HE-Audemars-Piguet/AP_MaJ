@@ -1,0 +1,101 @@
+﻿<dx:ThemedWindow x:Class="Ch.Hurni.AP_MaJ.Dialogs.ColumnImportDialog"
+                 xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"  
+                 xmlns:dxe="http://schemas.devexpress.com/winfx/2008/xaml/editors"  
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:dx="http://schemas.devexpress.com/winfx/2008/xaml/core"
+                 xmlns:dxi="http://schemas.devexpress.com/winfx/2008/xaml/core/internal"
+                 xmlns:dxt="http://schemas.devexpress.com/winfx/2008/xaml/core/themekeys" xmlns:dxb="http://schemas.devexpress.com/winfx/2008/xaml/bars"
+                 Height="600" Width="600"
+                 ControlBoxButtonSet="Close">
+    <dx:ThemedWindow.Resources>
+        <ControlTemplate x:Key="ThemedWindowHeaderTemplate"  TargetType="{x:Type dx:ThemedWindowHeader}">
+            <Border x:Name="PART_HeaderRoot" Background="{Binding RelativeSource={RelativeSource AncestorType=dx:ThemedWindow, Mode=FindAncestor}, Path=AppBackgroundBrush}" 
+                    Padding="{TemplateBinding Padding}" Opacity="{TemplateBinding Opacity}">
+                <DockPanel x:Name="PART_HeaderDock" LastChildFill="True">
+                    <dx:ThemedWindowIcon x:Name="PART_WindowIcon" Style="{dxi:ThemeResource {dxt:ThemedWindowThemeKey ResourceKey=WindowIconStyle}}" DockPanel.Dock="Left"/>
+                    <dx:ThemedWindowBackButton x:Name="PART_WindowBackButton" Style="{dxi:ThemeResource {dxt:ThemedWindowThemeKey ResourceKey=BackButtonStyle}}" UseLayoutRounding="True" DockPanel.Dock="Left"/>
+                    <dx:ThemedWindowControlBoxBorder x:Name="PART_HeaderItemsAndButtons" UseLayoutRounding="True" DockPanel.Dock="Right"/>
+                    <dx:ThemedWindowTitle x:Name="PART_WindowTitle" VerticalAlignment="Center"
+                                          TitleAlignment="{Binding Path=TitleAlignment, RelativeSource={RelativeSource AncestorType={x:Type dx:ThemedWindow}}}" 
+                                          Foreground="{Binding Path=AppForegroundBrush, RelativeSource={RelativeSource AncestorType={x:Type dx:ThemedWindow}}}" 
+                                          Content="{Binding Path=Title, RelativeSource={RelativeSource AncestorType={x:Type dx:ThemedWindow}}}"/>
+                </DockPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+                <DataTrigger Binding="{Binding Path=ShowIcon, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type dx:ThemedWindow}}}" Value="False">
+                    <Setter TargetName="PART_WindowIcon" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Path=ShowBackButton, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type dx:ThemedWindow}}}" Value="True">
+                    <Setter TargetName="PART_WindowBackButton" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Path=ShowTitle, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type dx:ThemedWindow}}}" Value="False">
+                    <Setter TargetName="PART_WindowTitle" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Path=ActualWindowKind, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type dx:ThemedWindow}}}" Value="Ribbon" />
+                        <Condition Binding="{Binding Path=(dxi:ThemedWindowsHelper.RibbonHeaderVisibility), RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type dx:ThemedWindow}}}" Value="Visible" />
+                        <Condition Binding="{Binding Path=(dxi:ThemedWindowsHelper.RibbonControlVisibility), RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type dx:ThemedWindow}}}" Value="Visible" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter TargetName="PART_WindowTitle" Property="Visibility" Value="Collapsed"/>
+                </MultiDataTrigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <Style TargetType="{x:Type dx:ThemedWindowHeader}">
+            <Setter Property="Template" Value="{StaticResource ThemedWindowHeaderTemplate}"/>
+        </Style>
+    </dx:ThemedWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+
+        <dxb:BarContainerControl Grid.Row="0">
+            <dxb:ToolBarControl Caption="Projet" GlyphSize="Small" ShowDragWidget="False" AllowQuickCustomization="False" UseWholeRow="True">
+                <dxb:BarEditItem Content="Feuille" Name="TableSelector" ToolTip="Sélectionner la configuration de la grille" Alignment="Near">
+                    <dxb:BarEditItem.EditSettings>
+                        <dxe:ComboBoxEditSettings ItemsSource="{Binding Data.Tables}" IsTextEditable="False" ApplyItemTemplateToSelectedItem="True">
+                            <dxe:ComboBoxEditSettings.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="{dx:DXImage 'SvgImages/Spreadsheet/PrintActiveSheets.svg'}" Height="16"/>
+                                        <TextBlock Text="{Binding TableName}" Margin="8 0 0 0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </dxe:ComboBoxEditSettings.ItemTemplate>
+                        </dxe:ComboBoxEditSettings>
+                    </dxb:BarEditItem.EditSettings>
+                </dxb:BarEditItem>
+                <dxb:BarButtonItem Content="Import" BarItemDisplayMode="ContentAndGlyph" ToolTip="Import column names..." ItemClick="Import_Click"
+                                   Glyph="{dx:DXImage 'SvgImages/Icon Builder/Actions_Arrow5RightDown.svg'}" LargeGlyph="{dx:DXImage 'SvgImages/Icon Builder/Actions_Arrow5RightDown.svg'}" Alignment="Near"/>
+            </dxb:ToolBarControl>
+        </dxb:BarContainerControl>
+        
+        
+        <!--<ComboBox Grid.Row="0" Name="TableSelector" ItemsSource="{Binding Data.Tables}" SelectedIndex="-1">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding TableName}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>-->
+
+        <dxg:GridControl Grid.Row="1" ItemsSource="{Binding ElementName=TableSelector, Path=EditValue.Columns}" 
+                         AutoGenerateColumns="None" SelectionMode="None" ShowBorder="True" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="0">
+            <dxg:GridControl.View>
+                <dxg:TableView AllowBandMultiRow="False" ShowColumnHeaders="False" AllowColumnFiltering="True" ShowHorizontalLines="True"
+                               ShowGroupPanel="False" ShowDataNavigator="False" AllowEditing="False" AllowResizing="False" ShowIndicator="False"/>
+            </dxg:GridControl.View>
+
+            <dxg:GridColumn FieldName="ColumnName" Width="*" AllowEditing="False" DefaultSortOrder="Ascending"/>
+            <dxg:GridColumn FieldName="DataType.Name" Width="*" AllowEditing="False" />
+            
+        </dxg:GridControl>
+        
+    </Grid>
+</dx:ThemedWindow>
