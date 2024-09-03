@@ -48,7 +48,6 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             set
             {
                 _mappings = value;
-                //NotifyPropertyChanged();
             }
         }
         private ObservableCollection<PropertyFieldMapping> _mappings = null;
@@ -75,12 +74,10 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 return AllFieldNames.Count > 0;
             }
         }
-        //private List<string> _excludedFields = null;
 
         public PropertyMappingEditDialog(ObservableCollection<Classes.PropertyFieldMapping> PropertyMappings, VaultConfig VltCongif/*, List<string> excludedFields = null*/)
         {
             Mappings = new ObservableCollection<Classes.PropertyFieldMapping>();
-            //_excludedFields = excludedFields;
 
             Mappings.CollectionChanged += Mappings_CollectionChanged;
 
@@ -123,7 +120,6 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 }
             }
 
-            //ValidateFieldName();
 
             DataContext = this;
 
@@ -143,10 +139,10 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
         private void Item_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "FieldName" || e.PropertyName == "IsSelected")
-            {
-                ValidateFieldName(sender as PropertyFieldMapping);
-            }
+            //if (e.PropertyName == "FieldName" || e.PropertyName == "IsSelected")
+            //{
+            //    ValidateFieldName(sender as PropertyFieldMapping);
+            //}
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -155,7 +151,6 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             Close();
         }
 
-        //private List<string> SystemNames = new List<string>() { "TargetVaultName", "TargetVaultPath", "VaultCatName", "TargetVaultCatName", "TargetVaultLcName", "TempVaultLcsName", "TargetVaultLcsName", "TargetVaultRevSchName", "TargetVaultRevLabel" };
         private void ValidateFieldName(PropertyFieldMapping CurrentItem = null)
         {
             //if (CurrentItem != null && !string.IsNullOrEmpty(CurrentItem.FieldName) && !Regex.IsMatch(CurrentItem.FieldName, "^[a-zA-Z_][a-zA-Z0-9_]*$"))
@@ -184,14 +179,14 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             DataSet ds = new DataSet();
 
             System.Windows.Forms.OpenFileDialog openFileDialog = new System.Windows.Forms.OpenFileDialog();
-            openFileDialog.Title = "Select a file to import column names from";
+            openFileDialog.Title = "Sélectionner le fichier dont les colonnes doivent être importées.";
             openFileDialog.InitialDirectory = "";
             openFileDialog.AddExtension = true;
             openFileDialog.CheckFileExists = false;
             openFileDialog.Multiselect = false;
             openFileDialog.DefaultExt = ".xlsx";
 
-            openFileDialog.Filter = "Excel file (*.xlsx)|*.xlsx|Excel file (*.xls)|*.xls|Csv file (*.csv)|*.csv|DB file (*.db)|*.db";
+            openFileDialog.Filter = "Fichier Excel (*.xlsx)|*.xlsx|Fichier Excel (*.xls)|*.xls|Fichier Csv (*.csv)|*.csv|DB file (*.db)|*.db";
 
             if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
@@ -202,7 +197,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
             DXSplashScreenViewModel dXSplashScreenViewModel = new DXSplashScreenViewModel()
             {
-                Status = "Loading data from file..."
+                Status = "Chargement du fichier..."
             };
 
             SplashScreenManager.CreateWaitIndicator(dXSplashScreenViewModel).Show(Application.Current.MainWindow, WindowStartupLocation.CenterOwner);
@@ -220,7 +215,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
                 if(cImport != null && cImport.ColumnList != null)
                 {
-                    AllFieldNames = cImport.ColumnList.Select(x => x.ColumnName).ToList();
+                    AllFieldNames = cImport.ColumnList.Select(x => x.ColumnName).OrderBy(x => x).ToList();
                     if(AllFieldNames != null )
                     {
                         if (AllFieldNames.Contains("EntityType")) AllFieldNames.Remove("EntityType");

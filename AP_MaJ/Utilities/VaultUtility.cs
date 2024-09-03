@@ -2318,12 +2318,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState != StateEnum.Error && AcquiredFile != null)
             {
                 InventorInstance invInst = null;
+                string CurrentAction = string.Empty;
+
                 try
                 {
                     //processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " (niveau " + dr.Field<int>("VaultLevel").ToString() + ")" + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
                     processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Attend une instance d'Inventor libre...", ProcessIndex = processId });
                     await Task.Delay(10);
 
+                    CurrentAction = "Get Inventor instance";
                     invInst = _invDispatcher.GetInventorInstance(processId);
 
                     if (invInst != null)
@@ -2337,6 +2340,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         await Task.Delay(10);
 
                         invInst.InventorFileCount++;
+                        CurrentAction = "Open file '" + AcquiredFile.LocalPath.FullPath + "' in Inventor";
                         Inventor.PartDocument invPartDoc = invInst.InvApp.Documents.Open(AcquiredFile.LocalPath.FullPath) as Inventor.PartDocument;
                         System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - File open" + System.Environment.NewLine);
                         if (invPartDoc.IsModifiable == false)
@@ -2346,15 +2350,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         }
                         else
                         {
+                            CurrentAction += "\nUpdate material for '" + newInventorMaterialName + "' in file '" + AcquiredFile.LocalPath.FullPath + "'";
                             invPartDoc.ActiveMaterial = invInst.InvApp.ActiveMaterialLibrary.MaterialAssets[newInventorMaterialName] as Inventor.Asset;
                             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Material updated" + System.Environment.NewLine);
 
+                            CurrentAction += "\nSave file '" + AcquiredFile.LocalPath.FullPath + "'";
                             invPartDoc.Save2(false);
                             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - File saved" + System.Environment.NewLine);
 
+                            CurrentAction += "\nClose all files";
                             invInst.InvApp.Documents.CloseAll();
                             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - File closed" + System.Environment.NewLine);
 
+                            CurrentAction += "\nMaterial update completed";
                             if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La matière du fichier Inventor a été changée pour '" + newInventorMaterialName + "'."));
                         }
 
@@ -2371,9 +2379,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > UpdateInventorMaterial (Update Inventor material) ERROR" + System.Environment.NewLine);
 
                     if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du changement de la matière." +
+                                                                                System.Environment.NewLine + CurrentAction + 
                                                                                 System.Environment.NewLine + Ex.ToString()));
 
                     if (invInst != null) await Task.Run(() => invInst.ForceCloseInventor());
+
+                    CurrentAction = string.Empty;
 
                     resultState = StateEnum.Error;
                 }
