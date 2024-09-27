@@ -1346,7 +1346,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             string InventorMaterialName = string.Empty;
             if (resultState != StateEnum.Error) resultState = UpdateFileProperty(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport, out InventorMaterialName);
-            if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(InventorMaterialName) && System.IO.Path.GetExtension(FullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase)) resultState = await UpdateInventorMaterialAsync(FullVaultName, InventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
+            if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(InventorMaterialName) && System.IO.Path.GetExtension(FullVaultName).Equals(".ipt", StringComparison.InvariantCultureIgnoreCase)) 
+                resultState = await UpdateInventorMaterialAsync(FullVaultName, InventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
 
             if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleStateAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await CreateBomBlobJobAsync(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
@@ -1785,7 +1786,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                     if (CheckedOutFile != null)
                                     {
                                         VaultConnection.FileManager.UndoCheckoutFile(CheckedOutFile);
-                                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Error", "L'extraction du fichier après mise à jour des UDPs a été annulée."));
+                                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'extraction du fichier après mise à jour des UDPs a été annulée."));
                                     }
                                 }
                                 catch (Exception SubEx)
@@ -1837,13 +1838,63 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     ACW.ByteArray downloadTicket = null;
                     ACW.File newFile = VaultConnection.WebServiceManager.DocumentService.CheckoutFile(new FileIteration(VaultConnection, file).EntityIterationId, ACW.CheckoutFileOptions.Master, System.Environment.MachineName, "", "MaJ - Mise à jour des propriétés", out downloadTicket);
                     if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été extrait pour mise à jour des propriétés."));
-                    //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update file properties file checked out." + System.Environment.NewLine);
+                    
+                    System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "L'extraction du fichier '" + dr.Field<string>("Name") + "' pour mise à jour des propriétés est passé." + System.Environment.NewLine);
+                    if (downloadTicket == null)
+                    {
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le downloadTicket est null!!!! pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                    }
+                    else
+                    {
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le downloadTicket n'est pas null pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le downloadTicket vaut '"+ downloadTicket.ToString() + "' pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                    }
+                    if (newFile == null)
+                    {
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le newFile est null !!!!. pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                    }
+                    else
+                    {
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le newFile n'est pas null pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le newFile version est '"+ newFile.VerNum.ToString()+"' checkedOut '"+newFile.CheckedOut.ToString() + "' pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                    }
 
                     action = "la mise à jour des propriétés";
+                    ByteArray uploadTicket = null;
                     ACW.PropWriteResults PropUpdateresults;
-                    ByteArray uploadTicket = VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(file.Name).TrimStart('.'), true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray();
-                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les propriétés du fichier ont été mises à jour."));
-                    //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update file properties file copied." + System.Environment.NewLine);
+                    int retry = 0;
+                    do
+                    {
+                        try
+                        {
+                            retry++;
+                            uploadTicket = VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(file.Name).TrimStart('.'), true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray();
+
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les propriétés du fichier '" + dr.Field<string>("Name") + "' ont été mises à jour (" + retry + ")."));
+                            System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Update file '" + dr.Field<string>("Name") + "' properties file copied." + System.Environment.NewLine);
+                            if (uploadTicket == null) System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le uploadTicket est null!!!! pour le fichier '" + dr.Field<string>("Name") + "'." + System.Environment.NewLine);
+                        }
+                        catch (Exception Ex)
+                        {
+                            System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Error while update file '" + dr.Field<string>("Name") + "' properties file copied (" + retry + ")." + System.Environment.NewLine + Ex.ToString());
+
+                            if (retry > 4) throw;
+
+                            if (Ex is VaultServiceErrorException)
+                            {
+                                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                           "' à été retourné lors de " + action + " (essai " + retry + ")."));
+                            }
+                            System.Threading.Thread.Sleep(200);
+                        }
+                    } while (uploadTicket == null);
+
+
+
+                    //ByteArray uploadTicket = VaultConnection.WebServiceManager.FilestoreService.CopyFile(downloadTicket.Bytes, System.IO.Path.GetExtension(file.Name).TrimStart('.'), true, new PropWriteRequests() { Requests = UpdateFileProps.ToArray() }, out PropUpdateresults).ToByteArray();
+                    //if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les propriétés du fichier '" + dr.Field<string>("Name") + "' ont été mises à jour."));
+                    //System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Update file '" + dr.Field<string>("Name") + "' properties file copied." + System.Environment.NewLine);
+                    //if (uploadTicket == null) System.IO.File.AppendAllText(@"C:\Temp\ProcessX" + processId + ".log", "Le uploadTicket est null!!!! pour le fichier '"+ dr.Field<string>("Name") + "'." + System.Environment.NewLine);
 
                     int count = 1;
                     do
@@ -2332,7 +2383,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     if (invInst != null)
                     {
                         processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName + " - Démarrage ou redémarrage d'Inventor...", ProcessIndex = processId });
-                        System.Threading.Thread.Sleep(10);
                         await Task.Delay(10);
                         await invInst.StartOrRestartInventorAsync();
 
@@ -2342,14 +2392,27 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         invInst.InventorFileCount++;
                         CurrentAction = "Open file '" + AcquiredFile.LocalPath.FullPath + "' in Inventor";
                         Inventor.PartDocument invPartDoc = invInst.InvApp.Documents.Open(AcquiredFile.LocalPath.FullPath) as Inventor.PartDocument;
-                        System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - File open" + System.Environment.NewLine);
+                        
                         if (invPartDoc.IsModifiable == false)
                         {
+                            CurrentAction += "\nClose all files as '" + AcquiredFile.LocalPath.FullPath + "' is a 'Content center file'.";
+                            invInst.InvApp.Documents.CloseAll();
+
+
                             if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le fichier est de type 'Content Center file' il ne peut pas être moodifié."));
                             resultState = StateEnum.Error;
                         }
                         else
                         {
+                            int retry = 0;
+                            while (!invInst.InvApp.Ready)
+                            {
+                                retry++;
+                                CurrentAction += "\nWaiting for inventor (" + retry * 100 + "ms)";
+                                await Task.Delay(retry * 100);
+                                if (retry > 4) break;
+                            };
+
                             CurrentAction += "\nUpdate material for '" + newInventorMaterialName + "' in file '" + AcquiredFile.LocalPath.FullPath + "'";
                             invPartDoc.ActiveMaterial = invInst.InvApp.ActiveMaterialLibrary.MaterialAssets[newInventorMaterialName] as Inventor.Asset;
                             System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - Material updated" + System.Environment.NewLine);
@@ -2366,16 +2429,22 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La matière du fichier Inventor a été changée pour '" + newInventorMaterialName + "'."));
                         }
 
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessM" + processId + ".log", CurrentAction + System.Environment.NewLine);
+
                         processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
                     }
                     else
                     {
                         if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Impossible d'optenir une instance d'Inventor."));
                         resultState = StateEnum.Error;
+
+                        System.IO.File.AppendAllText(@"C:\Temp\ProcessM" + processId + ".log", "Impossible d'optenir une instance d'Inventor." + System.Environment.NewLine);
                     }
                 }
                 catch (Exception Ex)
                 {
+                    System.IO.File.AppendAllText(@"C:\Temp\ProcessM" + processId + ".log", CurrentAction + System.Environment.NewLine);
+
                     System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", " > UpdateInventorMaterial (Update Inventor material) ERROR" + System.Environment.NewLine);
 
                     if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors du changement de la matière." +
