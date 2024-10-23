@@ -150,7 +150,7 @@
                             </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="En cas d'échec resoumettre les requetes Vault"/>
+                                <dxdo:LabelItem Caption="Nombre de resoumission max des requetes Vault (changement état, extraction,...)"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCount, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
@@ -271,6 +271,14 @@
                                 <dxdo:LabelItem Caption="Nombre de processeurs lors de la synchronisation des propriétés des fichiers"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:SpinEdit EditValue="{Binding Path=AppOptions.FilePropSyncProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                                  EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
+
+                            <dxdo:LayoutGroup  Margin="0 4 0 0">
+                                <dxdo:LabelItem Caption="Nombre de resoumission max des jobs (BomBlob)"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxJobSubmitionCount, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="50" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>

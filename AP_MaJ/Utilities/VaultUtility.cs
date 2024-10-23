@@ -1338,10 +1338,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
 
             if (resultState != StateEnum.Error) resultState = await UpdateFileCategoryAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await UpdateFileRevisionAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await MoveFileAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await RenameFileAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await UpdateFileRevisionAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
+            
             //if (resultState != StateEnum.Error) resultState = await UpdateFilePropertyAsync(FullVaultName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
 
             string InventorMaterialName = string.Empty;
@@ -2595,10 +2596,14 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultRevLabel")))
             {
                 string Label = dr.Field<string>("TargetVaultRevLabel");
+
+                long RevSchId = dr.Field<long>("VaultRevSchId");
+                if (dr.Field<long?>("TargetVaultRevSchId") != null) RevSchId = dr.Field<long>("TargetVaultRevSchId");
+
                 if (Label.Equals("NextPrimary") || Label.Equals("NextSecondary") || Label.Equals("NextTertiary"))
                 {
                     StringArray revArray = await Task.Run(() => VaultConnection.WebServiceManager.RevisionService.GetNextRevisionNumbersByMasterIds(new long[] { dr.Field<long>("VaultMasterId") },
-                                                                new long[] { dr.Field<long>("TargetVaultRevSchId") }).FirstOrDefault());
+                                                                new long[] { RevSchId }).FirstOrDefault());
 
                     if (Label.Equals("NextPrimary")) Label = revArray.Items[0];
                     else if (Label.Equals("NextSecondary")) Label = revArray.Items[1];
@@ -2609,16 +2614,29 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     ACW.File VaultFile = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId")));
 
-                    if (dr.Field<long?>("TargetVaultRevSchId") != null && dr.Field<long>("TargetVaultRevSchId") != VaultFile.FileRev.RevDefId)
-                    {
-                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateRevisionDefinitionAndNumbers(new long[] { VaultFile.Id },
-                                             new long[] { dr.Field<long>("TargetVaultRevSchId") }, new string[] { Label }, "MaJ - Changement de révision"));
-                    }
-                    else if (dr.Field<long>("TargetVaultRevSchId") == VaultFile.FileRev.RevDefId && Label != VaultFile.FileRev.Label)
+                    if (RevSchId == VaultFile.FileRev.RevDefId && Label != VaultFile.FileRev.Label)
                     {
                         await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileRevisionNumbers(new long[] { VaultFile.Id },
                                              new string[] { Label }, "MaJ - Changement de révision"));
                     }
+                    else if (RevSchId != VaultFile.FileRev.RevDefId)
+                    {
+                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateRevisionDefinitionAndNumbers(new long[] { VaultFile.Id },
+                                             new long[] { RevSchId }, new string[] { Label }, "MaJ - Changement de révision"));
+                    }
+
+
+                    //if (dr.Field<long?>("TargetVaultRevSchId") != null && dr.Field<long>("TargetVaultRevSchId") != VaultFile.FileRev.RevDefId)
+                    //{
+                    //    await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateRevisionDefinitionAndNumbers(new long[] { VaultFile.Id },
+                    //                         new long[] { dr.Field<long>("TargetVaultRevSchId") }, new string[] { Label }, "MaJ - Changement de révision"));
+                    //}
+                    //else if (dr.Field<long>("TargetVaultRevSchId") == VaultFile.FileRev.RevDefId && Label != VaultFile.FileRev.Label)
+                    //{
+                    //    System.Windows.MessageBox.Show("Label = " + Label + " would be apply to file '" + VaultFile.Name +"'");
+                    //    await Task.Run(() => VaultConnection.WebServiceManager.DocumentServiceExtensions.UpdateFileRevisionNumbers(new long[] { VaultFile.Id },
+                    //                         new string[] { Label }, "MaJ - Changement de révision"));
+                    //}
 
                     if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "La révison a été changée pour '" + Label + "'."));
                 }
@@ -4057,9 +4075,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             processProgReport.Report(new ProcessProgressReport() { Message = VaultItemNumber, ProcessIndex = processId, TotalCountInc = 1 });
 
             if (resultState != StateEnum.Error) resultState = await UpdateItemCategoryAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
+            if (resultState != StateEnum.Error) resultState = await UpdateItemRevisionAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
             //if (resultState != StateEnum.Error) resultState = await RenameItemAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await UpdateItemLifeCycleAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await UpdateItemRevisionAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
             if (resultState != StateEnum.Error) resultState = await UpdateItemPropertyAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions, processId, processProgReport);
             if (resultState != StateEnum.Error) resultState = await UpdateItemLifeCycleStateAsync(VaultItemNumber, dr, resultState, resultLogs, appOptions);
 
