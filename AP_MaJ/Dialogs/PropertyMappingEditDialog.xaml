@@ -27,6 +27,15 @@
                     <Image Source="{dx:DXImage 'SvgImages/Outlook Inspired/ProductQuickComparisons.svg'}" Height="16"/>
                 </Button.Content>
             </Button>
+            
+            <Separator Margin="4 0"/>
+
+            <Button Click="DeleteAllMappe_Click" ToolTip="Suppression des mappings" VerticalAlignment="Top" HorizontalAlignment="left" Margin="4 4 0 4">
+                <Button.Content>
+                    <Image Source="{dx:DXImage 'SvgImages/Scheduling/Delete.svg'}" Height="16"/>
+                </Button.Content>
+            </Button>
+
         </StackPanel>
         
         <dxg:GridControl Grid.Row="1" ItemsSource="{Binding Path=Mappings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

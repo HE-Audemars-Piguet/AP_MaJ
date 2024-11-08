@@ -265,6 +265,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
         {
             get
             {
+                if (_itemUpdateProcess > 1) _itemUpdateProcess = 1;
                 return _itemUpdateProcess;
             }
             set
@@ -273,7 +274,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 NotifyPropertyChanged();
             }
         }
-        private int _itemUpdateProcess = 5;
+        private int _itemUpdateProcess = 1;
 
         //public int ItemPropSyncProcess
         //{

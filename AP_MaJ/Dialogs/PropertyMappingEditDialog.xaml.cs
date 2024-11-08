@@ -246,9 +246,22 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
 
         private void AutoMappe_Click(object sender, RoutedEventArgs e)
         {
+            foreach (PropertyFieldMapping mapping in Mappings.Where(x => x.IsSelected == true))
+            {
+                mapping.IsSelected = false;
+            }
+
             foreach (PropertyFieldMapping mapping in Mappings.Where(x => x.IsSelected != true))
             {
                 if (AllFieldNames.Contains(mapping.VaultPropertyDisplayName)) mapping.IsSelected = true;
+            }
+        }
+
+        private void DeleteAllMappe_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (PropertyFieldMapping mapping in Mappings.Where(x => x.IsSelected == true))
+            {
+                mapping.IsSelected = false;
             }
         }
     }

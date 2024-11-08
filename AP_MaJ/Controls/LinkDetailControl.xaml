@@ -28,6 +28,7 @@
                 <dxt:GridColumn Header="Nom" Binding="{Binding [LinkName]}" Width="*"/>
                 <dxt:GridColumn Header="MasterId" Binding="{Binding [LinkMasterId]}" Width="Auto"/>
                 <dxt:GridColumn Header="Dans le dataset" FieldName="FoundInEntities" Binding="{Binding [FoundInEntities]}" Width="Auto"/>
+                <dxt:GridColumn Header="Item assignable" Binding="{Binding [IsItemAssignable]}" Width="Auto"/>
             </dxt:GridControl.Columns>
             <dxt:GridControl.View>
                 <dxt:TableView AutoWidth="True" AllowEditing="False" AllowBandMultiRow="False" AllowChangeColumnParent="True" ShowHorizontalLines="True" ShowVerticalLines="True"  ShowGroupPanel="False" ShowEmptyText="True" ShowIndicator="False">

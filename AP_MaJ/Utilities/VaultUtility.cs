@@ -49,6 +49,7 @@ using DevExpress.Internal.WinApi.Windows.UI.Notifications;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using DevExpress.Xpf.Core.FilteringUI;
 using DevExpress.XtraScheduler.iCalendar.Components;
+using System.Runtime.CompilerServices;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -567,8 +568,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             PropInst ItemAssignable = propInsts.Where(x => x.PropDefId == VaultConfig.ItemAssignablePropId).FirstOrDefault();
             if (ItemAssignable != null && ItemAssignable.Val != null)
             {
-                if ((bool)ItemAssignable.Val == true) resultLogs.Add(CreateLog("Info", ItemAssignablePropName + " = '" + ItemAssignable.Val.ToString() + "'."));
-                else resultLogs.Add(CreateLog("Warning", ItemAssignablePropName + " = '" + ItemAssignable.Val.ToString() + "'."));
+                if ((bool)ItemAssignable.Val == true)
+                {
+                    //ACWBOM bom = VaultConnection.WebServiceManager.DocumentService.GetBOMByFileId();
+                    resultLogs.Add(CreateLog("Info", ItemAssignablePropName + " = '" + ItemAssignable.Val.ToString() + "'."));
+                }
+                else
+                {
+                    resultLogs.Add(CreateLog("Warning", ItemAssignablePropName + " = '" + ItemAssignable.Val.ToString() + "'."));
+                }
             }
 
             string CompliancePropName = VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.Id == VaultConfig.CompliancePropId).FirstOrDefault().DisplayName;
@@ -1282,7 +1290,24 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             ds.Tables["Logs"].Rows.Add(drLog);
                         }
 
-                        NextJobErroResubmit = await ReSubmitJobsWithError(NextJobErroResubmit);
+                        (DateTime dt, List<long> mIds) toto = await ReSubmitJobsWithError(NextJobErroResubmit);
+                        NextJobErroResubmit = toto.dt;
+
+                        if(toto.mIds.Count != 0)
+                        {
+                            List<DataRow> drs = new List<DataRow>();
+                            try { drs = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<long?>("VaultMasterId") != null && toto.mIds.Contains(x.Field<long>("VaultMasterId"))).ToList(); }
+                            catch { }
+
+                            foreach (DataRow dr in drs)
+                            {
+                                DataRow drLog = ds.Tables["Logs"].NewRow();
+                                drLog["EntityId"] = dr["Id"];
+                                drLog["Severity"] = SeverityEnum.Warning;
+                                drLog["Date"] = DateTime.Now;
+                                drLog["Message"] = "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
+                            }
+                        }
 
                         TaskList.Remove(finished);
 
@@ -1302,8 +1327,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return ds;
         }
 
-        private async Task<DateTime> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
+        private async Task<(DateTime, List<long>)> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
         {
+            List<long> mIds = new List<long>();
+
             if (DateTime.Now > nextJobErroResubmit)
             {
                 Job[] AllBomBlobJobs = await Task.Run(() => VaultConnection.WebServiceManager.JobService.GetJobsByDate(100000, JobSearchStartDate));
@@ -1312,6 +1339,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     foreach (Job job in AllBomBlobJobs.Where(x => (x.Typ.Equals("autodesk.vault.extractbom.inventor") || x.Typ.Equals("Autodesk.Vault.SyncProperties")) && x.StatusCode == JobStatus.Failure))
                     {
+                        if(job.Typ.Equals("autodesk.vault.extractbom.inventor"))
+                        {
+                            long mId = -1;
+                            if(long.TryParse(job.ParamArray[1].Val, out mId)) mIds.Add(mId);
+                        }
+                        
                         await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
                     }
                 }
@@ -1319,7 +1352,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 nextJobErroResubmit = DateTime.Now.AddMinutes(5);
             }
 
-            return nextJobErroResubmit;
+            return (nextJobErroResubmit, mIds);
         }
 
         private async Task<(int processId, DataRow dr, Dictionary<string, object> Result, StateEnum State, List<Dictionary<string, object>> ResultLogs)> UpdateFileAsync(int processId, DataRow dr, IProgress<ProcessProgressReport> processProgReport, ApplicationOptions appOptions)
@@ -1351,12 +1384,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 resultState = await UpdateInventorMaterialAsync(FullVaultName, InventorMaterialName, dr, resultState, resultLogs, appOptions, processId, processProgReport);
 
             if (resultState != StateEnum.Error) resultState = await UpdateFileLifeCycleStateAsync(FullVaultName, dr, resultState, resultLogs, appOptions);
-            if (resultState != StateEnum.Error) resultState = await CreateBomBlobJobAsync(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
-
             if (resultState == StateEnum.Processing) resultState = StateEnum.Completed;
+
+            if (resultState != StateEnum.Error) resultState = await CreateBomBlobJobAsync(FullVaultName, dr, resultValues, resultState, resultLogs, appOptions);
 
             if (resultState == StateEnum.Error) processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, ErrorInc = 1 });
             else processProgReport.Report(new ProcessProgressReport() { ProcessIndex = processId, DoneInc = 1 });
+            
 
             return (processId, dr, resultValues, resultState, resultLogs);
         }
@@ -2744,8 +2778,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         int Count = 1;
                         if (dr.Field<int?>("JobSubmitCount") != null) Count = dr.Field<int>("JobSubmitCount") + 1;
 
-                        //resultValues.Add("JobSubmitCount", Count++);
-                        resultValues.Add("JobSubmitCount", Count);
+                        if (!resultValues.ContainsKey("JobSubmitCount")) resultValues.Add("JobSubmitCount", Count);
+                        else resultValues["JobSubmitCount"] = Count;
+
+                        if (!resultValues.ContainsKey("Task")) resultValues.Add("Task", TaskTypeEnum.PublishBomBlob);
+                        else resultValues["Task"] = TaskTypeEnum.PublishBomBlob;
 
                         JobParam param1 = new JobParam();
                         param1.Name = "EntityClassId";
@@ -2756,7 +2793,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         param2.Val = dr.Field<long>("VaultMasterId").ToString();
 
                         Job job = await Task.Run(() => VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob: " + fullVaultName,
-                                                       new JobParam[] { param1, param2 }, 100));
+                                                       new JobParam[] { param1, param2 }, 100 + dr.Field<int>("VaultLevel")));
+
+                        if (!resultValues.ContainsKey("State")) resultValues.Add("State", StateEnum.Completed);
+                        else resultValues["State"] = StateEnum.Completed;
 
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le job de création du BOM Blob a été soumis."));
                     }
@@ -2772,13 +2812,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         if ((Ex as VaultServiceErrorException).ErrorCode == 237)
                         {
-                            if ((ErrorLogLevel == "Error" && appOptions.LogError) || (ErrorLogLevel == "Warning" && appOptions.LogWarning))
+                            if (appOptions.LogInfo)
                                 resultLogs.Add(CreateLog(ErrorLogLevel, "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
                                                                         "' à été retourné lors de la soumission du job de création du BOM Blob." + System.Environment.NewLine +
                                                                         "Le job est déjà présent dans la queue du job processeur!"));
 
                             RetryCount = appOptions.MaxRetryCount;
-                            resultState = StateEnum.Processing;
+                            resultState = StateEnum.Completed;
                         }
                         else
                         {
@@ -2839,8 +2879,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             List<DataRow> Entities = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                                x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Update && x.Field<StateEnum>("State") == StateEnum.Completed &&
-                                                                                x.Field<int?>("JobSubmitCount") != null && x.Field<long?>("VaultMasterId") != null).ToList();
+                                                                                x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PublishBomBlob && x.Field<StateEnum>("State") == StateEnum.Completed &&
+                                                                                x.Field<long?>("VaultMasterId") != null).ToList();
 
             foreach (DataRow dr in Entities)
             {
@@ -2863,7 +2903,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (AllBomBlobJobs != null)
                 {
-                    List<Job> jobs = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Ready).ToList();
+                    try { AllBomBlobJobs = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.Descr.StartsWith("HE-CreateBomBlob")).ToArray(); }
+                    catch { }                    
+                }
+                    
+                if (AllBomBlobJobs != null)
+                {
+                    List<Job> jobs = AllBomBlobJobs.Where(x => x.StatusCode == JobStatus.Ready).ToList();
                     if (jobs != null && jobs.Count > 0)
                     {
                         PendingJobMasterIds = jobs.Where(x => x.ParamArray != null && x.ParamArray.Length >= 2).Select(x => long.Parse(x.ParamArray[1].Val)).ToList();
@@ -2873,7 +2919,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         PendingJobMasterIds.Clear();
                     }
 
-                    jobs = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Running).ToList();
+                    jobs = AllBomBlobJobs.Where(x => x.StatusCode == JobStatus.Running).ToList();
                     if (jobs != null && jobs.Count > 0)
                     {
                         RunningJobMasterIds = jobs.Where(x => x.ParamArray != null && x.ParamArray.Length >= 2).Select(x => long.Parse(x.ParamArray[1].Val)).ToList();
@@ -2883,7 +2929,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         RunningJobMasterIds.Clear();
                     }
 
-                    jobs = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && x.StatusCode == JobStatus.Failure).ToList();
+                    jobs = AllBomBlobJobs.Where(x => x.StatusCode == JobStatus.Failure).ToList();
                     if (jobs != null && jobs.Count > 0)
                     {
                         ErrorJobMasterIds = jobs.Where(x => x.ParamArray != null && x.ParamArray.Length >= 2).Select(x => long.Parse(x.ParamArray[1].Val)).ToList();
@@ -2910,7 +2956,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         if (dr.Field<int>("JobSubmitCount") < appOptions.MaxJobSubmitionCount)
                         {
-                            Job job = AllBomBlobJobs.Where(x => x.Typ.Equals("autodesk.vault.extractbom.inventor") && long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault();
+                            Job job = AllBomBlobJobs.Where(x => long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault();
 
                             if (job != null)
                             {
@@ -2923,10 +2969,26 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                     Log["Message"] = "Le job de publication des informations de nomenclature a été re-soumis (" + (dr.Field<int>("JobSubmitCount") + 1) + ")";
                                     ds.Tables["Logs"].Rows.Add(Log);
                                 }
+                                
+                                try
+                                {
+                                    await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+                                }
+                                catch(Exception ex)
+                                {
+                                    if (appOptions.LogError)
+                                    {
+                                        DataRow Log = ds.Tables["Logs"].NewRow();
+                                        Log["EntityId"] = dr["Id"];
+                                        Log["Severity"] = "Error";
+                                        Log["Date"] = DateTime.Now;
+                                        Log["Message"] = "Erreur lors de la re-soumission du job de publication des informations de nomenclature (" + (dr.Field<int>("JobSubmitCount") + 1) + ")\n" + ex.ToString();
+                                        ds.Tables["Logs"].Rows.Add(Log);
+                                    }
+                                }
 
                                 dr["JobSubmitCount"] = dr.Field<int>("JobSubmitCount") + 1;
-                                dr["State"] = StateEnum.Pending;
-                                await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+
                             }
                             else
                             {
@@ -2967,7 +3029,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     List<ACW.File> files = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFilesByMasterIds(DoneJobMasterIds.ToArray()).ToList());
 
                     List<bool> HasBomBlob = VaultConnection.WebServiceManager.PropertyService.GetProperties(EntityClassIds.Files, files.Select(x => x.Id).ToArray(),
-                                                new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["ItemAssignable"].Id }).Select(x => (bool)x.Val).ToList();
+                                                new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["ItemAssignable"].Id }).Select(x => (bool?)x.Val == true).ToList();
 
                     for (int i = 0; i < files.Count; i++)
                     {
@@ -2978,6 +3040,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             if (HasBomBlob[i])
                             {
                                 dr["State"] = StateEnum.Completed;
+                                DataRow Log = ds.Tables["Logs"].NewRow();
+                                Log["EntityId"] = dr["Id"];
+                                Log["Severity"] = "Info";
+                                Log["Date"] = DateTime.Now;
+                                Log["Message"] = "La publication des informations de nomenclature est terminée.";
+                                ds.Tables["Logs"].Rows.Add(Log);
+
                                 processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, DoneInc = 1 });
                             }
                             else
@@ -2997,15 +3066,40 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                                     try
                                     {
-                                        VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob (retry " + dr.Field<int>("JobSubmitCount") + "): " + dr.Field<string>("Name"), new JobParam[] { param1, param2 }, 100);
+                                        VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob (retry " + dr.Field<int>("JobSubmitCount") + "): " + dr.Field<string>("Name"), new JobParam[] { param1, param2 }, 100 + dr.Field<int>("VaultLevel"));
+                                        
+                                        DataRow Log = ds.Tables["Logs"].NewRow();
+                                        Log["EntityId"] = dr["Id"];
+                                        Log["Severity"] = "Info";
+                                        Log["Date"] = DateTime.Now;
+                                        Log["Message"] = "Le job de publication des informations de nomenclature a été re-soumis (" + dr.Field<int>("JobSubmitCount") + ")";
+                                        ds.Tables["Logs"].Rows.Add(Log);
                                     }
-                                    catch (Exception Ex)
+                                    catch (Exception ex)
                                     {
-                                        System.IO.File.WriteAllText(System.IO.Path.Combine("C:\\Temp", "JobError.log"), Ex.ToString());
+                                        if (appOptions.LogError)
+                                        {
+                                            DataRow Log = ds.Tables["Logs"].NewRow();
+                                            Log["EntityId"] = dr["Id"];
+                                            Log["Severity"] = "Error";
+                                            Log["Date"] = DateTime.Now;
+                                            Log["Message"] = "Erreur lors de la re-soumission du job de publication des informations de nomenclature (" + (dr.Field<int>("JobSubmitCount") + 1) + ")\n" + ex.ToString();
+                                            ds.Tables["Logs"].Rows.Add(Log);
+                                        }
                                     }
                                 }
                                 else
                                 {
+                                    if (appOptions.LogError)
+                                    {
+                                        DataRow Log = ds.Tables["Logs"].NewRow();
+                                        Log["EntityId"] = dr["Id"];
+                                        Log["Severity"] = "Error";
+                                        Log["Date"] = DateTime.Now;
+                                        Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tantatives.";
+                                        ds.Tables["Logs"].Rows.Add(Log);
+                                    }
+
                                     dr["State"] = StateEnum.Error;
                                     processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
                                 }
@@ -3020,7 +3114,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 if (Entities.Count > 0 && !taskCancellationToken.IsCancellationRequested)
                 {
                     processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0 });
-                    await Task.Delay(5000);
+                    await Task.Delay(30000);
                 }
             }
 
@@ -3069,11 +3163,17 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             taskProgReport.Report(new TaskProgressReport() { Message = "Validation des articles", TotalEntityCount = TotalCount, Timer = "Start" });
 
-            List<long> FileMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<long?>("VaultMasterId") != null).Select(x => x.Field<long>("VaultMasterId")).ToList();
-            if (FileMasterIds == null) FileMasterIds = new List<long>();
+            List<long> FileMasterIds = new List<long>();
+            try { FileMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<long?>("VaultMasterId") != null).Select(x => x.Field<long>("VaultMasterId")).ToList(); }
+            catch { }
+            //List<long> FileMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<long?>("VaultMasterId") != null).Select(x => x.Field<long>("VaultMasterId")).ToList();
+            //if (FileMasterIds == null) FileMasterIds = new List<long>();
 
-            List<long> FileWithErrorMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<long?>("VaultMasterId") != null && x.Field<StateEnum>("State") == StateEnum.Error).Select(x => x.Field<long>("VaultMasterId")).ToList();
-            if (FileWithErrorMasterIds == null) FileWithErrorMasterIds = new List<long>();
+            List<long> FileWithErrorMasterIds = new List<long>();
+            try { FileWithErrorMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<long?>("VaultMasterId") != null && x.Field<StateEnum>("State") == StateEnum.Error).Select(x => x.Field<long>("VaultMasterId")).ToList(); }
+            catch { }
+            //List<long> FileWithErrorMasterIds = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<long?>("VaultMasterId") != null && x.Field<StateEnum>("State") == StateEnum.Error).Select(x => x.Field<long>("VaultMasterId")).ToList();
+            //if (FileWithErrorMasterIds == null) FileWithErrorMasterIds = new List<long>();
 
             List<string> FieldsMustMatchInventorMaterial = appOptions.VaultPropertyFieldMappings.Where(x => x.MustMatchInventorMaterial && x.VaultPropertySet.Equals("Item")).Select(x => x.FieldName).ToList();
 
@@ -3217,7 +3317,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             ValidateItemRevisionInfo(VaultItem, dr, resultValues, ref resultState, resultLogs);
 
                             CollectItemFileLinks(VaultItem, dr, resultLinks, ref resultState, resultLogs, fileMasterIds, fileWithErrorMasterIds);
-
                         }
                     }
                     else
@@ -3604,10 +3703,43 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     long masterId = files[FileIds.IndexOf(itemFileAssoc.CldFileId)].MasterId;
                     string linkName = files[FileIds.IndexOf(itemFileAssoc.CldFileId)].Name;
 
+                    PropInst[] propInsts = null;
+                    try
+                    {
+                        propInsts = VaultConnection.WebServiceManager.PropertyService.GetProperties(VDF.Vault.Currency.Entities.EntityClassIds.Files,
+                                        new long[] { VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(masterId).Id }, new long[] { VaultConfig.ItemAssignablePropId });
+                    }
+                    catch
+                    {
+                        propInsts = null;
+                    }
+                    
+                    bool IsFileItemAssignable = false;
+
+                    if(propInsts != null && propInsts.Length > 0)
+                    {
+                        PropInst propInst = propInsts.FirstOrDefault();
+                        if (propInst != null && propInst.ValTyp == ACW.DataType.Bool)
+                        {
+                            if(propInst.Val != null) IsFileItemAssignable = (bool)propInst.Val;
+                        }
+                    }
+                    else
+                    {
+                        resultState = StateEnum.Error;
+                        resultLogs.Add(CreateLog("Error", "Impossible de lire la propriété 'ItemAssignable' du fichier '" + linkName + "' lié à l'article."));
+                    }
+
                     if (fileWithErrorMasterIds.Contains(masterId))
                     {
                         resultState = StateEnum.Error;
                         resultLogs.Add(CreateLog("Error", "La mise à jour de l'article n'est pas possible car le fichier lié '" + linkName + "' a rencontré une erreur lors de la mise à jour."));
+                    }
+
+                    if (itemFileAssoc.Typ == ItemFileLnkTyp.Primary && !IsFileItemAssignable)
+                    {
+                        resultState = StateEnum.Error;
+                        resultLogs.Add(CreateLog("Error", "La mise à jour de l'article n'est pas possible car le fichier primaire '" + linkName + "' n'a pas de données d'article (BomBlob)."));
                     }
 
                     Link = new Dictionary<string, object>();
@@ -3615,6 +3747,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     Link.Add("LinkMasterId", masterId);
                     Link.Add("FoundInEntities", fileMasterIds.Contains(masterId));
                     Link.Add("LinkName", linkName);
+                    Link.Add("IsItemAssignable", IsFileItemAssignable);
                     resultLinks.Add(Link);
                 }
 
@@ -3624,6 +3757,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         long masterId = files[FileIds.IndexOf(fileAttmt.FileId)].MasterId;
                         string linkName = files[FileIds.IndexOf(fileAttmt.FileId)].Name;
+
+                        PropInst[] propInsts = null;
+                        try
+                        {
+                            propInsts = VaultConnection.WebServiceManager.PropertyService.GetProperties(VDF.Vault.Currency.Entities.EntityClassIds.Files,
+                                            new long[] { VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(masterId).Id }, new long[] { VaultConfig.ItemAssignablePropId });
+                        }
+                        catch
+                        {
+                            propInsts = null;
+                        }
+
+                        bool IsFileItemAssignable = false;
+
+                        if (propInsts != null && propInsts.Length > 0)
+                        {
+                            PropInst propInst = propInsts.FirstOrDefault();
+                            if (propInst != null && propInst.ValTyp == ACW.DataType.Bool)
+                            {
+                                if (propInst.Val != null) IsFileItemAssignable = (bool)propInst.Val;
+                            }
+                        }
+                        else
+                        {
+                            resultState = StateEnum.Error;
+                            resultLogs.Add(CreateLog("Error", "Impossible de lire la propriété 'ItemAssignable' du fichier '" + linkName + "' attaché à l'article."));
+                        }
 
                         if (fileWithErrorMasterIds.Contains(masterId))
                         {
@@ -3637,6 +3797,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         Link.Add("LinkMasterId", masterId);
                         Link.Add("FoundInEntities", fileMasterIds.Contains(masterId));
                         Link.Add("LinkName", linkName);
+                        Link.Add("IsItemAssignable", IsFileItemAssignable);
                         resultLinks.Add(Link);
                     }
                 }

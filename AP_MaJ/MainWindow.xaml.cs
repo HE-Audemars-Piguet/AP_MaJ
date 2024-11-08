@@ -31,6 +31,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -322,7 +323,15 @@ namespace Ch.Hurni.AP_MaJ
         }
         private ApplicationOptions _appOptions = null;
 
+        public string CurrentVersion
+        {
+            get
+            {
+                Assembly assembly = Assembly.GetExecutingAssembly();
 
+                return assembly.GetName().Version.ToString();
+            }
+        }
         #endregion
 
 

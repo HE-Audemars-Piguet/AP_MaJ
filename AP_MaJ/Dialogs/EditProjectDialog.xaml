@@ -319,7 +319,7 @@
                             <dxdo:LayoutGroup Margin="0 4 0 0">
                                 <dxdo:LabelItem Caption="Nombre de processeurs lors de la mise à jour des articles"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
-                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
+                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.ItemUpdateProcess, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="1" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>

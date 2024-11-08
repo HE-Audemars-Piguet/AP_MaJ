@@ -92,6 +92,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "LinkMasterId", DataType = typeof(long), AllowDBNull = true });
             dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "LinkName", DataType = typeof(string), AllowDBNull = true });
             dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "FoundInEntities", DataType = typeof(bool), AllowDBNull = false, DefaultValue = false });
+            dtEntityLinks.Columns.Add(new DataColumn() { ColumnName = "IsItemAssignable", DataType = typeof(bool), AllowDBNull = false, DefaultValue = false });
 
             //dtNewProps.PrimaryKey = new List<DataColumn>() { dtNewProps.Columns["EntityId"] }.ToArray();
             ds.Tables.Add(dtEntityLinks);

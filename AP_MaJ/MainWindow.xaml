@@ -181,20 +181,12 @@
                                Glyph="{dx:DXImage 'SvgImages/Actions/Open2.svg'}" IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}">
             </dxb:BarButtonItem>
             <dxb:BarItemSeparator/>
-            <dxb:BarStaticItem Name="ActiveProjectNameBarButtonItem" >
-                <dxb:BarStaticItem.Style>
-                    <Style TargetType="dxb:BarStaticItem">
-                        <Setter Property="Content" Value="{Binding ActiveProjectName}"/>
-                        <Setter Property="IsEnabled" Value="True"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ActiveProjectName}" Value="">
-                                <Setter Property="Content" Value="Créer ou ouvrer un projet"/>
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </dxb:BarStaticItem.Style>
-            </dxb:BarStaticItem>
+            <dxb:BarButtonItem ToolTip="Version de l'application"
+                               Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=CurrentVersion}">
+            </dxb:BarButtonItem>
+            <dxb:BarItemSeparator/>
+            <dxb:BarButtonItem Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=AppOptions.VaultName}"
+							   ToolTip="Version actuelle du produit"/>
 
             <dxb:BarItemSeparator Alignment="Far"/>
             <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Dashboards/ServerMode.svg'}" GlyphSize="Small" ToolTip="Nom du serveur Vault"/>
