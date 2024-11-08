@@ -4893,21 +4893,35 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     if (getPromoteOrderResults.PrimaryArray != null && getPromoteOrderResults.PrimaryArray.Length > 0)
                     {
                         VaultConnection.WebServiceManager.ItemService.PromoteComponents(timestamp, getPromoteOrderResults.PrimaryArray);
-                        DetailLog += "\nL'article a " + getPromoteOrderResults.PrimaryArray.Length + " lien primaire (" + string.Join(";", getPromoteOrderResults.PrimaryArray.Select(x => x.ToString())) + ").";
+
+                        if(getPromoteOrderResults.PrimaryArray.Length >= 1 && dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Primary.ToString())).Count() == 1)
+                        {
+                            DetailLog += "L'article a " + getPromoteOrderResults.PrimaryArray.Length + " lien primaire:\n";
+                            DetailLog += " - " + string.Join("; ", dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Primary.ToString())).Select(x => "'" + x.Field<string>("LinkName") + "'")) + "\n";
+                        }
+                        else if (getPromoteOrderResults.PrimaryArray.Length >= 1 && dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Primary.ToString())).Count() == 0 && dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Secondary.ToString())).Count() > 0)
+                        {
+                            DetailLog += "L'article a " + getPromoteOrderResults.PrimaryArray.Length + " lien(s) secondaire(s):\n";
+                            DetailLog += " - " + string.Join("; ", dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Secondary.ToString())).Select(x => "'" + x.Field<string>("LinkName") + "'")) + "\n";
+                        }
+                        else if (getPromoteOrderResults.PrimaryArray.Length >= 1 && dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Primary.ToString())).Count() == 1 && dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Secondary.ToString())).Count() > 0)
+                        {
+                            DetailLog += "L'article a " + getPromoteOrderResults.PrimaryArray.Length + " lien(s) primaire et secondaire(s):\n";
+                            DetailLog += " - " + string.Join("; ", dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Primary.ToString())).Select(x => "'" + x.Field<string>("LinkName") + "'")) + "\n";
+                            DetailLog += " - " + string.Join("; ", dr.GetChildRows("EntityLinks").Where(x => x.Field<string>("LinkType").Equals(ItemFileLnkTyp.Secondary.ToString())).Select(x => "'" + x.Field<string>("LinkName") + "'")) + "\n";
+                        }
                     }
                     else
                     {
-                        DetailLog += "\nL'article n'a pas de lien primaire ou le lien primaire est à jour.";
+                        DetailLog += "L'article n'a pas ni lien primaire ni lien(s) secondaire(s) ou ces liens sont à jour.";
                     }
 
                     if (getPromoteOrderResults.NonPrimaryArray != null && getPromoteOrderResults.NonPrimaryArray.Length > 0)
                     {
                         VaultConnection.WebServiceManager.ItemService.PromoteComponentLinks(getPromoteOrderResults.NonPrimaryArray);
-                        DetailLog += "\nL'article a " + getPromoteOrderResults.NonPrimaryArray.Length + " autres liens (" + string.Join(";", getPromoteOrderResults.NonPrimaryArray.Select(x => x.ToString())) + ").";
-                    }
-                    else
-                    {
-                        DetailLog += "\nL'article n'a pas d'autres liens ou ces liens sont à jour.";
+
+                        if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Attention, ce type de PromoteComponentLinks(getPromoteOrderResults.NonPrimaryArray), n'a jamais été testé car inexistant."));
+                        DetailLog += "L'article a " + getPromoteOrderResults.NonPrimaryArray.Length + " lien(s) non primaire (NonPrimaryArray)\n";
                     }
 
                     ItemsAndFiles result = VaultConnection.WebServiceManager.ItemService.GetPromoteComponentsResults(timestamp);
@@ -4919,10 +4933,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             {
                                 UpdateItems.Add(result.ItemRevArray[i]);
 
-                                if (result.StatusArray[i] == 2 && result.ItemRevArray[i].MasterId == item.MasterId) DetailLog += "\nL'article '" + result.ItemRevArray[i].ItemNum + "' a été créé.";
-                                else if (result.StatusArray[i] == 2 && result.ItemRevArray[i].MasterId != item.MasterId) DetailLog += "\nL'article '" + result.ItemRevArray[i].ItemNum + "' a été créé lors de la mise à jour de l'article '" + item.ItemNum + "'.";
-                                else if (result.StatusArray[i] == 4 && result.ItemRevArray[i].MasterId == item.MasterId) DetailLog += "\nL'article '" + result.ItemRevArray[i].ItemNum + "' a été mis à jour.";
-                                else if (result.StatusArray[i] == 4 && result.ItemRevArray[i].MasterId != item.MasterId) DetailLog += "\nL'article '" + result.ItemRevArray[i].ItemNum + "' a été mis à jour lors de la mise a jour de l'article '" + item.ItemNum + "'.";
+                                if (result.StatusArray[i] == 2 && result.ItemRevArray[i].MasterId == item.MasterId) DetailLog += "L'article '" + result.ItemRevArray[i].ItemNum + "' a été créé.\n";
+                                else if (result.StatusArray[i] == 2 && result.ItemRevArray[i].MasterId != item.MasterId) DetailLog += "L'article '" + result.ItemRevArray[i].ItemNum + "' a été créé lors de la mise à jour de l'article '" + item.ItemNum + "'.\n";
+                                else if (result.StatusArray[i] == 4 && result.ItemRevArray[i].MasterId == item.MasterId) DetailLog += "L'article '" + result.ItemRevArray[i].ItemNum + "' a été mis à jour.\n";
+                                else if (result.StatusArray[i] == 4 && result.ItemRevArray[i].MasterId != item.MasterId) DetailLog += "L'article '" + result.ItemRevArray[i].ItemNum + "' a été mis à jour lors de la mise a jour de l'article '" + item.ItemNum + "'.\n";
                             }
                         }
                     }
@@ -4938,6 +4952,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         catch (Exception Ex)
                         {
                             if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors de l'enregistrement de l'article après la mise à jour des fichiers liés." + System.Environment.NewLine + Ex.ToString()));
+                            resultState = StateEnum.Error;
                         }
                     }
                     else
@@ -4956,6 +4971,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 catch (Exception Ex)
                 {
                     if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors de la mise à jour des fichiers liés." + System.Environment.NewLine + Ex.ToString()));
+                    resultState = StateEnum.Error;
                 }
             }
         }
