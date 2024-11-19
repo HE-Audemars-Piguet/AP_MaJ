@@ -1752,21 +1752,42 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (file != null && UpdateUdps.Count > 0)
             {
                 string action = string.Empty;
-                try
+
+                int count = 1;
+                do
                 {
                     action = "l'extraction du fichier pour mise à jour des UDPs";
-                    VDF.Vault.Settings.AcquireFilesSettings AcquireSettings = new VDF.Vault.Settings.AcquireFilesSettings(VaultConnection);
+                    VDF.Vault.Results.AcquireFilesResults AcquireResults = null;  
+                    
+                    try
+                    {
+                        VDF.Vault.Settings.AcquireFilesSettings AcquireSettings = new VDF.Vault.Settings.AcquireFilesSettings(VaultConnection);
 
-                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeAttachments = false;
-                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeChildren = false;
-                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeLibraryContents = false;
-                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeParents = false;
-                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeRelatedDocumentation = false;
-                    AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.VersionGatheringOption = VDF.Vault.Currency.VersionGatheringOption.Actual;
+                        AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeAttachments = false;
+                        AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeChildren = false;
+                        AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeLibraryContents = false;
+                        AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeParents = false;
+                        AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.IncludeRelatedDocumentation = false;
+                        AcquireSettings.OptionsRelationshipGathering.FileRelationshipSettings.VersionGatheringOption = VDF.Vault.Currency.VersionGatheringOption.Actual;
 
-                    AcquireSettings.AddFileToAcquire(new VDF.Vault.Currency.Entities.FileIteration(VaultConnection, file), VDF.Vault.Settings.AcquireFilesSettings.AcquisitionOption.Checkout);
+                        AcquireSettings.AddFileToAcquire(new VDF.Vault.Currency.Entities.FileIteration(VaultConnection, file), VDF.Vault.Settings.AcquireFilesSettings.AcquisitionOption.Checkout);
+                        AcquireResults = VaultConnection.FileManager.AcquireFiles(AcquireSettings);
+                    }
+                    catch (Exception Ex)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                       "' à été retourné lors de " + action + "."));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors  de " + action + "." + System.Environment.NewLine +
+                                                                                       Ex.ToString()));
+                        }
+                        return StateEnum.Error;
+                    }
 
-                    VDF.Vault.Results.AcquireFilesResults AcquireResults = VaultConnection.FileManager.AcquireFiles(AcquireSettings);
 
                     FileIteration CheckedOutFile = null;
                     if (AcquireResults.FileResults.Count() == 1 && AcquireResults.FileResults.FirstOrDefault().Status == FileAcquisitionResult.AcquisitionStatus.Success)
@@ -1780,88 +1801,63 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         return StateEnum.Error;
                     }
 
-                    //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file acquired." + System.Environment.NewLine);
-
-                    action = "la mise à jour des UDPs";
-                    VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") }, new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } });
-                    if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les UDPs ont été mis à jour."));
-                    //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file UDPs updated." + System.Environment.NewLine);
-
-                    int count = 1;
-                    do
+                    try
                     {
+                        action = "la mise à jour des UDPs";
+                        VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") }, new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } });
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les UDPs ont été mis à jour."));
+
+                        //int count = 1;
+                        //do
+                        //{
+
+                        file = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des UDPs", false, DateTime.Now, GetFileAssocParamByMasterId(file.MasterId), null, false, "", file.FileClass, file.Hidden, null);
+                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été archivé après mise à jour des UDPs."));
+                        //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file checked in ("+ count + ")" + System.Environment.NewLine);
+                        break;
+                    }
+                    catch (Exception Ex)
+                    {
+                        if (Ex is VaultServiceErrorException)
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                        "' à été retourné lors de l'archivage du fichier après mise à jour des UDPs. (" + count + ")"));
+                        }
+                        else
+                        {
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'archivage du fichier après mise à jour des UDPs (" + count + ")." + System.Environment.NewLine +
+                                                                                        Ex.ToString()));
+                        }
+
+                        //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file checked in failed ("+ count + ")" + System.Environment.NewLine);
+                        System.Threading.Thread.Sleep(count * count * 100);
+                        count++;
+
                         try
                         {
-                            file = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des UDPs", false, DateTime.Now, GetFileAssocParamByMasterId(file.MasterId), null, false, "", file.FileClass, file.Hidden, null);
-                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été archivé après mise à jour des UDPs."));
-                            //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file checked in ("+ count + ")" + System.Environment.NewLine);
-                            break;
-                        }
-                        catch (Exception Ex)
-                        {
-                            if (Ex is VaultServiceErrorException)
+                            if (CheckedOutFile != null)
                             {
-                                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
-                                                                                           "' à été retourné lors de l'archivage du fichier après mise à jour des UDPs. (" + count + ")"));
+                                VaultConnection.FileManager.UndoCheckoutFile(CheckedOutFile);
+                                if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'extraction du fichier après mise à jour des UDPs a été annulée."));
+                            }
+                        }
+                        catch (Exception SubEx)
+                        {
+                            if (SubEx is VaultServiceErrorException)
+                            {
+                                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)SubEx) +
+                                                                                            "' à été retourné lors de l'annulation de l'extraction du fichier après mise à jour des UDPs."));
                             }
                             else
                             {
-                                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'archivage du fichier après mise à jour des UDPs (" + count + ")." + System.Environment.NewLine +
-                                                                                           Ex.ToString()));
+                                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'annulation de l'extraction du fichier après mise à jour des UDPs." + System.Environment.NewLine +
+                                                                                            SubEx.ToString()));
                             }
-
-                            //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file checked in failed ("+ count + ")" + System.Environment.NewLine);
-                            System.Threading.Thread.Sleep(count * count * 100);
-                            count++;
-
-                            if (count >= 5)
-                            {
-                                try
-                                {
-                                    if (CheckedOutFile != null)
-                                    {
-                                        VaultConnection.FileManager.UndoCheckoutFile(CheckedOutFile);
-                                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'extraction du fichier après mise à jour des UDPs a été annulée."));
-                                    }
-                                }
-                                catch (Exception SubEx)
-                                {
-                                    if (SubEx is VaultServiceErrorException)
-                                    {
-                                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)SubEx) +
-                                                                                                   "' à été retourné lors de l'annulation de l'extraction du fichier après mise à jour des UDPs."));
-                                    }
-                                    else
-                                    {
-                                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'annulation de l'extraction du fichier après mise à jour des UDPs." + System.Environment.NewLine +
-                                                                                                   SubEx.ToString()));
-                                    }
-                                }
-
-                                return StateEnum.Error;
-                            }
+                            return StateEnum.Error;
                         }
-                    } while (count < 5);
-                }
-                catch (Exception Ex)
-                {
-                    if (Ex is VaultServiceErrorException)
-                    {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
-                                                                                   "' à été retourné lors de " + action + "."));
                     }
-                    else
-                    {
-                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors  de " + action + "." + System.Environment.NewLine +
-                                                                                   Ex.ToString()));
-                    }
+                } while (count < 5);
 
-                    //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Error while updating UDPs" + System.Environment.NewLine + 
-                    //                                                                      string.Join(";", UdpNames) + System.Environment.NewLine +
-                    //                                                                      string.Join(";", UpdateUdps.Select(x => (x.Val?.ToString() ?? "Null") + "(" + (x.Val?.GetType().Name ?? "Null") + ")")) + System.Environment.NewLine +
-                    //                                                                      Ex.ToString() );
-                    return StateEnum.Error;
-                }
             }
 
             if (file != null && UpdateFileProps.Count > 0)
@@ -2263,7 +2259,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 AcquireSettings.OptionsThreading.CancellationToken = new CancellationTokenSource();
 
-
                 ACW.File File = VaultConnection.WebServiceManager.DocumentService.GetLatestFilesByMasterIds(new long[] { dr.Field<long>("VaultMasterId") }).FirstOrDefault();
 
                 System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "    - file with master ID '" + dr.Field<long>("VaultMasterId") + "' in db has masterId '" + File.MasterId + "' in Vault." + System.Environment.NewLine);
@@ -2288,18 +2283,41 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     try
                     {
                         Task<AcquireFilesResults> acq = VaultConnection.FileManager.AcquireFilesAsync(AcquireSettings);
-                        AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(appOptions.CancelAcquireFileAfter * 1000 * RetryCount ^ 2);
+                        AcquireSettings.OptionsThreading.CancellationToken.CancelAfter(appOptions.CancelAcquireFileAfter * 1000);
                         await acq;
 
                         AcquireResults = acq.Result;
 
                         if (AcquireResults == null || AcquireResults.IsCancelled)
                         {
+                            if(AcquireResults != null && AcquireResults.FileResults != null && AcquireResults.FileResults.Count > 0)
+                            {
+                                string AcqResult = string.Empty;
+                                foreach (FileAcquisitionResult FileAcqRes in AcquireResults.FileResults)
+                                {
+                                    AcqResult += System.Environment.NewLine + " > " + FileAcqRes.LocalPath.FullPath + "(State=" + FileAcqRes.Status.ToString() + ", Options=" + FileAcqRes.AcquisitionOption.ToString() + ")";
+                                    if (FileAcqRes.Status == FileAcquisitionResult.AcquisitionStatus.Exception)
+                                    {
+                                        AcqResult += System.Environment.NewLine + "   " + FileAcqRes.Exception.ToString().Replace("\n", "\n   ");
+                                    }
+                                    else if (FileAcqRes.Status == FileAcquisitionResult.AcquisitionStatus.Restriction)
+                                    {
+                                        AcqResult += System.Environment.NewLine + "   " + FileAcqRes.Restrictions.ToString();
+                                    }
+                                    else if (FileAcqRes.Status == FileAcquisitionResult.AcquisitionStatus.NotExecuted)
+                                    {
+                                        AcqResult += System.Environment.NewLine + "   Not Executed";
+                                    }
+                                }
+
+                                if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors du téléchargement des fichiers pour mise à jour de la matière:" + AcqResult));
+                            }
+
                             if ((ErrorLogLevel == "Error" && appOptions.LogError) || (ErrorLogLevel == "Warning" && appOptions.LogWarning))
-                                resultLogs.Add(CreateLog(ErrorLogLevel, "Annulation de l'opération de téléchargement des fichiers après " + appOptions.CancelAcquireFileAfter * RetryCount +
+                                resultLogs.Add(CreateLog(ErrorLogLevel, "Annulation de l'opération de téléchargement des fichiers après " + appOptions.CancelAcquireFileAfter +
                                                                         " secondes (essai " + RetryCount + "/" + appOptions.MaxRetryCount + ")."));
 
-                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after " + appOptions.CancelAcquireFileAfter * RetryCount + " sec" + System.Environment.NewLine);
+                            System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "      - Download canceled after " + appOptions.CancelAcquireFileAfter + " sec" + System.Environment.NewLine);
 
                             AcquireResults = null;
                             await Task.Delay(RetryDelay);
@@ -2322,7 +2340,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                             if (AcquireResults.FileResults.Where(x => x.Status != FileAcquisitionResult.AcquisitionStatus.Success).Count() == 0)
                             {
-                                if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Téléchargement des fichiers pour mise à jour de la matière:" + AcqResult));
+                                if (appOptions.LogInfo) resultLogs.Add(CreateLog(   "Info", "Téléchargement des fichiers pour mise à jour de la matière:" + AcqResult));
                                 RetryCount = appOptions.MaxRetryCount;
                             }
                             else
