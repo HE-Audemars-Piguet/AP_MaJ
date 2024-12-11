@@ -50,6 +50,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using DevExpress.Xpf.Core.FilteringUI;
 using DevExpress.XtraScheduler.iCalendar.Components;
 using System.Runtime.CompilerServices;
+using Autodesk.DataManagement.Client.Framework.Vault.Currency.FileSystem;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -1749,6 +1750,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 return StateEnum.Error;
             }
 
+            string XClog = string.Format("C:\\Temp\\XC{0}.log", processId);
+
             if (file != null && UpdateUdps.Count > 0)
             {
                 string action = string.Empty;
@@ -1792,7 +1795,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     FileIteration CheckedOutFile = null;
                     if (AcquireResults.FileResults.Count() == 1 && AcquireResults.FileResults.FirstOrDefault().Status == FileAcquisitionResult.AcquisitionStatus.Success)
                     {
-                        CheckedOutFile = AcquireResults.FileResults.FirstOrDefault().File;
+                        CheckedOutFile = AcquireResults.FileResults.FirstOrDefault().NewFileIteration;
+
+                        System.IO.File.AppendAllText(XClog, "Le fichier '" + dr.Field<string>("Name") + "' version " + file.VerNum + " a été checkedout en version " + CheckedOutFile.VersionNumber + " (IsCheckedOut=" + CheckedOutFile.IsCheckedOut + "); UpdatedRefs=" + AcquireResults.FileResults.FirstOrDefault().FileReferenceUpdates.Count() + ".\n");
+                        foreach(FileReferenceUpdateStatus toto in AcquireResults.FileResults.FirstOrDefault().FileReferenceUpdates)
+                        {
+                            System.IO.File.AppendAllText(XClog, " - FileReference " + toto.Reference.Path + "; " + toto.Reference.RefId + "; " + toto.Reference.SourceTag + "; " + toto.ResultDescription +"; " + toto.Status + "\n");
+                        }
+                        System.IO.File.AppendAllText(XClog, "----------------------------------------------------------------------------------------------\n");
+
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été extrait pour mise à jour des UDPs."));
                     }
                     else
@@ -1804,16 +1815,30 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     try
                     {
                         action = "la mise à jour des UDPs";
+
+                        System.IO.File.AppendAllText(XClog, "Mise à jour des UDPs\n");
+                        foreach (var truc in UpdateUdps)
+                        {
+                            System.IO.File.AppendAllText(XClog, " - L'UDP (Id='" + truc.PropDefId + 
+                                                                                "', Name='" + VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.Id == truc.PropDefId).FirstOrDefault().DisplayName +
+                                                                                "', Type='" + VaultConfig.VaultFilePropertyDefinitionDictionary.Values.Where(x => x.Id == truc.PropDefId).FirstOrDefault().DataType.ToString() +
+                                                                                ") va être mis à jour avec la valeur '" + truc.Val.ToString() + "' de type [" + truc.Val.GetType().Name + "].\n");
+                        }
+
                         VaultConnection.WebServiceManager.DocumentService.UpdateFileProperties(new long[] { dr.Field<long>("VaultMasterId") }, new ACW.PropInstParamArray[] { new ACW.PropInstParamArray() { Items = UpdateUdps.ToArray() } });
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Les UDPs ont été mis à jour."));
 
-                        //int count = 1;
-                        //do
-                        //{
+                        System.IO.File.AppendAllText(XClog, "Mise à jour des UDPs faite\n");
+                        System.IO.File.AppendAllText(XClog, "----------------------------------------------------------------------------------------------\n");
 
-                        file = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des UDPs", false, DateTime.Now, GetFileAssocParamByMasterId(file.MasterId), null, false, "", file.FileClass, file.Hidden, null);
+
+                        FileAssocParam[] fileAssocParams = GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId"), XClog);
+
+                        file = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des UDPs", false, DateTime.Now, fileAssocParams, null, false, "", file.FileClass, file.Hidden, null);
+                        //file = VaultConnection.WebServiceManager.DocumentService.CheckinUploadedFile(dr.Field<long>("VaultMasterId"), "MaJ - Mise à jour des UDPs", false, DateTime.Now, null, null, false, "", file.FileClass, file.Hidden, null);
+
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Le fichier a été archivé après mise à jour des UDPs."));
-                        //System.IO.File.AppendAllText(@"C:\Temp\Process" + processId + ".log", "Update UDPs file checked in ("+ count + ")" + System.Environment.NewLine);
+
                         break;
                     }
                     catch (Exception Ex)
@@ -1837,9 +1862,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         {
                             if (CheckedOutFile != null)
                             {
+                                System.IO.File.AppendAllText(XClog, "Le checkout de la version=" + CheckedOutFile.VersionNumber + " du fichier va être annulé.\n");
                                 VaultConnection.FileManager.UndoCheckoutFile(CheckedOutFile);
+                                System.IO.File.AppendAllText(XClog, "Undo checkout fait.\n");
+                                System.IO.File.AppendAllText(XClog, "----------------------------------------------------------------------------------------------\n");
+
                                 if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "L'extraction du fichier après mise à jour des UDPs a été annulée."));
                             }
+                            else
+                            {
+                                System.IO.File.AppendAllText(XClog, "CheckedOutFile is null, unable to undo checkout\n");
+                                System.IO.File.AppendAllText(XClog, "----------------------------------------------------------------------------------------------\n");
+                            }
+
                         }
                         catch (Exception SubEx)
                         {
@@ -2290,7 +2325,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         if (AcquireResults == null || AcquireResults.IsCancelled)
                         {
-                            if(AcquireResults != null && AcquireResults.FileResults != null && AcquireResults.FileResults.Count > 0)
+                            if(AcquireResults != null && AcquireResults.FileResults != null && AcquireResults.FileResults.Count() > 0)
                             {
                                 string AcqResult = string.Empty;
                                 foreach (FileAcquisitionResult FileAcqRes in AcquireResults.FileResults)
@@ -5190,19 +5225,24 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return result;
         }
 
-        private FileAssocParam[] GetFileAssocParamByMasterId(long masterId)
+        private FileAssocParam[] GetFileAssocParamByMasterId(long masterId, string LogFile = "")
         {
             try
             {
                 ArrayList fileAssocParams = new ArrayList();
                 FileAssocArray ThisFileAssocArray = VaultConnection.WebServiceManager.DocumentService.GetLatestFileAssociationsByMasterIds(
                                                         new long[] { masterId }, FileAssociationTypeEnum.None, false, FileAssociationTypeEnum.All, false, false, true, false).FirstOrDefault();
-
+               
                 if (ThisFileAssocArray != null && ThisFileAssocArray.FileAssocs != null)
                 {
+
+                    if(!string.IsNullOrWhiteSpace(LogFile)) System.IO.File.AppendAllText(LogFile, "File assocs count="+ ThisFileAssocArray.FileAssocs.Length + "\n");
+
                     foreach (FileAssoc assoc in ThisFileAssocArray.FileAssocs)
                     {
                         FileAssocParam param1 = new FileAssocParam();
+
+                        if (!string.IsNullOrWhiteSpace(LogFile)) System.IO.File.AppendAllText(LogFile, " - " + (assoc.CldFile.Id.ToString() ?? "Null") + "; " + (assoc.RefId.ToString() ?? "Null") + "; " + (assoc.Source.ToString() ?? "Null") + "; " + (assoc.Typ.ToString() ?? "Null") + "; " + (assoc.ExpectedVaultPath.ToString() ?? "Null") + "\n");
 
                         param1.CldFileId = assoc.CldFile.Id;
                         param1.RefId = assoc.RefId;
@@ -5212,18 +5252,21 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                         fileAssocParams.Add(param1);
                     }
+
+                    if (!string.IsNullOrWhiteSpace(LogFile)) System.IO.File.AppendAllText(LogFile, "----------------------------------------------------------------------------------------------\n");
+
                     return (FileAssocParam[])fileAssocParams.ToArray(typeof(FileAssocParam));
                 }
                 else
                 {
+                    if (!string.IsNullOrWhiteSpace(LogFile)) System.IO.File.AppendAllText(LogFile, "----------------------------------------------------------------------------------------------\n");
+
                     return null;
                 }
             }
             catch
             {
-                //MessageBox.Show("Error - Unable to update file assocs." + Environment.NewLine +
-                //                "File \"" + DocService.GetFileById(entityIterationId).Name + "\" has lost references." + Environment.NewLine +
-                //                "It MUST be open and checked-in from the Source application.", "!!! ERROR !!!", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (!string.IsNullOrWhiteSpace(LogFile)) System.IO.File.AppendAllText(LogFile, "----------------------------------------------------------------------------------------------\n");
                 return null;
             }
         }
