@@ -315,7 +315,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
             DataSet ds = data.Copy();
 
-            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File")));
+            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
+                                                                                                              x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation &&
+                                                                                                              x.Field<StateEnum>("State") == StateEnum.Pending));
+
+            //Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File")));
 
             int TotalCount = EntitiesStack.Count;
 
@@ -1240,7 +1244,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             List<DataRow> Entities = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
                                                                                (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
                                                                                 x.Field<StateEnum>("State") == StateEnum.Completed &&
-                                                                                x.Field<long?>("VaultMasterId") != null).ToList(); ;
+                                                                                x.Field<long?>("VaultMasterId") != null).ToList();
 
             foreach (DataRow dr in Entities)
             {
@@ -3460,7 +3464,11 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
             DataSet ds = data.Copy();
 
-            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item")));
+            Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") &&
+                                                                                                              x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation &&
+                                                                                                              x.Field<StateEnum>("State") == StateEnum.Pending));
+
+            //Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item")));
 
             int TotalCount = EntitiesStack.Count;
 

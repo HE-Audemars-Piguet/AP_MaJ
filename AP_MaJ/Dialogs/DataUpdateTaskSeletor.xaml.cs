@@ -449,7 +449,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<StateEnum>("State") == StateEnum.Completed))
             {
                 if ((WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == TaskTypeEnum.WaitForBomBlob && (dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))) ||
-                   (!WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == lastTaskType && !(dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))))
+                   (dr.Field<TaskTypeEnum>("Task") == lastTaskType && (!dr.Field<string>("Name").EndsWith(".ipt", sComp) || !dr.Field<string>("Name").EndsWith(".iam", sComp))))
                 {
                     dr["State"] = StateEnum.Finished;
                 }
