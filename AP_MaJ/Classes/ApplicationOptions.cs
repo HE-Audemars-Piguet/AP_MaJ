@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 using static DevExpress.XtraPrinting.Native.ExportOptionsPropertiesNames;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
@@ -19,7 +20,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
 {
     public class ApplicationOptions : INotifyPropertyChanged
     {
-        public enum StateEnum { Pending = 0, Processing = 1, Completed = 2, Error = 3, Canceled = 4 }
+        public enum StateEnum { Pending = 0, Processing = 1, Completed = 2, Error = 3, Canceled = 4, Finished = 5 }
 
         public enum TaskTypeEnum { Validation = 0, TempChangeState = 1, PurgeProps = 2, Update = 3, SyncProps = 4, PublishBomBlob = 5, WaitForBomBlob = 6, None = 7 }
 
@@ -583,6 +584,20 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private bool _saveHistory = true;
+
+        public List<LastTaskOption> LastTaskUsed
+        {
+            get 
+            { 
+                return _lastTaskUsed; 
+            }
+            set 
+            { 
+                _lastTaskUsed = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private List<LastTaskOption> _lastTaskUsed = new List<LastTaskOption>();
         #endregion
 
         #region Constructors
@@ -790,5 +805,37 @@ namespace Ch.Hurni.AP_MaJ.Classes
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
+    }
+
+    [Serializable]
+    public class LastTaskOption
+    {
+        public int Index
+        {
+            get
+            {
+                return _index;
+            }
+            set
+            {
+                _index = value;
+            }
+        }
+        private int _index = -1;
+
+        public bool? IsChecked
+        {
+            get
+            {
+                return _isChecked;
+            }
+            set
+            {
+                _isChecked = value;
+            }
+        }
+        private bool? _isChecked = null;
+
+        public LastTaskOption() { }
     }
 }

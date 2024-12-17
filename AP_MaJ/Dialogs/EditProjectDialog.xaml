@@ -152,7 +152,7 @@
                             <dxdo:LayoutGroup>
                                 <dxdo:LabelItem Caption="Nombre de resoumission max des requetes Vault (changement état, extraction,...)"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
-                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCount, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="5" Increment="1" 
+                                    <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxRetryCount, UpdateSourceTrigger=PropertyChanged}" MinValue="1" MaxValue="20" Increment="1" 
                                                   EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>

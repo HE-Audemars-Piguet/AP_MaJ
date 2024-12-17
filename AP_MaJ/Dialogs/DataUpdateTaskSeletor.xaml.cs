@@ -32,6 +32,8 @@ using static Ch.Hurni.AP_MaJ.Classes.ApplicationOptions;
 using static DevExpress.Utils.SafeXml;
 using System.IO.Compression;
 using System.Data.SQLite;
+using System.Text.Json;
+using Ch.Hurni.AP_MaJ;
 
 namespace CH.Hurni.AP_MaJ.Dialogs
 {
@@ -132,13 +134,12 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             MaJTask ReadInventorConfigTask = new MaJTask() { TaskGroup = "Inventor", Name = "ReadInventorConfig", DisplayName = "Lecture de la configuration Inventor", IsChecked = true, Index = 10, IsIndeterminate = true };
             MaJTasks.Add(ReadInventorConfigTask);
 
-            MaJTask FileTask = new MaJTask() { IsGroup = true, TaskGroup = "File", Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = null, IsTaskCheckBoxEnable = true, Index = 20 };
+            MaJTask FileTask = new MaJTask() { IsGroup = true, TaskGroup = "File", Name = "File", DisplayName = "Tâches de mise à jour des fichiers", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 20 };
             FileTask.SubTasks = new ObservableCollection<MaJTask>();
             FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 21});
             FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 22 });
-            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 23 });
+            FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 23 });
             FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "Update", DisplayName = "Mise à jour", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 24 });
-            //FileTask.SubTasks.Add(new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 25 });
             MaJTasks.Add(FileTask);
 
             MaJTask InventorCloseTask = new MaJTask() { TaskGroup = "Inventor", Name = "InventorClose", DisplayName = "Fermeture des sessions Inventor", IsChecked = true, Index = 30, IsIndeterminate = true };
@@ -147,13 +148,26 @@ namespace CH.Hurni.AP_MaJ.Dialogs
             MaJTask WaitForBomBlob = new MaJTask() { TaskGroup = "File", Name = "WaitForBomBlob", DisplayName = "Attendre et forcer la création des BOM blob", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 40 };
             MaJTasks.Add(WaitForBomBlob);
 
-            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 50 };
+            MaJTask ItemTask = new MaJTask() { IsGroup = true, TaskGroup = "Item", Name = "Item", DisplayName = "Tâches de mise à jour des articles", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 50 };
             ItemTask.SubTasks = new ObservableCollection<MaJTask>();
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 51 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 52 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 53 });
-            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = false, IsTaskCheckBoxEnable = true, Index = 54 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Validate", DisplayName = "Validation des données dans Vault", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 51 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "ChangeState", DisplayName = "Changement d'état vers l'état temporaire", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 52 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "PurgeProps", DisplayName = "Ajout/suppression des propriétés", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 53 });
+            ItemTask.SubTasks.Add(new MaJTask() { TaskGroup = "Item", Name = "Update", DisplayName = "Mise à jour", IsChecked = true, IsTaskCheckBoxEnable = true, Index = 54 });
             MaJTasks.Add(ItemTask);
+
+            if(AppOptions.LastTaskUsed.Count > 0)
+            {
+                foreach(LastTaskOption lastOpt in AppOptions.LastTaskUsed)
+                {
+                    MaJTask maJTask = MaJTasks.Select(x => x).Union(MaJTasks.Where(x => x.SubTasks != null).SelectMany(x => x.SubTasks)).Where(x => x.Index == lastOpt.Index).FirstOrDefault();
+                    if(maJTask != null)
+                    { 
+                        maJTask.IsChecked = lastOpt.IsChecked;
+                        maJTask.IsTaskCheckBoxEnable = false;
+                    }
+                }
+            }
 
             MaJToDoTasks = new ObservableCollection<string>();
 
@@ -239,6 +253,13 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         {
             if(ExecutButton.Tag.ToString().Equals("Run"))
             {
+                AppOptions.LastTaskUsed.Clear();
+                foreach (MaJTask majt in MaJTasks.Select(x => x).Union(MaJTasks.Where(x => x.SubTasks != null).SelectMany(x => x.SubTasks)))
+                {
+                    AppOptions.LastTaskUsed.Add(new LastTaskOption() { Index = majt.Index, IsChecked = majt.IsChecked });
+                }
+                System.IO.File.WriteAllText((Owner as MainWindow).ActiveProjectName, JsonSerializer.Serialize(AppOptions, typeof(ApplicationOptions), (Owner as MainWindow).JsonOptions));
+                
                 BackButton.IsEnabled = false;
                 CancelButton.IsEnabled = false;
                 CancelButton.IsDefault = false;
@@ -411,6 +432,29 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
+            string lastTaskName = MaJTasks.Where(x => x.Name.Equals("Item")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
+            TaskTypeEnum lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
+
+            foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") && x.Field<TaskTypeEnum>("Task") == lastTaskType && x.Field<StateEnum>("State") == StateEnum.Completed))
+            {
+                dr["State"] = StateEnum.Finished;
+            }
+
+            lastTaskName = MaJTasks.Where(x => x.Name.Equals("File")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
+            lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
+
+            bool WaitForBomBlob = MaJTasks.Where(x => x.Name.Equals("WaitForBomBlob")).FirstOrDefault()?.IsChecked ?? false;
+            StringComparison sComp = StringComparison.CurrentCultureIgnoreCase;
+
+            foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<StateEnum>("State") == StateEnum.Completed))
+            {
+                if ((WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == TaskTypeEnum.WaitForBomBlob && (dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))) ||
+                   (!WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == lastTaskType && !(dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))))
+                {
+                    dr["State"] = StateEnum.Finished;
+                }
+            }
+
             string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Statistics.log");
 
             string Report = "DisplayName;ProcessingState;ElementCount;TotalElementCount;ElementDoneCount;ElementErrorCount;TaskDuration";

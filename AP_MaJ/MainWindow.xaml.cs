@@ -33,6 +33,7 @@ using System.Linq;
 using System.Management;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -64,7 +65,7 @@ namespace Ch.Hurni.AP_MaJ
     {
         private string _rootProjectDir = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
 
-        private JsonSerializerOptions JsonOptions = new JsonSerializerOptions() { WriteIndented = true };
+        internal JsonSerializerOptions JsonOptions = new JsonSerializerOptions() { WriteIndented = true };
 
         #region Properties
         public string ActiveProjectName
@@ -523,6 +524,8 @@ namespace Ch.Hurni.AP_MaJ
 
         private void ImportProjectData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
+            AppOptions.LastTaskUsed.Clear();
+
             List<string> ColList = Data.Tables["Entities"].Columns.Cast<DataColumn>().Where(x => !x.ColumnName.EndsWith("Id") && !x.ColumnName.StartsWith("Vault") && !x.ColumnName.Equals("State") && !x.ColumnName.Equals("Task") && !x.ColumnName.Equals("JobSubmitCount") && !x.ColumnName.Equals("VaultProvider") && !x.ColumnName.Equals("VaultLevel")).Select(x => x.ColumnName).ToList();
             ColList = ColList.Concat(Data.Tables["NewProps"].Columns.Cast<DataColumn>().Where(x => !x.ColumnName.Equals("EntityId")).Select(x => x.ColumnName)).ToList();
 
@@ -628,6 +631,62 @@ namespace Ch.Hurni.AP_MaJ
 
         private void ProcessProjectData_Click(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
         {
+            if (_data.Tables["Entities"].Rows.Count == 0)
+            {
+                ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    AllowTextSelection = true
+                };
+
+                MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Mise à jour des données", "Aucune donnée n'a été importé", MessageBoxButton.OK, MessageBoxResult.OK, msgBoxParam);
+                return;
+            }
+            else
+            {
+                if (_data.Tables["Entities"].AsEnumerable().Where(x => x.Field<StateEnum>("State") == StateEnum.Finished).Count() > 0 && _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<StateEnum>("State") == StateEnum.Finished).Count() != _data.Tables["Entities"].Rows.Count)
+                {
+                    ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        AllowTextSelection = true
+                    };
+
+                    MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Soumettre à nouveau",
+                                                                              "Voulez-vous resoumettre les éléments ayant rencontrés des erreurs lors du traitement précédent ?",
+                                                                              MessageBoxButton.YesNo, MessageBoxResult.Yes, msgBoxParam);
+
+                    if (messageBoxResult == MessageBoxResult.Yes)
+                    {
+                        foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<StateEnum>("State") != StateEnum.Finished))
+                        {
+                            dr["Task"] = TaskTypeEnum.Validation;
+                            dr["State"] = StateEnum.Pending;
+
+                            // Add log resubmit...
+                        }
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+                else if(_data.Tables["Entities"].AsEnumerable().Where(x => x.Field<StateEnum>("State") == StateEnum.Finished).Count() == _data.Tables["Entities"].Rows.Count)
+                {
+                    ThemedMessageBoxParameters msgBoxParam = new ThemedMessageBoxParameters(MessageBoxImage.Information.GetMessageBoxIcon())
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        AllowTextSelection = true
+                    };
+
+                    MessageBoxResult messageBoxResult = ThemedMessageBox.Show("Mise à jour des données", "Toutes les données ont déjà été traitées", MessageBoxButton.OK, MessageBoxResult.OK, msgBoxParam);
+                    return;
+                }
+            }
+
             DataUpdateTaskSeletor UpdateTaskDlg = new DataUpdateTaskSeletor(ref _data, ActiveProjectDataBase, AppOptions);
 
             UpdateTaskDlg.Owner = this;
@@ -647,6 +706,9 @@ namespace Ch.Hurni.AP_MaJ
             Data = DataSetUtility.CreateDataSet(AppOptions.VaultPropertyFieldMappings);
 
             Data.SaveToSQLite(ActiveProjectDataBase);
+
+            AppOptions.LastTaskUsed.Clear();
+            System.IO.File.WriteAllText(ActiveProjectName, JsonSerializer.Serialize(AppOptions, typeof(ApplicationOptions), JsonOptions));
 
             MainGridControl.SelectedItem = null;
         }

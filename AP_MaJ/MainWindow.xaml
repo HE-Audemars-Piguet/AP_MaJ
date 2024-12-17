@@ -178,15 +178,35 @@
 
         <dxb:StatusBarControl Grid.Row="4" ShowSizeGrip="False">
             <dxb:BarButtonItem Name="ActiveProjectBarButtonItem" ItemClick="OpenProjectDir_Click" ToolTip="Ouvre le dossier du projet dans l'explorateur"
-                               Glyph="{dx:DXImage 'SvgImages/Actions/Open2.svg'}" IsEnabled="{Binding ElementName=ActiveProjectNameBarButtonItem, Path=IsEnabled}">
+                               Glyph="{dx:DXImage 'SvgImages/Actions/Open2.svg'}" >
+                <dxb:BarButtonItem.Style>
+                    <Style TargetType="dxb:BarButtonItem">
+                        <Setter Property="IsEnabled" Value="True"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=ActiveProjectName}" Value="">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </dxb:BarButtonItem.Style>
             </dxb:BarButtonItem>
             <dxb:BarItemSeparator/>
             <dxb:BarButtonItem ToolTip="Version de l'application"
                                Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=CurrentVersion}">
             </dxb:BarButtonItem>
             <dxb:BarItemSeparator/>
-            <dxb:BarButtonItem Content="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=AppOptions.VaultName}"
-							   ToolTip="Version actuelle du produit"/>
+            <dxb:BarButtonItem Name="CurrentProjectName" ToolTip="Projet actif">
+                <dxb:BarButtonItem.Style>
+                    <Style TargetType="dxb:BarButtonItem">
+                        <Setter Property="Content" Value="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=ActiveProjectName}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=dx:ThemedWindow}, Path=ActiveProjectName}" Value="">
+                                <Setter Property="Content" Value="Aucun projet actif"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </dxb:BarButtonItem.Style>
+            </dxb:BarButtonItem>
 
             <dxb:BarItemSeparator Alignment="Far"/>
             <dxb:BarStaticItem Alignment="Far" Glyph="{dx:DXImage 'SvgImages/Dashboards/ServerMode.svg'}" GlyphSize="Small" ToolTip="Nom du serveur Vault"/>
