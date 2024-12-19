@@ -1209,7 +1209,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     if (RemoveUdpIdsArray != null || AddUdpIdsArray != null)
                     {
-                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UpdateFilePropertyDefinitions(new long[] { VaultFile.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "Purge properties"));
+                        await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.UpdateFilePropertyDefinitions(new long[] { VaultFile.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "MaJ - Purge, ajout des propriétés"));
 
                         if (appOptions.LogInfo && AddUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", AddUdpNames) + "' ont été ajoutées."));
                         if (appOptions.LogInfo && RemoveUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", RemoveUdpNames) + "' ont été purgées."));
@@ -2329,7 +2329,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             do
             {
                 retryCount++;
-                errorLog = "Mise a jour de la matière du fichier '" + fullVaultName + "' (tentative " + retryCount + "/" + maxRetryCount + ").\n";
+                errorLog = "Mise à jour de la matière du fichier '" + fullVaultName + "' (tentative " + retryCount + "/" + maxRetryCount + ").\n";
                 try
                 {
                     errorLog += "Obtention de la dernière version du fichier";
@@ -2384,7 +2384,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         errorLog += " => Ok.\nArchivage du fichier";
                         using (System.IO.StreamReader stream = new System.IO.StreamReader(LocalFilePath.FullPath))
                         {
-                            VaultConnection.FileManager.CheckinFile(CheckedOutFile, "CheckInComment", false, DateTime.Now, fileAssocParams, null, false, CheckedOutFile.EntityName, CheckedOutFile.FileClassification, CheckedOutFile.IsHidden, stream.BaseStream);
+                            VaultConnection.FileManager.CheckinFile(CheckedOutFile, "MaJ - Mise à jour de la matière", false, DateTime.Now, fileAssocParams, null, false, CheckedOutFile.EntityName, CheckedOutFile.FileClassification, CheckedOutFile.IsHidden, stream.BaseStream);
                         }
 
                         errorLog += " => Ok.";
@@ -2418,6 +2418,23 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         catch (Exception SubEx)
                         {
                             errorLog += " => Erreur.\n" + SubEx.ToString();
+                        }
+                    }
+                    else
+                    {
+                        file = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(dr.Field<long>("VaultMasterId"));
+                        if(file.CheckedOut)
+                        {
+                            errorLog += "Annulation de l'extraction.";
+                            try
+                            {
+                                VaultConnection.FileManager.UndoCheckoutFile(new FileIteration(VaultConnection, file));
+                                errorLog += " => Ok.";
+                            }
+                            catch (Exception SubEx)
+                            {
+                                errorLog += " => Erreur.\n" + SubEx.ToString();
+                            }
                         }
                     }
 
@@ -4418,7 +4435,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                     if (RemoveUdpIdsArray != null || AddUdpIdsArray != null)
                     {
-                        await Task.Run(() => VaultConnection.WebServiceManager.ItemService.UpdateItemPropertyDefinitions(new long[] { VaultItem.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "Purge properties"));
+                        await Task.Run(() => VaultConnection.WebServiceManager.ItemService.UpdateItemPropertyDefinitions(new long[] { VaultItem.MasterId }, AddUdpIdsArray, RemoveUdpIdsArray, "MaJ - Purge, ajout des propriétés"));
 
                         if (appOptions.LogInfo && AddUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", AddUdpNames) + "' ont été ajoutées."));
                         if (appOptions.LogInfo && RemoveUdpIdsArray != null) resultLogs.Add(CreateLog("Info", "Les propriétés '" + string.Join("', '", RemoveUdpNames) + "' ont été purgées."));
@@ -5113,6 +5130,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     try
                     {
+                        newItem.Comm = "MaJ - Mise a jour des UDPs";
                         VaultConnection.WebServiceManager.ItemService.UpdateAndCommitItems(new Item[] { newItem });
                         if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", "Sauvegarde de l'article après mise à jour des UDPs."));
                     }
@@ -5244,6 +5262,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                         {
                             if (result.StatusArray[i] > 1) // 1 means unchanged, 2 means new item was created, 4 means existing item was updated
                             {
+                                result.ItemRevArray[i].Comm = "MaJ - L'article a été mis à jour par son lien primaire";
                                 UpdateItems.Add(result.ItemRevArray[i]);
 
                                 if (result.StatusArray[i] == 2 && result.ItemRevArray[i].MasterId == item.MasterId) DetailLog += "L'article '" + result.ItemRevArray[i].ItemNum + "' a été créé.\n";

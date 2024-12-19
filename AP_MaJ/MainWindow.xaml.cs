@@ -665,6 +665,7 @@ namespace Ch.Hurni.AP_MaJ
                             dr["Task"] = TaskTypeEnum.Validation;
                             dr["State"] = StateEnum.Pending;
 
+                            _data.Tables["Logs"].Rows.Add(new object[] { dr["Id"], "Info", DateTime.Now, "Resoumission de la mise a jour" });
                             // Add log resubmit...
                         }
                     }

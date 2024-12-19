@@ -410,6 +410,31 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                     ProcessProgReport.ProgressChanged -= ShowProcessProgress;
                     TaskProgReport.ProgressChanged -= ShowTaskProgress;
                 }
+
+                string lastTaskName = MaJTasks.Where(x => x.Name.Equals("Item")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
+                TaskTypeEnum lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
+
+                foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") && x.Field<TaskTypeEnum>("Task") == lastTaskType && x.Field<StateEnum>("State") == StateEnum.Completed))
+                {
+                    dr["State"] = StateEnum.Finished;
+                }
+
+                lastTaskName = MaJTasks.Where(x => x.Name.Equals("File")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
+                lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
+
+                bool WaitForBomBlob = MaJTasks.Where(x => x.Name.Equals("WaitForBomBlob")).FirstOrDefault()?.IsChecked ?? false;
+                StringComparison sComp = StringComparison.CurrentCultureIgnoreCase;
+
+                foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<StateEnum>("State") == StateEnum.Completed))
+                {
+                    if ((WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == TaskTypeEnum.WaitForBomBlob && (dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))) ||
+                       (dr.Field<TaskTypeEnum>("Task") == lastTaskType && (!dr.Field<string>("Name").EndsWith(".ipt", sComp) || !dr.Field<string>("Name").EndsWith(".iam", sComp))))
+                    {
+                        dr["State"] = StateEnum.Finished;
+                    }
+                }
+
+                _data.SaveToSQLite(_dbFileName);
             }
             else
             {
@@ -432,30 +457,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            string lastTaskName = MaJTasks.Where(x => x.Name.Equals("Item")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
-            TaskTypeEnum lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
-
-            foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") && x.Field<TaskTypeEnum>("Task") == lastTaskType && x.Field<StateEnum>("State") == StateEnum.Completed))
-            {
-                dr["State"] = StateEnum.Finished;
-            }
-
-            lastTaskName = MaJTasks.Where(x => x.Name.Equals("File")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
-            lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
-
-            bool WaitForBomBlob = MaJTasks.Where(x => x.Name.Equals("WaitForBomBlob")).FirstOrDefault()?.IsChecked ?? false;
-            StringComparison sComp = StringComparison.CurrentCultureIgnoreCase;
-
-            foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<StateEnum>("State") == StateEnum.Completed))
-            {
-                if ((WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == TaskTypeEnum.WaitForBomBlob && (dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))) ||
-                   (dr.Field<TaskTypeEnum>("Task") == lastTaskType && (!dr.Field<string>("Name").EndsWith(".ipt", sComp) || !dr.Field<string>("Name").EndsWith(".iam", sComp))))
-                {
-                    dr["State"] = StateEnum.Finished;
-                }
-            }
-
-            string ReportName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Statistics.log");
+            string ReportName =  System.IO.Path.Combine((Owner as MainWindow).ActiveProjectDir, "Statistics.log");
 
             string Report = "DisplayName;ProcessingState;ElementCount;TotalElementCount;ElementDoneCount;ElementErrorCount;TaskDuration";
             foreach (MaJTask t in CollectSelectedTasks(MaJTasks).OrderBy(x => x.Index))
@@ -466,35 +468,55 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             if(SaveHistory.IsChecked == true)
             {
-                string ZipName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Archive " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".zip");
-
-                using (System.IO.Compression.ZipArchive archive = System.IO.Compression.ZipFile.Open(ZipName, System.IO.Compression.ZipArchiveMode.Create))
+                string ZipDir = System.IO.Path.Combine((Owner as MainWindow).ActiveProjectDir, "Archive " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss"));
+                
+                if (!System.IO.Directory.Exists(ZipDir)) System.IO.Directory.CreateDirectory(ZipDir);
+                
+                try
                 {
-                    archive.CreateEntryFromFile(ReportName, "Statistics.log");
-                    
-                    int SaveTryCount = 0;
-                    while (true)
-                    {
-                        try
-                        {
-                            archive.CreateEntryFromFile(_dbFileName, System.IO.Path.GetFileName(_dbFileName));
-                            break;
-                        }
-                        catch 
-                        {
-                            if(SaveTryCount >= 10)
-                            {
-                                MessageBox.Show("Impossible de sauver l'historique de la base de données");
-                                break;
-                            }
-                            System.Threading.Thread.Sleep(500);
-                            SaveTryCount++;
-                        }
-                    }
-                    
-                    archive.CreateEntryFromFile(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj", System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj"));
+                    System.IO.File.Copy(ReportName, System.IO.Path.Combine(ZipDir, "Statistics.log"));
+                    System.IO.File.Copy(_dbFileName, System.IO.Path.Combine(ZipDir, System.IO.Path.GetFileName(_dbFileName)));
+                    System.IO.File.Copy((Owner as MainWindow).ActiveProjectName, System.IO.Path.Combine(ZipDir, System.IO.Path.GetFileName((Owner as MainWindow).ActiveProjectName)));
+
+                    System.IO.Compression.ZipFile.CreateFromDirectory(ZipDir, ZipDir + ".zip");
+                    System.IO.Directory.Delete(ZipDir, true);
                 }
-                System.IO.File.Delete(ReportName);
+                catch(Exception Ex)
+                {
+
+                }
+
+                //string ZipName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_dbFileName), "Archive " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".zip");
+
+       
+
+                //using (System.IO.Compression.ZipArchive archive = System.IO.Compression.ZipFile.Open(ZipName, System.IO.Compression.ZipArchiveMode.Create))
+                //{
+                //    archive.CreateEntryFromFile(ReportName, "Statistics.log");
+                    
+                //    int SaveTryCount = 0;
+                //    while (true)
+                //    {
+                //        try
+                //        {
+                //            archive.CreateEntryFromFile(_dbFileName, System.IO.Path.GetFileName(_dbFileName));
+                //            break;
+                //        }
+                //        catch 
+                //        {
+                //            if(SaveTryCount >= 10)
+                //            {
+                //                MessageBox.Show("Impossible de sauver l'historique de la base de données");
+                //                break;
+                //            }
+                //            System.Threading.Thread.Sleep(500);
+                //            SaveTryCount++;
+                //        }
+                //    }
+                    
+                //    archive.CreateEntryFromFile(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj", System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(_dbFileName) + ".maj"));
+                //}
+                //System.IO.File.Delete(ReportName);
             }
             
             Close();
