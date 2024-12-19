@@ -38,23 +38,23 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Autodesk.Connectivity.Extensibility.Framework, Version=28.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
-      <HintPath>..\packages\Vault.Base.2023.0.0\lib\net47\Autodesk.Connectivity.Extensibility.Framework.dll</HintPath>
+    <Reference Include="Autodesk.Connectivity.Extensibility.Framework, Version=29.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
+      <HintPath>..\packages\Vault.Base.2024.0.0\lib\net47\Autodesk.Connectivity.Extensibility.Framework.dll</HintPath>
     </Reference>
     <Reference Include="Autodesk.Connectivity.LicenseWrapper, Version=28.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=AMD64">
-      <HintPath>..\packages\Vault.Standalone.2023.0.1\lib\net47\Autodesk.Connectivity.LicenseWrapper.dll</HintPath>
+      <HintPath>..\packages\Vault.Standalone.2024.0.0\lib\net47\Autodesk.Connectivity.LicenseWrapper.dll</HintPath>
     </Reference>
-    <Reference Include="Autodesk.Connectivity.WebServices, Version=28.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
-      <HintPath>..\packages\Vault.Base.2023.0.0\lib\net47\Autodesk.Connectivity.WebServices.dll</HintPath>
+    <Reference Include="Autodesk.Connectivity.WebServices, Version=29.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
+      <HintPath>..\packages\Vault.Base.2024.0.0\lib\net47\Autodesk.Connectivity.WebServices.dll</HintPath>
     </Reference>
-    <Reference Include="Autodesk.Connectivity.WebServices.WCF, Version=28.0.83.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>..\packages\Vault.Standalone.2023.0.1\lib\net47\Autodesk.Connectivity.WebServices.WCF.dll</HintPath>
+    <Reference Include="Autodesk.Connectivity.WebServices.WCF, Version=29.0.68.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\Vault.Standalone.2024.0.0\lib\net47\Autodesk.Connectivity.WebServices.WCF.dll</HintPath>
     </Reference>
-    <Reference Include="Autodesk.DataManagement.Client.Framework, Version=28.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
-      <HintPath>..\packages\Vault.Base.2023.0.0\lib\net47\Autodesk.DataManagement.Client.Framework.dll</HintPath>
+    <Reference Include="Autodesk.DataManagement.Client.Framework, Version=29.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
+      <HintPath>..\packages\Vault.Base.2024.0.0\lib\net47\Autodesk.DataManagement.Client.Framework.dll</HintPath>
     </Reference>
-    <Reference Include="Autodesk.DataManagement.Client.Framework.Vault, Version=28.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
-      <HintPath>..\packages\Vault.Base.2023.0.0\lib\net47\Autodesk.DataManagement.Client.Framework.Vault.dll</HintPath>
+    <Reference Include="Autodesk.DataManagement.Client.Framework.Vault, Version=29.0.0.0, Culture=neutral, PublicKeyToken=215b0879a7566597, processorArchitecture=MSIL">
+      <HintPath>..\packages\Vault.Base.2024.0.0\lib\net47\Autodesk.DataManagement.Client.Framework.Vault.dll</HintPath>
     </Reference>
     <Reference Include="Autodesk.Inventor.Interop, Version=27.0.0.0, Culture=neutral, PublicKeyToken=d84147f8b4276564, processorArchitecture=MSIL">
       <HintPath>..\packages\Inventor.Base.2023.0.0\lib\net40\Autodesk.Inventor.Interop.dll</HintPath>
@@ -291,11 +291,11 @@
     <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
     <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
     <Error Condition="!Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.118.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.118.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets'))" />
-    <Error Condition="!Exists('..\packages\Vault.Standalone.2023.0.1\build\Vault.Standalone.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Vault.Standalone.2023.0.1\build\Vault.Standalone.targets'))" />
+    <Error Condition="!Exists('..\packages\Vault.Standalone.2024.0.0\build\Vault.Standalone.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Vault.Standalone.2024.0.0\build\Vault.Standalone.targets'))" />
   </Target>
   <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
   <Import Project="..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.118.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets" Condition="Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.118.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" />
-  <Import Project="..\packages\Vault.Standalone.2023.0.1\build\Vault.Standalone.targets" Condition="Exists('..\packages\Vault.Standalone.2023.0.1\build\Vault.Standalone.targets')" />
+  <Import Project="..\packages\Vault.Standalone.2024.0.0\build\Vault.Standalone.targets" Condition="Exists('..\packages\Vault.Standalone.2024.0.0\build\Vault.Standalone.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

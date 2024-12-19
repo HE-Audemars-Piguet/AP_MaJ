@@ -195,7 +195,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Version "/>
                             <TextBlock Text="{Binding}"/>
-                            <TextBlock Text=" pour Vault 2023"/>
+                            <TextBlock Text=" pour Vault 2024"/>
                         </StackPanel>
                     </DataTemplate>
                 </dxb:BarButtonItem.ContentTemplate>
