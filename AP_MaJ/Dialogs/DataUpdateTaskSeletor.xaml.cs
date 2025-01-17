@@ -412,27 +412,35 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                 }
 
                 string lastTaskName = MaJTasks.Where(x => x.Name.Equals("Item")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
-                TaskTypeEnum lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
-
-                foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") && x.Field<TaskTypeEnum>("Task") == lastTaskType && x.Field<StateEnum>("State") == StateEnum.Completed))
+                try
                 {
-                    dr["State"] = StateEnum.Finished;
-                }
+                    TaskTypeEnum lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
 
-                lastTaskName = MaJTasks.Where(x => x.Name.Equals("File")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
-                lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
-
-                bool WaitForBomBlob = MaJTasks.Where(x => x.Name.Equals("WaitForBomBlob")).FirstOrDefault()?.IsChecked ?? false;
-                StringComparison sComp = StringComparison.CurrentCultureIgnoreCase;
-
-                foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<StateEnum>("State") == StateEnum.Completed))
-                {
-                    if ((WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == TaskTypeEnum.WaitForBomBlob && (dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))) ||
-                       (dr.Field<TaskTypeEnum>("Task") == lastTaskType && (!dr.Field<string>("Name").EndsWith(".ipt", sComp) || !dr.Field<string>("Name").EndsWith(".iam", sComp))))
+                    foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") && x.Field<TaskTypeEnum>("Task") == lastTaskType && x.Field<StateEnum>("State") == StateEnum.Completed))
                     {
                         dr["State"] = StateEnum.Finished;
                     }
                 }
+                catch { }
+
+                lastTaskName = MaJTasks.Where(x => x.Name.Equals("File")).FirstOrDefault().SubTasks.Where(x => x.IsChecked == true).OrderBy(x => x.Index).LastOrDefault()?.Name ?? string.Empty;
+                try
+                {
+                    TaskTypeEnum lastTaskType = (TaskTypeEnum)Enum.Parse(typeof(TaskTypeEnum), lastTaskName);
+
+                    bool WaitForBomBlob = MaJTasks.Where(x => x.Name.Equals("WaitForBomBlob")).FirstOrDefault()?.IsChecked ?? false;
+                    StringComparison sComp = StringComparison.CurrentCultureIgnoreCase;
+
+                    foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") && x.Field<StateEnum>("State") == StateEnum.Completed))
+                    {
+                        if ((WaitForBomBlob && dr.Field<TaskTypeEnum>("Task") == TaskTypeEnum.WaitForBomBlob && (dr.Field<string>("Name").EndsWith(".ipt", sComp) || dr.Field<string>("Name").EndsWith(".iam", sComp))) ||
+                           (dr.Field<TaskTypeEnum>("Task") == lastTaskType && (!dr.Field<string>("Name").EndsWith(".ipt", sComp) || !dr.Field<string>("Name").EndsWith(".iam", sComp))))
+                        {
+                            dr["State"] = StateEnum.Finished;
+                        }
+                    }
+                }
+                catch { }
 
                 _data.SaveToSQLite(_dbFileName);
             }

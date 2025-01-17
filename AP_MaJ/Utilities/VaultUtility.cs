@@ -316,7 +316,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                                                              x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation &&
+                                                                                                              x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate &&
                                                                                                               x.Field<StateEnum>("State") == StateEnum.Pending));
 
             //Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File")));
@@ -752,7 +752,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             string targetVaultlifeCycleStateName = dr.Field<string>("TargetVaultLcsName");
 
-            if (targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = vaultFile.FileLfCyc.LfCycStateName;
+            if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName) && targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = vaultFile.FileLfCyc.LfCycStateName;
 
             if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName))
             {
@@ -907,13 +907,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                                                              (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation && x.Field<StateEnum>("State") == StateEnum.Completed) &&
+                                                                                                              (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate && x.Field<StateEnum>("State") == StateEnum.Completed) &&
                                                                                                               x.Field<long?>("VaultMasterId") != null &&
                                                                                                               (!string.IsNullOrWhiteSpace(x.Field<string>("TempVaultLcsName")) && x.Field<long?>("TempVaultLcsId") != null)));
 
             foreach (DataRow dr in EntitiesStack)
             {
-                dr["Task"] = TaskTypeEnum.TempChangeState;
+                dr["Task"] = TaskTypeEnum.ChangeState;
                 dr["State"] = StateEnum.Pending;
             }
 
@@ -1061,7 +1061,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState) &&
+                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.ChangeState) &&
                                                                                                               x.Field<StateEnum>("State") == StateEnum.Completed &&
                                                                                                               x.Field<long?>("VaultMasterId") != null));
 
@@ -1242,7 +1242,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             List<DataRow> Entities = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("File") &&
-                                                                               (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
+                                                                               (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.ChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
                                                                                 x.Field<StateEnum>("State") == StateEnum.Completed &&
                                                                                 x.Field<long?>("VaultMasterId") != null).ToList();
 
@@ -3491,7 +3491,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") &&
-                                                                                                              x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation &&
+                                                                                                              x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate &&
                                                                                                               x.Field<StateEnum>("State") == StateEnum.Pending));
 
             //Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item")));
@@ -3863,7 +3863,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             string targetVaultlifeCycleStateName = dr.Field<string>("TargetVaultLcsName");
 
-            if (targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = VaultLcsName;
+            if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName) && targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = VaultLcsName;
 
             if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName))
             {
@@ -4150,13 +4150,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") &&
-                                                                                                              (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation && x.Field<StateEnum>("State") == StateEnum.Completed) &&
+                                                                                                              (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate && x.Field<StateEnum>("State") == StateEnum.Completed) &&
                                                                                                               x.Field<long?>("VaultMasterId") != null &&
                                                                                                               (!string.IsNullOrWhiteSpace(x.Field<string>("TempVaultLcsName")) && x.Field<long?>("TempVaultLcsId") != null)));
 
             foreach (DataRow dr in EntitiesStack)
             {
-                dr["Task"] = TaskTypeEnum.TempChangeState;
+                dr["Task"] = TaskTypeEnum.ChangeState;
                 dr["State"] = StateEnum.Pending;
             }
 
@@ -4300,7 +4300,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             Stack<DataRow> EntitiesStack = new Stack<DataRow>(ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") &&
-                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState) &&
+                                                                                                             (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.ChangeState) &&
                                                                                                               x.Field<StateEnum>("State") == StateEnum.Completed &&
                                                                                                               x.Field<long?>("VaultMasterId") != null));
 
@@ -4477,7 +4477,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             DataSet ds = data.Copy();
 
             List<DataRow> Entities = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<string>("EntityType").Equals("Item") &&
-                                                                               (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validation || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.TempChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
+                                                                               (x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.Validate || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.ChangeState || x.Field<TaskTypeEnum>("Task") == TaskTypeEnum.PurgeProps) &&
                                                                                 x.Field<StateEnum>("State") == StateEnum.Completed &&
                                                                                 x.Field<long?>("VaultMasterId") != null).ToList(); ;
 
@@ -5311,7 +5311,18 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (Exception Ex)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors de la mise à jour des fichiers liés." + System.Environment.NewLine + Ex.ToString()));
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de l'optention d'update de l'article"));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'optention " +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    //if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors de la mise à jour des fichiers liés." + System.Environment.NewLine + Ex.ToString()));
                     resultState = StateEnum.Error;
                 }
             }

@@ -456,12 +456,21 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                 {
                     clonedDt.ImportRow(row);
                 }
+
+                foreach (DataRow row in clonedDt.Rows)
+                {
+                    for (int i = 0; i < row.ItemArray.Length; i++)
+                    {
+                        if (row.ItemArray[i] == null || row.ItemArray[i] is DBNull) row.ItemArray[i] = string.Empty;
+                    }
+                }
+
                 dt = clonedDt;
             }
 
             foreach(string MissingCol in MissingColNames)
             {
-                dt.Columns.Add(MissingCol, typeof(string));
+                dt.Columns.Add(new DataColumn(MissingCol, typeof(string)) { DefaultValue = string.Empty });
             }
 
             return (dt, severity, msg);
