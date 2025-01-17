@@ -457,7 +457,7 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
                     clonedDt.ImportRow(row);
                 }
 
-                foreach (DataRow row in dt.Rows)
+                foreach (DataRow row in clonedDt.Rows)
                 {
                     for (int i = 0; i < row.ItemArray.Length; i++)
                     {

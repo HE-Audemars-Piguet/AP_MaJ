@@ -752,7 +752,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             string targetVaultlifeCycleStateName = dr.Field<string>("TargetVaultLcsName");
 
-            if (targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = vaultFile.FileLfCyc.LfCycStateName;
+            if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName) && targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = vaultFile.FileLfCyc.LfCycStateName;
 
             if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName))
             {
@@ -3863,7 +3863,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
             string targetVaultlifeCycleStateName = dr.Field<string>("TargetVaultLcsName");
 
-            if (targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = VaultLcsName;
+            if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName) && targetVaultlifeCycleStateName.Equals(initialLcsValue)) targetVaultlifeCycleStateName = VaultLcsName;
 
             if (!string.IsNullOrWhiteSpace(targetVaultlifeCycleStateName))
             {
@@ -5311,7 +5311,18 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (Exception Ex)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors de la mise à jour des fichiers liés." + System.Environment.NewLine + Ex.ToString()));
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de l'optention d'update de l'article"));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'optention " +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    //if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Erreur lors de la mise à jour des fichiers liés." + System.Environment.NewLine + Ex.ToString()));
                     resultState = StateEnum.Error;
                 }
             }
