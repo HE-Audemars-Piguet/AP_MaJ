@@ -582,7 +582,7 @@ namespace Ch.Hurni.AP_MaJ
                     else if (Action.Equals("UpdateAddNew") && ExistingEntities.Contains(dr.Field<string>("EntityType") + "|" + dr.Field<string>("Name")))
                     {
                         DataRow UpdateEntity = Data.Tables["Entities"].AsEnumerable().Where(x => (x.Field<string>("EntityType") + "|" + x.Field<string>("Name")).Equals(dr.Field<string>("EntityType") + "|" + dr.Field<string>("Name"))).FirstOrDefault(); ;
-                        UpdateEntity["Task"] = ApplicationOptions.TaskTypeEnum.Validation;
+                        UpdateEntity["Task"] = ApplicationOptions.TaskTypeEnum.Validate;
                         UpdateEntity["State"] = ApplicationOptions.StateEnum.Pending;
                         foreach (string ColName in EntityColNames)
                         {
@@ -599,7 +599,7 @@ namespace Ch.Hurni.AP_MaJ
                     }
 
                     DataRow NewEntity = Data.Tables["Entities"].NewRow();
-                    NewEntity["Task"] = ApplicationOptions.TaskTypeEnum.Validation;
+                    NewEntity["Task"] = ApplicationOptions.TaskTypeEnum.Validate;
                     NewEntity["State"] = ApplicationOptions.StateEnum.Pending;
                     foreach (string ColName in EntityColNames)
                     {
@@ -662,7 +662,7 @@ namespace Ch.Hurni.AP_MaJ
                     {
                         foreach (DataRow dr in _data.Tables["Entities"].AsEnumerable().Where(x => x.Field<StateEnum>("State") != StateEnum.Finished))
                         {
-                            dr["Task"] = TaskTypeEnum.Validation;
+                            dr["Task"] = TaskTypeEnum.Validate;
                             dr["State"] = StateEnum.Pending;
 
                             _data.Tables["Logs"].Rows.Add(new object[] { dr["Id"], "Info", DateTime.Now, "Resoumission de la mise a jour" });
