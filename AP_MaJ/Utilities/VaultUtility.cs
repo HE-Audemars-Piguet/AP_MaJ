@@ -54,6 +54,7 @@ using Autodesk.DataManagement.Client.Framework.Vault.Currency.FileSystem;
 using System.Data.Entity.Core.Metadata.Edm;
 using DevExpress.XtraReports.Localization;
 using System.Globalization;
+using System.Security.Cryptography;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -3199,6 +3200,8 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         internal async Task<DataSet> ForceAndWaitForBomBlobCreationFilesAsync(DataSet data, ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, IProgress<ProcessProgressReport> processProgReport, CancellationToken taskCancellationToken)
         {
             taskProgReport.Report(new TaskProgressReport() { Message = "Initialisation" });
+            
+            //if (System.IO.File.Exists("C:\\Temp\\ForceAndWaitForBomBlobCreationFilesAsync.log")) System.IO.File.Delete("C:\\Temp\\ForceAndWaitForBomBlobCreationFilesAsync.log");
 
             DataSet ds = data.Copy();
 
@@ -3269,39 +3272,62 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     RunningJobMasterIds.Clear();
                     ErrorJobMasterIds.Clear();
                 }
+                
                 DoneJobMasterIds = Entities.Select(x => x.Field<long>("VaultMasterId")).Except(PendingJobMasterIds).Except(RunningJobMasterIds).Except(ErrorJobMasterIds).ToList();
-
+                
                 int Level = 1;
                 int MaxLevel = Entities.Max(x => x.Field<int>("VaultLevel"));
-                do
+
+                if (ErrorJobMasterIds.Count > 0)
                 {
-                    foreach (long MasterId in ErrorJobMasterIds)
+                    Level = 1;
+                    do
                     {
-                        DataRow dr = Entities.Where(x => x.Field<long>("VaultMasterId") == MasterId && x.Field<int>("VaultLevel") == Level).FirstOrDefault();
-
-                        if (dr != null)
+                        foreach (long MasterId in ErrorJobMasterIds)
                         {
-                            if (dr.Field<int>("JobSubmitCount") < appOptions.MaxJobSubmitionCount)
+                            DataRow dr = Entities.Where(x => x.Field<long>("VaultMasterId") == MasterId && x.Field<int>("VaultLevel") == Level).FirstOrDefault();
+
+                            if (dr != null)
                             {
-                                Job job = AllBomBlobJobs.Where(x => long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault();
-
-                                if (job != null)
+                                if (dr.Field<int>("JobSubmitCount") < appOptions.MaxJobSubmitionCount)
                                 {
-                                    if (appOptions.LogInfo)
-                                    {
-                                        DataRow Log = ds.Tables["Logs"].NewRow();
-                                        Log["EntityId"] = dr["Id"];
-                                        Log["Severity"] = "Info";
-                                        Log["Date"] = DateTime.Now;
-                                        Log["Message"] = "Le job de publication des informations de nomenclature a été re-soumis (" + (dr.Field<int>("JobSubmitCount") + 1) + ")";
-                                        ds.Tables["Logs"].Rows.Add(Log);
-                                    }
+                                    Job job = AllBomBlobJobs.Where(x => long.Parse(x.ParamArray[1].Val) == MasterId).FirstOrDefault();
 
-                                    try
+                                    if (job != null)
                                     {
-                                        await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+                                        if (appOptions.LogInfo)
+                                        {
+                                            DataRow Log = ds.Tables["Logs"].NewRow();
+                                            Log["EntityId"] = dr["Id"];
+                                            Log["Severity"] = "Info";
+                                            Log["Date"] = DateTime.Now;
+                                            Log["Message"] = "Le job de publication des informations de nomenclature a été re-soumis (" + (dr.Field<int>("JobSubmitCount") + 1) + ")";
+                                            ds.Tables["Logs"].Rows.Add(Log);
+                                        }
+
+                                        try
+                                        {
+                                            //System.IO.File.AppendAllText("C:\\Temp\\ForceAndWaitForBomBlobCreationFilesAsync.log", job.Descr + "\n");
+
+                                            await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            if (appOptions.LogError)
+                                            {
+                                                DataRow Log = ds.Tables["Logs"].NewRow();
+                                                Log["EntityId"] = dr["Id"];
+                                                Log["Severity"] = "Error";
+                                                Log["Date"] = DateTime.Now;
+                                                Log["Message"] = "Erreur lors de la re-soumission du job de publication des informations de nomenclature (" + (dr.Field<int>("JobSubmitCount") + 1) + ")\n" + ex.ToString();
+                                                ds.Tables["Logs"].Rows.Add(Log);
+                                            }
+                                        }
+
+                                        dr["JobSubmitCount"] = dr.Field<int>("JobSubmitCount") + 1;
+
                                     }
-                                    catch (Exception ex)
+                                    else
                                     {
                                         if (appOptions.LogError)
                                         {
@@ -3309,13 +3335,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                             Log["EntityId"] = dr["Id"];
                                             Log["Severity"] = "Error";
                                             Log["Date"] = DateTime.Now;
-                                            Log["Message"] = "Erreur lors de la re-soumission du job de publication des informations de nomenclature (" + (dr.Field<int>("JobSubmitCount") + 1) + ")\n" + ex.ToString();
+                                            Log["Message"] = "Aucun job de publication des informations de nomenclature n'a été trouvé.";
                                             ds.Tables["Logs"].Rows.Add(Log);
                                         }
+
+                                        dr["State"] = StateEnum.Error;
+                                        processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
                                     }
-
-                                    dr["JobSubmitCount"] = dr.Field<int>("JobSubmitCount") + 1;
-
                                 }
                                 else
                                 {
@@ -3325,7 +3351,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                         Log["EntityId"] = dr["Id"];
                                         Log["Severity"] = "Error";
                                         Log["Date"] = DateTime.Now;
-                                        Log["Message"] = "Aucun job de publication des informations de nomenclature n'a été trouvé.";
+                                        Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tantatives.";
                                         ds.Tables["Logs"].Rows.Add(Log);
                                     }
 
@@ -3333,32 +3359,20 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                     processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
                                 }
                             }
-                            else
-                            {
-                                if (appOptions.LogError)
-                                {
-                                    DataRow Log = ds.Tables["Logs"].NewRow();
-                                    Log["EntityId"] = dr["Id"];
-                                    Log["Severity"] = "Error";
-                                    Log["Date"] = DateTime.Now;
-                                    Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tantatives.";
-                                    ds.Tables["Logs"].Rows.Add(Log);
-                                }
-
-                                dr["State"] = StateEnum.Error;
-                                processProgReport.Report(new ProcessProgressReport() { ProcessIndex = 0, TotalCountInc = 1, ErrorInc = 1 });
-                            }
                         }
-                    }
-                } while (Level <= MaxLevel);
+                        Level++;
+                    } while (Level <= MaxLevel);
+                }
+
 
                 if (DoneJobMasterIds.Count > 0)
                 {
                     List<ACW.File> files = await Task.Run(() => VaultConnection.WebServiceManager.DocumentService.GetLatestFilesByMasterIds(DoneJobMasterIds.ToArray()).ToList());
 
-                    List<bool> HasBomBlob = VaultConnection.WebServiceManager.PropertyService.GetProperties(EntityClassIds.Files, files.Select(x => x.Id).ToArray(),
-                                                new long[] { VaultConfig.VaultFilePropertyDefinitionDictionary["ItemAssignable"].Id }).Select(x => (bool?)x.Val == true).ToList();
+                    long ItemAssignablePropDefId = VaultConfig.VaultFilePropertyDefinitionDictionary["ItemAssignable"].Id;
 
+                    List<PropInst> filePropsList = VaultConnection.WebServiceManager.PropertyService.GetProperties(EntityClassIds.Files, files.Select(x => x.Id).ToArray(), new long[] { ItemAssignablePropDefId }).ToList();
+                   
                     Level = 1;
                     do
                     {
@@ -3368,7 +3382,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                             if (dr != null)
                             {
-                                if (HasBomBlob[i])
+                                PropInst fileBomPropInst = filePropsList.Where(x => x.EntityId == files[i].Id && x.PropDefId == ItemAssignablePropDefId).FirstOrDefault();
+
+                                if (fileBomPropInst != null && fileBomPropInst.Val != null && (bool)fileBomPropInst.Val == true)
                                 {
                                     dr["State"] = StateEnum.Completed;
                                     DataRow Log = ds.Tables["Logs"].NewRow();
@@ -3397,7 +3413,10 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                                         try
                                         {
-                                            VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", "HE-CreateBomBlob (retry " + dr.Field<int>("JobSubmitCount") + "): " + dr.Field<string>("Name"), new JobParam[] { param1, param2 }, 100 + dr.Field<int>("VaultLevel"));
+                                            string desc = "HE-CreateBomBlob retry " + dr.Field<int>("JobSubmitCount").ToString() + ": " + dr.Field<string>("Name");
+                                            //System.IO.File.AppendAllText("C:\\Temp\\ForceAndWaitForBomBlobCreationFilesAsync.log", desc + "\n");
+
+                                            await Task.Run(() => VaultConnection.WebServiceManager.JobService.AddJob("autodesk.vault.extractbom.inventor", desc, new JobParam[] { param1, param2 }, 100 + dr.Field<int>("VaultLevel")));
 
                                             DataRow Log = ds.Tables["Logs"].NewRow();
                                             Log["EntityId"] = dr["Id"];
@@ -3414,7 +3433,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                                 Log["EntityId"] = dr["Id"];
                                                 Log["Severity"] = "Error";
                                                 Log["Date"] = DateTime.Now;
-                                                Log["Message"] = "Erreur lors de la re-soumission du job de publication des informations de nomenclature (" + (dr.Field<int>("JobSubmitCount") + 1) + ")\n" + ex.ToString();
+                                                Log["Message"] = "Erreur lors de la re-soumission du job de publication des informations de nomenclature (" + dr.Field<int>("JobSubmitCount") + ")\n" + ex.ToString();
                                                 ds.Tables["Logs"].Rows.Add(Log);
                                             }
                                         }
