@@ -2377,23 +2377,42 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                        
                         await UpdateInventorMaterial(fullVaultName, LocalFilePath.FullPath, newInventorMaterialName, processId, errorLog, processProgReport);
 
-                        errorLog += " => Ok.\nObtention des associations";
-                        
-                        //FileAssocParam[] fileAssocParams = GetFileAssocParamById(file.Id);
-                        //FileAssocParam[] fileAssocParams = GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId"));
-
-                        errorLog += " => Ok.\nArchivage du fichier";
-                        using (System.IO.StreamReader stream = new System.IO.StreamReader(LocalFilePath.FullPath))
+                        if(errorLog.Contains(" => Error"))
                         {
-                            VaultConnection.FileManager.CheckinFile(CheckedOutFile, "MaJ - Mise à jour de la matière", false, DateTime.Now, fileAssocParams, null, false, CheckedOutFile.EntityName, CheckedOutFile.FileClassification, CheckedOutFile.IsHidden, stream.BaseStream);
+                            if (CheckedOutFile != null && CheckedOutFile.IsCheckedOut)
+                            {
+                                errorLog += "Annulation de l'extraction.";
+                                try
+                                {
+                                    VaultConnection.FileManager.UndoCheckoutFile(CheckedOutFile);
+                                    errorLog += " => Ok.";
+                                }
+                                catch (Exception SubEx)
+                                {
+                                    errorLog += " => Erreur.\n" + SubEx.ToString();
+                                }
+                            }
+
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", errorLog));
+                            return StateEnum.Error;
                         }
+                        else
+                        {
+                            errorLog += " => Ok.\nObtention des associations";
 
-                        errorLog += " => Ok.";
+                            errorLog += " => Ok.\nArchivage du fichier";
+                            using (System.IO.StreamReader stream = new System.IO.StreamReader(LocalFilePath.FullPath))
+                            {
+                                VaultConnection.FileManager.CheckinFile(CheckedOutFile, "MaJ - Mise à jour de la matière", false, DateTime.Now, fileAssocParams, null, false, CheckedOutFile.EntityName, CheckedOutFile.FileClassification, CheckedOutFile.IsHidden, stream.BaseStream);
+                            }
 
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", errorLog));
+                            errorLog += " => Ok.";
 
-                        CheckedOutFile = null;
-                        retryCount = maxRetryCount + 1;
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", errorLog));
+
+                            CheckedOutFile = null;
+                            retryCount = maxRetryCount + 1;
+                        }
                     }
                     else
                     {
@@ -2843,7 +2862,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (invPartDoc.IsModifiable == false)
                 {
-                    // TODO log
+                    errorLog += " => Error (le fichier n'est pas modifiable (ContentCenter) et ne peut pas être mis à jour).\nClose Inventor document";
+                    invInst.InvApp.Documents.CloseAll();
+
+                    processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
+                    await Task.Delay(10);
+
+                    errorLog += " => Ok.\nRelease Inventor instance";
+                    _invDispatcher.ReleaseInventorInstance(processId);
+                    errorLog += " => Ok.";
                 }
                 else
                 {
@@ -4985,8 +5012,23 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (fMappingDescription != null && cSourceMappingsDescription == null)
                 {
-                    UpdateItemDescription = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "");
-                    PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
+                    //UpdateItemDescription = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "");
+                    //PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
+                    
+                    
+                    string t = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName);
+                    if (!string.IsNullOrEmpty(t))
+                    {
+                        if (t.Equals(appOptions.ClearPropValue)) t = "";
+
+                        UpdateItemTitle = (true, t);
+                        PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
+                    }
+                    else
+                    {
+                        UpdateItemTitle = (false, t);
+                        PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " ne sera pas mise à jour.");
+                    }
                 }
                 else if (fMappingDescription != null && cSourceMappingsDescription != null)
                 {
@@ -5008,8 +5050,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (fMappingTitle != null && cSourceMappingsTitle == null)
                 {
-                    UpdateItemTitle = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName) ?? "");
-                    PropertyUpdate.Add("  - " + pDefTitle.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName) ?? "") + "'.");
+                    string t = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName);
+                    if(!string.IsNullOrEmpty(t))
+                    {
+                        if (t.Equals(appOptions.ClearPropValue)) t = "";
+
+                        UpdateItemTitle = (true, t);
+                        PropertyUpdate.Add("  - " + pDefTitle.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName) ?? "") + "'.");
+                    }
+                    else
+                    {
+                        UpdateItemTitle = (false, t);
+                        PropertyUpdate.Add("  - " + pDefTitle.DisplayName + " ne sera pas mise à jour.");
+                    }
                 }
                 else if (fMappingTitle != null && cSourceMappingsTitle != null)
                 {

@@ -160,32 +160,32 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        internal void StartOrRestartInventor()
-        {
-            if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
-            {
-                ForceCloseInventor();
-            }
+        //internal void StartOrRestartInventor()
+        //{
+        //    if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
+        //    {
+        //        ForceCloseInventor();
+        //    }
 
-            if (_invApp == null)
-            {
-                Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
+        //    if (_invApp == null)
+        //    {
+        //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
 
-                _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
+        //        _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
 
-                GetWindowThreadProcessId(_invApp.MainFrameHWND, ref _inventorProcessId);
+        //        GetWindowThreadProcessId(_invApp.MainFrameHWND, ref _inventorProcessId);
 
-                _invApp.Visible = IsInventorVisible; //false;
-                _invApp.SilentOperation = IsInventorSilent; //true;
-                _invApp.UserInterfaceManager.UserInteractionDisabled = !IsInventorInteractionEnable; //true;
+        //        _invApp.Visible = IsInventorVisible; //false;
+        //        _invApp.SilentOperation = IsInventorSilent; //true;
+        //        _invApp.UserInterfaceManager.UserInteractionDisabled = !IsInventorInteractionEnable; //true;
 
-                while (_invApp != null && !_invApp.Ready)
-                {
-                    System.Threading.Thread.Sleep(1000);
-                    //await Task.Delay(1000);
-                }
-            }
-        }
+        //        while (_invApp != null && !_invApp.Ready)
+        //        {
+        //            System.Threading.Thread.Sleep(1000);
+        //            //await Task.Delay(1000);
+        //        }
+        //    }
+        //}
 
         internal void ForceCloseInventor()
         {
@@ -217,8 +217,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             System.GC.Collect();
 
             _invApp = null;
-
-            InventorFileCount = 0;
+            _inventorFileCount = 0;
         }
     }
 
