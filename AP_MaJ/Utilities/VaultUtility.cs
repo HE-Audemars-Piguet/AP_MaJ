@@ -1311,13 +1311,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             ds.Tables["Logs"].Rows.Add(drLog);
                         }
 
-                        (DateTime dt, List<long> mIds) toto = await ReSubmitJobsWithError(NextJobErroResubmit);
-                        NextJobErroResubmit = toto.dt;
+                        (DateTime dt, List<(long MasterId, string Message)> mIds) ReSubmitJobsResult = await ReSubmitJobsWithError(NextJobErroResubmit);
+                        NextJobErroResubmit = ReSubmitJobsResult.dt;
 
-                        if(toto.mIds.Count != 0)
+                        if(ReSubmitJobsResult.mIds.Count != 0)
                         {
                             List<DataRow> drs = new List<DataRow>();
-                            try { drs = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<long?>("VaultMasterId") != null && toto.mIds.Contains(x.Field<long>("VaultMasterId"))).ToList(); }
+                            try { drs = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<long?>("VaultMasterId") != null && ReSubmitJobsResult.mIds.Select(y => y.MasterId).Contains(x.Field<long>("VaultMasterId"))).ToList(); }
                             catch { }
 
                             foreach (DataRow dr in drs)
@@ -1326,7 +1326,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                 drLog["EntityId"] = dr["Id"];
                                 drLog["Severity"] = SeverityEnum.Warning;
                                 drLog["Date"] = DateTime.Now;
-                                drLog["Message"] = "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
+                                drLog["Message"] = ReSubmitJobsResult.mIds.Where(x => x.MasterId == dr.Field<long>("VaultMasterId")).FirstOrDefault().Message;// "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
                             }
                         }
 
@@ -1348,9 +1348,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return ds;
         }
 
-        private async Task<(DateTime, List<long>)> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
+        private async Task<(DateTime, List<(long MasterId, string Message)>)> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
         {
-            List<long> mIds = new List<long>();
+            List<(long MasterId, string Message)> mIds = new List<(long MasterId, string Message)>();
 
             if (DateTime.Now > nextJobErroResubmit)
             {
@@ -1360,13 +1360,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     foreach (Job job in AllBomBlobJobs.Where(x => (x.Typ.Equals("autodesk.vault.extractbom.inventor") || x.Typ.Equals("Autodesk.Vault.SyncProperties")) && x.StatusCode == JobStatus.Failure))
                     {
-                        if(job.Typ.Equals("autodesk.vault.extractbom.inventor"))
+                        long mId = -1;
+                        string msg = string.Empty;
+
+                        try
                         {
-                            long mId = -1;
-                            if(long.TryParse(job.ParamArray[1].Val, out mId)) mIds.Add(mId);
+                            if (job.Typ.Equals("autodesk.vault.extractbom.inventor")) long.TryParse(job.ParamArray[1].Val, out mId);
+                            
+
+                            //if (job.Typ.Equals("autodesk.vault.extractbom.inventor"))
+                            //{
+
+                            //    if (long.TryParse(job.ParamArray[1].Val, out mId)) mIds.Add(mId);
+                            //}
+
+                            await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+
+                            msg = "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
                         }
-                        
-                        await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+                        catch (Exception Ex)
+                        {
+                            msg = "La resoumission du job de création des informations de nomenclature a échoué avec l'erreur suivante:\n" + Ex.Message;
+                        }
+
+                        if(mId != -1)
+                        {
+                            mIds.Add((mId, msg));
+                        }
                     }
                 }
 

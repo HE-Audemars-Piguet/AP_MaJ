@@ -73,6 +73,24 @@ namespace Ch.Hurni.AP_MaJ.Utilities
         }
         private int _maxInventorFileCount = 100;
 
+
+        /// <summary>
+        /// Value in Mb
+        /// </summary>
+        public int MaxInventorMemory
+        {
+            get
+            {
+                return _maxInventorMemory;
+            }
+            set
+            {
+                _maxInventorMemory = value;
+            }
+        }
+        private int _maxInventorMemory = 5000;
+
+
         public bool IsInventorVisible
         {
             get
@@ -116,27 +134,16 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         public InventorInstance() { }
 
-        //internal void StartInventor()
-        //{
-        //    if (_invApp == null)
-        //    {
-        //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
-
-        //        _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-        //        _invApp.Visible = false;
-        //        _invApp.SilentOperation = true;
-        //        _invApp.UserInterfaceManager.UserInteractionDisabled = true;
-
-        //        while (_invApp != null && !_invApp.Ready)
-        //        {
-        //            System.Threading.Thread.Sleep(1000);
-        //        }
-        //    }
-        //}
-
         internal async Task StartOrRestartInventorAsync()
         {
-            if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
+            int memUsed = 0;
+            if(_inventorProcessId != -1 && Process.GetProcesses().Where(x => x.Id == _inventorProcessId).Count() > 0)
+            {
+                Process thisproc = Process.GetProcessById(_inventorProcessId);
+                memUsed = (int)(thisproc.WorkingSet64 / (1024 * 1024));
+            }
+
+            if (_invApp != null && (InventorFileCount >= MaxInventorFileCount || memUsed > 4000))
             {
                 await Task.Run(() => ForceCloseInventor());
             }
@@ -160,33 +167,6 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             }
         }
 
-        //internal void StartOrRestartInventor()
-        //{
-        //    if (_invApp != null && InventorFileCount >= MaxInventorFileCount)
-        //    {
-        //        ForceCloseInventor();
-        //    }
-
-        //    if (_invApp == null)
-        //    {
-        //        Type inventorAppType = System.Type.GetTypeFromProgID("Inventor.Application");
-
-        //        _invApp = System.Activator.CreateInstance(inventorAppType) as Inventor.Application;
-
-        //        GetWindowThreadProcessId(_invApp.MainFrameHWND, ref _inventorProcessId);
-
-        //        _invApp.Visible = IsInventorVisible; //false;
-        //        _invApp.SilentOperation = IsInventorSilent; //true;
-        //        _invApp.UserInterfaceManager.UserInteractionDisabled = !IsInventorInteractionEnable; //true;
-
-        //        while (_invApp != null && !_invApp.Ready)
-        //        {
-        //            System.Threading.Thread.Sleep(1000);
-        //            //await Task.Delay(1000);
-        //        }
-        //    }
-        //}
-
         internal void ForceCloseInventor()
         {
             try
@@ -205,6 +185,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 try
                 {
                     Process thisproc = Process.GetProcessById(_inventorProcessId);
+
                     if (!thisproc.CloseMainWindow()) thisproc.Kill();
                 }
                 catch(Exception Ex)
@@ -246,6 +227,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 _invInstances.Add(new InventorInstance() 
                 { 
                     MaxInventorFileCount = appOptions.MaxInventorFileCount,
+                    MaxInventorMemory = appOptions.MaxInventorMemory,
                     IsInventorSilent = appOptions.IsInventorSilent,
                     IsInventorVisible = appOptions.IsInventorVisible,
                     IsInventorInteractionEnable = appOptions.IsInventorInteractionEnable
