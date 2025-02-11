@@ -256,6 +256,16 @@
                                     </StackPanel>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
+                            <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="Redémarrer Inventor si il utilise plus de" Margin="16 0 0 0"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <StackPanel Orientation="Horizontal">
+                                        <dxe:SpinEdit EditValue="{Binding Path=AppOptions.MaxInventorMemory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="2000" MaxValue="10000" Increment="100" 
+                                                      EditValueType="{x:Type system:Int32}" Mask="d" MaskUseAsDisplayFormat="True" HorizontalAlignment="Left" ShowBorder="True" Width="100"/>
+                                        <TextBlock Text="Mb de mémoire" Margin="8 0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup IsEnabled="False">
                                 <dxdo:LabelItem Caption="Mode de démarrage d'Inventor" Margin="16 0 0 0"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">

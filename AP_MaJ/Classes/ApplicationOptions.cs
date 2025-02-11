@@ -405,7 +405,24 @@ namespace Ch.Hurni.AP_MaJ.Classes
                 _maxInventorFileCount = value;
             }
         }
-        private int _maxInventorFileCount = 250;
+        private int _maxInventorFileCount = 100;
+
+        /// <summary>
+        /// Value in Mb
+        /// </summary>
+        public int MaxInventorMemory
+        {
+            get
+            {
+                return _maxInventorMemory;
+            }
+            set
+            {
+                _maxInventorMemory = value;
+            }
+        }
+        private int _maxInventorMemory = 5000;
+
 
         public int? MaxWaitForInventorInstanceInSeconds
         {

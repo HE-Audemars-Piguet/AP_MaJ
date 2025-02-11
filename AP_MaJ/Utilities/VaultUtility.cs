@@ -1311,13 +1311,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                             ds.Tables["Logs"].Rows.Add(drLog);
                         }
 
-                        (DateTime dt, List<long> mIds) toto = await ReSubmitJobsWithError(NextJobErroResubmit);
-                        NextJobErroResubmit = toto.dt;
+                        (DateTime dt, List<(long MasterId, string Message)> mIds) ReSubmitJobsResult = await ReSubmitJobsWithError(NextJobErroResubmit);
+                        NextJobErroResubmit = ReSubmitJobsResult.dt;
 
-                        if(toto.mIds.Count != 0)
+                        if(ReSubmitJobsResult.mIds.Count != 0)
                         {
                             List<DataRow> drs = new List<DataRow>();
-                            try { drs = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<long?>("VaultMasterId") != null && toto.mIds.Contains(x.Field<long>("VaultMasterId"))).ToList(); }
+                            try { drs = ds.Tables["Entities"].AsEnumerable().Where(x => x.Field<long?>("VaultMasterId") != null && ReSubmitJobsResult.mIds.Select(y => y.MasterId).Contains(x.Field<long>("VaultMasterId"))).ToList(); }
                             catch { }
 
                             foreach (DataRow dr in drs)
@@ -1326,7 +1326,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                 drLog["EntityId"] = dr["Id"];
                                 drLog["Severity"] = SeverityEnum.Warning;
                                 drLog["Date"] = DateTime.Now;
-                                drLog["Message"] = "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
+                                drLog["Message"] = ReSubmitJobsResult.mIds.Where(x => x.MasterId == dr.Field<long>("VaultMasterId")).FirstOrDefault().Message;// "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
                             }
                         }
 
@@ -1348,9 +1348,9 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             return ds;
         }
 
-        private async Task<(DateTime, List<long>)> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
+        private async Task<(DateTime, List<(long MasterId, string Message)>)> ReSubmitJobsWithError(DateTime nextJobErroResubmit)
         {
-            List<long> mIds = new List<long>();
+            List<(long MasterId, string Message)> mIds = new List<(long MasterId, string Message)>();
 
             if (DateTime.Now > nextJobErroResubmit)
             {
@@ -1360,13 +1360,33 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 {
                     foreach (Job job in AllBomBlobJobs.Where(x => (x.Typ.Equals("autodesk.vault.extractbom.inventor") || x.Typ.Equals("Autodesk.Vault.SyncProperties")) && x.StatusCode == JobStatus.Failure))
                     {
-                        if(job.Typ.Equals("autodesk.vault.extractbom.inventor"))
+                        long mId = -1;
+                        string msg = string.Empty;
+
+                        try
                         {
-                            long mId = -1;
-                            if(long.TryParse(job.ParamArray[1].Val, out mId)) mIds.Add(mId);
+                            if (job.Typ.Equals("autodesk.vault.extractbom.inventor")) long.TryParse(job.ParamArray[1].Val, out mId);
+                            
+
+                            //if (job.Typ.Equals("autodesk.vault.extractbom.inventor"))
+                            //{
+
+                            //    if (long.TryParse(job.ParamArray[1].Val, out mId)) mIds.Add(mId);
+                            //}
+
+                            await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+
+                            msg = "Le job de création des informations de nomenclature présentait une erreur, il a été resoumis.";
                         }
-                        
-                        await Task.Run(() => VaultConnection.WebServiceManager.JobService.ResubmitJob(job.Id));
+                        catch (Exception Ex)
+                        {
+                            msg = "La resoumission du job de création des informations de nomenclature a échoué avec l'erreur suivante:\n" + Ex.Message;
+                        }
+
+                        if(mId != -1)
+                        {
+                            mIds.Add((mId, msg));
+                        }
                     }
                 }
 
@@ -2377,23 +2397,42 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                        
                         await UpdateInventorMaterial(fullVaultName, LocalFilePath.FullPath, newInventorMaterialName, processId, errorLog, processProgReport);
 
-                        errorLog += " => Ok.\nObtention des associations";
-                        
-                        //FileAssocParam[] fileAssocParams = GetFileAssocParamById(file.Id);
-                        //FileAssocParam[] fileAssocParams = GetFileAssocParamByMasterId(dr.Field<long>("VaultMasterId"));
-
-                        errorLog += " => Ok.\nArchivage du fichier";
-                        using (System.IO.StreamReader stream = new System.IO.StreamReader(LocalFilePath.FullPath))
+                        if(errorLog.Contains(" => Error"))
                         {
-                            VaultConnection.FileManager.CheckinFile(CheckedOutFile, "MaJ - Mise à jour de la matière", false, DateTime.Now, fileAssocParams, null, false, CheckedOutFile.EntityName, CheckedOutFile.FileClassification, CheckedOutFile.IsHidden, stream.BaseStream);
+                            if (CheckedOutFile != null && CheckedOutFile.IsCheckedOut)
+                            {
+                                errorLog += "Annulation de l'extraction.";
+                                try
+                                {
+                                    VaultConnection.FileManager.UndoCheckoutFile(CheckedOutFile);
+                                    errorLog += " => Ok.";
+                                }
+                                catch (Exception SubEx)
+                                {
+                                    errorLog += " => Erreur.\n" + SubEx.ToString();
+                                }
+                            }
+
+                            if (appOptions.LogError) resultLogs.Add(CreateLog("Error", errorLog));
+                            return StateEnum.Error;
                         }
+                        else
+                        {
+                            errorLog += " => Ok.\nObtention des associations";
 
-                        errorLog += " => Ok.";
+                            errorLog += " => Ok.\nArchivage du fichier";
+                            using (System.IO.StreamReader stream = new System.IO.StreamReader(LocalFilePath.FullPath))
+                            {
+                                VaultConnection.FileManager.CheckinFile(CheckedOutFile, "MaJ - Mise à jour de la matière", false, DateTime.Now, fileAssocParams, null, false, CheckedOutFile.EntityName, CheckedOutFile.FileClassification, CheckedOutFile.IsHidden, stream.BaseStream);
+                            }
 
-                        if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", errorLog));
+                            errorLog += " => Ok.";
 
-                        CheckedOutFile = null;
-                        retryCount = maxRetryCount + 1;
+                            if (appOptions.LogInfo) resultLogs.Add(CreateLog("Info", errorLog));
+
+                            CheckedOutFile = null;
+                            retryCount = maxRetryCount + 1;
+                        }
                     }
                     else
                     {
@@ -2843,7 +2882,15 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (invPartDoc.IsModifiable == false)
                 {
-                    // TODO log
+                    errorLog += " => Error (le fichier n'est pas modifiable (ContentCenter) et ne peut pas être mis à jour).\nClose Inventor document";
+                    invInst.InvApp.Documents.CloseAll();
+
+                    processProgReport.Report(new ProcessProgressReport() { Message = fullVaultName, ProcessIndex = processId });
+                    await Task.Delay(10);
+
+                    errorLog += " => Ok.\nRelease Inventor instance";
+                    _invDispatcher.ReleaseInventorInstance(processId);
+                    errorLog += " => Ok.";
                 }
                 else
                 {
@@ -4985,8 +5032,23 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (fMappingDescription != null && cSourceMappingsDescription == null)
                 {
-                    UpdateItemDescription = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "");
-                    PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
+                    //UpdateItemDescription = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "");
+                    //PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
+                    
+                    
+                    string t = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName);
+                    if (!string.IsNullOrEmpty(t))
+                    {
+                        if (t.Equals(appOptions.ClearPropValue)) t = "";
+
+                        UpdateItemTitle = (true, t);
+                        PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
+                    }
+                    else
+                    {
+                        UpdateItemTitle = (false, t);
+                        PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " ne sera pas mise à jour.");
+                    }
                 }
                 else if (fMappingDescription != null && cSourceMappingsDescription != null)
                 {
@@ -5008,8 +5070,19 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
                 if (fMappingTitle != null && cSourceMappingsTitle == null)
                 {
-                    UpdateItemTitle = (true, dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName) ?? "");
-                    PropertyUpdate.Add("  - " + pDefTitle.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName) ?? "") + "'.");
+                    string t = dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName);
+                    if(!string.IsNullOrEmpty(t))
+                    {
+                        if (t.Equals(appOptions.ClearPropValue)) t = "";
+
+                        UpdateItemTitle = (true, t);
+                        PropertyUpdate.Add("  - " + pDefTitle.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingTitle.FieldName) ?? "") + "'.");
+                    }
+                    else
+                    {
+                        UpdateItemTitle = (false, t);
+                        PropertyUpdate.Add("  - " + pDefTitle.DisplayName + " ne sera pas mise à jour.");
+                    }
                 }
                 else if (fMappingTitle != null && cSourceMappingsTitle != null)
                 {
