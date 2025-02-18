@@ -5041,12 +5041,12 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     {
                         if (t.Equals(appOptions.ClearPropValue)) t = "";
 
-                        UpdateItemTitle = (true, t);
+                        UpdateItemDescription = (true, t);
                         PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " = '" + (dr.GetChildRows("EntityNewProp").FirstOrDefault().Field<string>(fMappingDescription.FieldName) ?? "") + "'.");
                     }
                     else
                     {
-                        UpdateItemTitle = (false, t);
+                        UpdateItemDescription = (false, t);
                         PropertyUpdate.Add("  - " + pDefDescription.DisplayName + " ne sera pas mise à jour.");
                     }
                 }
