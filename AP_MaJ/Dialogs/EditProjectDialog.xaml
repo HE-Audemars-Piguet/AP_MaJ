@@ -220,6 +220,12 @@
                                     <dxe:ComboBoxEdit EditValue="{Binding Path=AppOptions.FilePropertySyncMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Path=AppOptions.PropertySyncModes}"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
+                            <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="Concidérer les erreurs de purge comme des 'Warning' (poursuivre l'execution)" Margin="16 0 0 0"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:CheckEdit EditValue="{Binding Path=AppOptions.PurgeFileErrorAsWarning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
 
                             <dxdo:LayoutGroup Margin="0 4 0 0">
                                 <dxdo:LabelItem Caption="Nombre de processeurs lors de la mise à jour des fichiers"/>
@@ -325,7 +331,13 @@
                                     <dxe:ComboBoxEdit EditValue="{Binding Path=AppOptions.ItemPropertySyncMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Path=AppOptions.PropertySyncModes}"/>
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
-
+                            <dxdo:LayoutGroup>
+                                <dxdo:LabelItem Caption="Concidérer les erreurs de purge comme des 'Warning' (poursuivre l'execution)" Margin="16 0 0 0"/>
+                                <dxdo:LayoutControlItem ItemWidth="300">
+                                    <dxe:CheckEdit EditValue="{Binding Path=AppOptions.PurgeItemErrorAsWarning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </dxdo:LayoutControlItem>
+                            </dxdo:LayoutGroup>
+                            
                             <dxdo:LayoutGroup Margin="0 4 0 0">
                                 <dxdo:LabelItem Caption="Nombre de processeurs lors de la mise à jour des articles"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">

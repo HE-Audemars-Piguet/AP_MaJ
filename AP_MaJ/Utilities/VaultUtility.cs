@@ -55,6 +55,7 @@ using System.Data.Entity.Core.Metadata.Edm;
 using DevExpress.XtraReports.Localization;
 using System.Globalization;
 using System.Security.Cryptography;
+using DevExpress.XtraEditors.Filtering;
 
 namespace Ch.Hurni.AP_MaJ.Utilities
 {
@@ -1222,8 +1223,16 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
-                    resultState = StateEnum.Error;
+                    if(appOptions.PurgeFileErrorAsWarning)
+                    {
+                        if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'.\n"+
+                                                                                       "Ce problème peut entraîner des répercussions dans les étapes suivantes du traitement mais l'utilisateur a décidé d'ignorer ce problème et de poursuivre l'exécution."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété du fichier '" + FullVaultName + "'."));
+                        resultState = StateEnum.Error;
+                    }
                 }
             }
 
@@ -3398,7 +3407,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                         Log["EntityId"] = dr["Id"];
                                         Log["Severity"] = "Error";
                                         Log["Date"] = DateTime.Now;
-                                        Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tantatives.";
+                                        Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tentatives.";
                                         ds.Tables["Logs"].Rows.Add(Log);
                                     }
 
@@ -3493,7 +3502,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                                             Log["EntityId"] = dr["Id"];
                                             Log["Severity"] = "Error";
                                             Log["Date"] = DateTime.Now;
-                                            Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tantatives.";
+                                            Log["Message"] = "Abandon de la re-soumission du job de publication des informations de nomenclature après (" + dr.Field<int>("JobSubmitCount") + ") tentatives.";
                                             ds.Tables["Logs"].Rows.Add(Log);
                                         }
 
@@ -4522,8 +4531,16 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                 }
                 catch (VaultServiceErrorException VltEx)
                 {
-                    if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété de l'article '" + VaultItemNumber + "'."));
-                    resultState = StateEnum.Error;
+                    if (appOptions.PurgeItemErrorAsWarning)
+                    {
+                        if (appOptions.LogWarning) resultLogs.Add(CreateLog("Warning", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété de l'article '" + VaultItemNumber + "'..\n" +
+                                                                                       "Ce problème peut entraîner des répercussions dans les étapes suivantes du traitement mais l'utilisateur a décidé d'ignorer ce problème et de poursuivre l'exécution."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes(VltEx) + "' à été retourné lors de a purge des propriété de l'article '" + VaultItemNumber + "'."));
+                        resultState = StateEnum.Error;
+                    }
                 }
             }
 

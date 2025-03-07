@@ -275,9 +275,11 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             openFileDialog.CheckFileExists = false;
             openFileDialog.Multiselect = false;
 
-            openFileDialog.Filter = "Excel file (*.xlsx)|*.xlsx|" +
-                                    "Excel file (*.xls)|*.xls|" +
-                                    "Csv file (*.csv)|*.csv";
+            openFileDialog.Filter = "Csv file (*.csv)|*.csv|" + 
+                                    "Excel file (*.xlsx)|*.xlsx|" +
+                                    "Excel file (*.xls)|*.xls";
+            
+            openFileDialog.FilterIndex = 1;
 
             if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
