@@ -186,7 +186,11 @@ namespace Ch.Hurni.AP_MaJ.Dialogs
             openFileDialog.Multiselect = false;
             openFileDialog.DefaultExt = ".xlsx";
 
-            openFileDialog.Filter = "Fichier Excel (*.xlsx)|*.xlsx|Fichier Excel (*.xls)|*.xls|Fichier Csv (*.csv)|*.csv|DB file (*.db)|*.db";
+            openFileDialog.Filter = "Csv file (*.csv)|*.csv|" +
+                        "Excel file (*.xlsx)|*.xlsx|" +
+                        "Excel file (*.xls)|*.xls";
+
+            openFileDialog.FilterIndex = 1;
 
             if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {

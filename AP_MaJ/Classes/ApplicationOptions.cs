@@ -122,6 +122,20 @@ namespace Ch.Hurni.AP_MaJ.Classes
         }
         private PropertySyncModeEnum _filePropertySyncMode = PropertySyncModeEnum.PurgeAndAdd;
 
+        public bool PurgeFileErrorAsWarning
+        {
+            get
+            {
+                return _purgeFileErrorAsWarning;
+            }
+            set
+            {
+                _purgeFileErrorAsWarning = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _purgeFileErrorAsWarning = false;
+        
         public int MaxRetryCount
         {
             get
@@ -219,6 +233,20 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private PropertySyncModeEnum _itemPropertySyncMode = PropertySyncModeEnum.PurgeAndAdd;
+
+        public bool PurgeItemErrorAsWarning
+        {
+            get
+            {
+                return _purgeItemErrorAsWarning;
+            }
+            set
+            {
+                _purgeItemErrorAsWarning = value;
+                NotifyPropertyChanged();
+            }
+        }
+        private bool _purgeItemErrorAsWarning = false;
 
         public int ItemValidationProcess
         {
@@ -534,7 +562,7 @@ namespace Ch.Hurni.AP_MaJ.Classes
             }
         }
         private bool _isAnyCadFileAnError = true;
-
+        
         public List<object> AllAnyCadFileExt
         {
             get
