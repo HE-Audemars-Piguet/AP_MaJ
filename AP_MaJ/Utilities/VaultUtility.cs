@@ -404,7 +404,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState != StateEnum.Error)
             {
                 FullVaultName = dr.Field<string>("Path");
-                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("§");
+                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
                 else FullVaultName += "/" + dr.Field<string>("Name");
 
                 processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
