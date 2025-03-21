@@ -404,7 +404,7 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             if (resultState != StateEnum.Error)
             {
                 FullVaultName = dr.Field<string>("Path");
-                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("Name");
+                if (string.IsNullOrWhiteSpace(FullVaultName) || FullVaultName.EndsWith("/")) FullVaultName += dr.Field<string>("§");
                 else FullVaultName += "/" + dr.Field<string>("Name");
 
                 processProgReport.Report(new ProcessProgressReport() { Message = FullVaultName, ProcessIndex = processId, TotalCountInc = 1 });
@@ -1593,6 +1593,41 @@ namespace Ch.Hurni.AP_MaJ.Utilities
                     resultState = StateEnum.Error;
                 }
             }
+            else if (dr.Field<long?>("TargetVaultNumSchId") != null && !string.IsNullOrWhiteSpace(dr.Field<string>("TargetVaultName")) && dr.Field<string>("TargetVaultName").StartsWith("ParentNumber="))
+            {
+                string ParentFileName = dr.Field<string>("TargetVaultName").Substring("ParentNumber=".Length).Trim();
+                
+                try
+                {
+                    DataRow PrentFile = dr.Table.AsEnumerable().Where(x => x.Field<string>("Name").Equals(ParentFileName)).FirstOrDefault();
+
+                    if (PrentFile != null && PrentFile.Field<long?>("VaultMasterId") != null)
+                    {
+                        ACW.File parentVaultFile = VaultConnection.WebServiceManager.DocumentService.GetLatestFileByMasterId(PrentFile.Field<long>("VaultMasterId"));
+                        if (parentVaultFile != null) NewName = System.IO.Path.GetFileNameWithoutExtension(parentVaultFile.Name) + Ext;
+                    }
+                }
+                catch (Exception Ex)
+                {
+                    if (Ex is VaultServiceErrorException)
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "Le code d'erreur Vault '" + GetSubExceptionCodes((VaultServiceErrorException)Ex) +
+                                                                                   "' à été retourné lors de l'optention du nom du fichier parent '" + ParentFileName + 
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "."));
+                    }
+                    else
+                    {
+                        if (appOptions.LogError) resultLogs.Add(CreateLog("Error", "L'erreur suivante à été retourné lors de l'optention du nom du fichier parent '" + ParentFileName +
+                                                                                   "' (essai " + RetryCount + "/" + appOptions.MaxRetryCount + "." +
+                                                                                   System.Environment.NewLine + Ex.ToString()));
+                    }
+
+                    resultState = StateEnum.Error;
+                }
+            }
+
+
+
 
             if (resultState != StateEnum.Error && !string.IsNullOrWhiteSpace(NewName) && NewName != dr.Field<string>("Name"))
             {

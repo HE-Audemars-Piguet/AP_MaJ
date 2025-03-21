@@ -17,12 +17,12 @@
         <property name="MergeWithPreviousGroup">false</property>
       </property>
       <property name="Item2" isnull="true" iskey="true">
-        <property name="FieldName">Entity_Name</property>
+        <property name="FieldName">Entity_TargetVaultPath</property>
         <property name="SortOrder">Ascending</property>
         <property name="MergeWithPreviousGroup">false</property>
       </property>
     </property>
-    <property name="Columns" iskey="true" value="30">
+    <property name="Columns" iskey="true" value="51">
       <property name="Item1" isnull="true" iskey="true">
         <property name="GridRow">0</property>
         <property name="FieldName">EntityType</property>
@@ -32,221 +32,372 @@
       </property>
       <property name="Item2" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_State</property>
+        <property name="FieldName">Entity_Task</property>
         <property name="Visible">true</property>
         <property name="VisibleIndex">1</property>
-        <property name="ActualWidth">46</property>
+        <property name="ActualWidth">42.726516052318658</property>
       </property>
       <property name="Item3" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultMasterId</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">2</property>
-        <property name="ActualWidth">NaN</property>
+        <property name="FieldName">Entity_State</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">6</property>
+        <property name="ActualWidth">43.512485136741979</property>
       </property>
       <property name="Item4" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_EntityType</property>
+        <property name="FieldName">Entity_JobSubmitCount</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">3</property>
         <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item5" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_Name</property>
-        <property name="Visible">true</property>
-        <property name="VisibleIndex">4</property>
-        <property name="ActualWidth">126</property>
-      </property>
-      <property name="Item6" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultName</property>
+        <property name="FieldName">Entity_VaultLevel</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">5</property>
         <property name="ActualWidth">NaN</property>
       </property>
+      <property name="Item6" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_EntityType</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">4</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
       <property name="Item7" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_Path</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">6</property>
-        <property name="ActualWidth">NaN</property>
+        <property name="FieldName">Entity_Name</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">7</property>
+        <property name="ActualWidth">165.63209477112048</property>
       </property>
       <property name="Item8" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultPath</property>
+        <property name="FieldName">Entity_VaultMasterId</property>
         <property name="Visible">false</property>
-        <property name="VisibleIndex">7</property>
+        <property name="VisibleIndex">2</property>
         <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item9" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultCatName</property>
+        <property name="FieldName">Entity_Path</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">8</property>
         <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item10" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultCatId</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">9</property>
-        <property name="ActualWidth">NaN</property>
-      </property>
-      <property name="Item11" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultCatName</property>
-        <property name="Visible">true</property>
-        <property name="VisibleIndex">19</property>
-        <property name="ActualWidth">127.8333333333333</property>
-      </property>
-      <property name="Item12" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultCatId</property>
+        <property name="FieldName">Entity_VaultFolderId</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">10</property>
         <property name="ActualWidth">NaN</property>
       </property>
-      <property name="Item13" isnull="true" iskey="true">
+      <property name="Item11" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultLcName</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">11</property>
-        <property name="ActualWidth">NaN</property>
-      </property>
-      <property name="Item14" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultLcId</property>
+        <property name="FieldName">Entity_VaultProvider</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">12</property>
         <property name="ActualWidth">NaN</property>
       </property>
-      <property name="Item15" isnull="true" iskey="true">
+      <property name="Item12" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultLcName</property>
+        <property name="FieldName">Entity_TargetVaultNumSchName</property>
         <property name="Visible">true</property>
-        <property name="VisibleIndex">13</property>
-        <property name="ActualWidth">127.8333333333333</property>
+        <property name="VisibleIndex">35</property>
+        <property name="ActualWidth">190.13520112811398</property>
       </property>
-      <property name="Item16" isnull="true" iskey="true">
+      <property name="Item13" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultLcId</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">14</property>
-        <property name="ActualWidth">NaN</property>
-      </property>
-      <property name="Item17" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultLcsName</property>
+        <property name="FieldName">Entity_TargetVaultNumSchId</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">15</property>
         <property name="ActualWidth">NaN</property>
       </property>
-      <property name="Item18" isnull="true" iskey="true">
+      <property name="Item14" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultLcsId</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">16</property>
-        <property name="ActualWidth">NaN</property>
-      </property>
-      <property name="Item19" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TempVaultLcsName</property>
+        <property name="FieldName">Entity_TargetVaultName</property>
         <property name="Visible">true</property>
-        <property name="VisibleIndex">17</property>
-        <property name="ActualWidth">127.8333333333333</property>
-      </property>
-      <property name="Item20" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TempVaultLcsId</property>
-        <property name="Visible">false</property>
         <property name="VisibleIndex">18</property>
+        <property name="ActualWidth">95.386444708680145</property>
+      </property>
+      <property name="Item15" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_TargetVaultPath</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">17</property>
         <property name="ActualWidth">NaN</property>
       </property>
-      <property name="Item21" isnull="true" iskey="true">
+      <property name="Item16" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultLcsName</property>
-        <property name="Visible">true</property>
-        <property name="VisibleIndex">20</property>
-        <property name="ActualWidth">127.8333333333333</property>
-      </property>
-      <property name="Item22" isnull="true" iskey="true">
-        <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultLcsId</property>
+        <property name="FieldName">Entity_TargetVaultFolderId</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">21</property>
         <property name="ActualWidth">NaN</property>
       </property>
+      <property name="Item17" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultCatName</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">9</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item18" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultCatId</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">11</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item19" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_TargetVaultCatName</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">26</property>
+        <property name="ActualWidth">105.60404280618309</property>
+      </property>
+      <property name="Item20" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_TargetVaultCatId</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">13</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item21" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultLcName</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">14</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item22" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultLcId</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">16</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
       <property name="Item23" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultRevSchName</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">22</property>
-        <property name="ActualWidth">NaN</property>
+        <property name="FieldName">Entity_TargetVaultLcName</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">19</property>
+        <property name="ActualWidth">87.526753864447059</property>
       </property>
       <property name="Item24" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultRevSchId</property>
+        <property name="FieldName">Entity_TargetVaultLcId</property>
         <property name="Visible">false</property>
-        <property name="VisibleIndex">23</property>
+        <property name="VisibleIndex">20</property>
         <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item25" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultRevSchName</property>
-        <property name="Visible">true</property>
-        <property name="VisibleIndex">24</property>
-        <property name="ActualWidth">127.8333333333333</property>
+        <property name="FieldName">Entity_VaultLcsName</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">22</property>
+        <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item26" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultRevSchId</property>
+        <property name="FieldName">Entity_VaultLcsId</property>
         <property name="Visible">false</property>
-        <property name="VisibleIndex">25</property>
+        <property name="VisibleIndex">23</property>
         <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item27" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultRevName</property>
-        <property name="Visible">false</property>
-        <property name="VisibleIndex">26</property>
-        <property name="ActualWidth">NaN</property>
+        <property name="FieldName">Entity_TempVaultLcsName</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">24</property>
+        <property name="ActualWidth">89.0986920332937</property>
       </property>
       <property name="Item28" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_VaultRevId</property>
+        <property name="FieldName">Entity_TempVaultLcsId</property>
         <property name="Visible">false</property>
-        <property name="VisibleIndex">27</property>
+        <property name="VisibleIndex">25</property>
         <property name="ActualWidth">NaN</property>
       </property>
       <property name="Item29" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultRevName</property>
+        <property name="FieldName">Entity_TargetVaultLcsName</property>
         <property name="Visible">true</property>
-        <property name="VisibleIndex">28</property>
-        <property name="ActualWidth">127.8333333333333</property>
+        <property name="VisibleIndex">27</property>
+        <property name="ActualWidth">92.242568370986916</property>
       </property>
       <property name="Item30" isnull="true" iskey="true">
         <property name="GridRow">0</property>
-        <property name="FieldName">Entity_TargetVaultRevId</property>
+        <property name="FieldName">Entity_TargetVaultLcsId</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">28</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item31" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultRevSchName</property>
         <property name="Visible">false</property>
         <property name="VisibleIndex">29</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item32" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultRevSchId</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">30</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item33" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_TargetVaultRevSchName</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">31</property>
+        <property name="ActualWidth">275</property>
+      </property>
+      <property name="Item34" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_TargetVaultRevSchId</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">32</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item35" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_VaultRevLabel</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">33</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item36" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">Entity_TargetVaultRevLabel</property>
+        <property name="Visible">true</property>
+        <property name="VisibleIndex">34</property>
+        <property name="ActualWidth">190.13520112811398</property>
+      </property>
+      <property name="Item37" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_MATIERE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">36</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item38" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_NUMERO PIECE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">37</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item39" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_MARQUE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">38</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item40" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_LONGUEUR PORTEE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">39</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item41" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_ETANCHEITE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">40</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item42" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_PORTEE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">41</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item43" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_COULEUR REVETEMENT ESTHETIQUE</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">42</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item44" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_MATIERE COMPOSANT 1</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">43</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item45" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_MATIERE COMPOSANT 2</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">44</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item46" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_MATIERE COMPOSANT 3</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">45</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item47" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_COULEUR REVETEMENT FONCTIONNEL</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">46</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item48" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_TYPE DE DOCUMENT</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">47</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item49" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_DESCRIPTION</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">48</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item50" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_Title (Item,CO)</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">49</property>
+        <property name="ActualWidth">NaN</property>
+      </property>
+      <property name="Item51" isnull="true" iskey="true">
+        <property name="GridRow">0</property>
+        <property name="FieldName">NewProp_Description (Item,CO)</property>
+        <property name="Visible">false</property>
+        <property name="VisibleIndex">50</property>
         <property name="ActualWidth">NaN</property>
       </property>
     </property>
     <property name="View" isnull="true" iskey="true">
       <property name="FormatConditions" iskey="true" value="0" />
-      <property name="ShowGroupPanel">false</property>
+      <property name="ShowGroupPanel">true</property>
       <property name="ColumnChooserState" isnull="true" iskey="true">
         <property name="Location">817,113</property>
         <property name="Size">220,702</property>
       </property>
+      <property name="ActualShowSearchPanel">true</property>
     </property>
     <property name="TotalSummary" iskey="true" value="0" />
     <property name="MRUFilters" iskey="true" value="0" />
-    <property name="FilterString">[Entity_TargetVaultCatName] = 'BRIDE'</property>
-    <property name="MRUFilterList" iskey="true" value="1">
+    <property name="FilterString" />
+    <property name="MRUFilterList" iskey="true" value="2">
       <property name="Item1" isnull="true" iskey="true">
+        <property name="FilterString">[Entity_TargetVaultCatName] = 'BRIDE'</property>
+      </property>
+      <property name="Item2" isnull="true" iskey="true">
         <property name="FilterString">[Entity_TargetVaultCatName] = 'AIGUILLE'</property>
       </property>
     </property>
