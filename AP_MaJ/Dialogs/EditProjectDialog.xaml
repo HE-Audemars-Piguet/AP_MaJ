@@ -182,7 +182,7 @@
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="Concidérer les liens AnyCAD comme des erreurs" Margin="16 0 0 0"/>
+                                <dxdo:LabelItem Caption="Considérer les liens AnyCAD comme des erreurs" Margin="16 0 0 0"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:CheckEdit EditValue="{Binding Path=AppOptions.IsAnyCadFileAnError, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </dxdo:LayoutControlItem>
@@ -221,7 +221,7 @@
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="Concidérer les erreurs de purge comme des 'Warning' (poursuivre l'execution)" Margin="16 0 0 0"/>
+                                <dxdo:LabelItem Caption="Considérer les erreurs de purge comme des 'Warning' (poursuivre l'execution)" Margin="16 0 0 0"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:CheckEdit EditValue="{Binding Path=AppOptions.PurgeFileErrorAsWarning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </dxdo:LayoutControlItem>
@@ -332,7 +332,7 @@
                                 </dxdo:LayoutControlItem>
                             </dxdo:LayoutGroup>
                             <dxdo:LayoutGroup>
-                                <dxdo:LabelItem Caption="Concidérer les erreurs de purge comme des 'Warning' (poursuivre l'execution)" Margin="16 0 0 0"/>
+                                <dxdo:LabelItem Caption="Considérer les erreurs de purge comme des 'Warning' (poursuivre l'execution)" Margin="16 0 0 0"/>
                                 <dxdo:LayoutControlItem ItemWidth="300">
                                     <dxe:CheckEdit EditValue="{Binding Path=AppOptions.PurgeItemErrorAsWarning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </dxdo:LayoutControlItem>
