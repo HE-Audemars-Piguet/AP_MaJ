@@ -474,6 +474,7 @@ namespace Ch.Hurni.AP_MaJ
             if (!string.IsNullOrWhiteSpace(ActiveProjectName)) saveFileDialog.InitialDirectory = new System.IO.FileInfo(ActiveProjectName).Directory.Parent.Name;
             else saveFileDialog.InitialDirectory = _rootProjectDir;
 
+            saveFileDialog.Title = "Créer un nouveau projet de mise à jour";
             saveFileDialog.DefaultExt = ".maj";
             //saveFileDialog.FileName = "Default.maj";
             saveFileDialog.AddExtension = true;
@@ -497,6 +498,7 @@ namespace Ch.Hurni.AP_MaJ
             if (!string.IsNullOrWhiteSpace(ActiveProjectName)) openFileDialog.InitialDirectory = new System.IO.FileInfo(ActiveProjectName).Directory.Parent.Name;
             else openFileDialog.InitialDirectory = _rootProjectDir;
 
+            openFileDialog.Title = "Ouvrir un projet de mise à jour existant";
             openFileDialog.DefaultExt = ".maj";
             //openFileDialog.FileName = "Default.maj";
             openFileDialog.AddExtension = true;
