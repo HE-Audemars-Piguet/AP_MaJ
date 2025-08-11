@@ -308,7 +308,7 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                                 await Task.Delay(100);
 
                                 vaultUtility.VaultConnection = vaultUtility.ConnectToVault(_appOptions, pwdCheckDialog.User, pwdCheckDialog.Password);
-                                if (vaultUtility.VaultConnection != null)
+                                if (vaultUtility.VaultConnection != null && vaultUtility.VaultConnection.IsConnected)
                                 {
                                     currentTask.ProcessingState = StateEnum.Completed;
                                     await Task.Delay(100);
