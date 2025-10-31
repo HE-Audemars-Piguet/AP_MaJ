@@ -106,20 +106,24 @@ namespace Ch.Hurni.AP_MaJ.Utilities
 
         private static DateTime JobSearchStartDate = DateTime.MinValue;
         #region VaultConnection
-        internal async Task<VDF.Vault.Currency.Connections.Connection> ConnectToVaultAsync(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken, string confirmedUser = null, string confirmedPwd = null)
+        internal async Task<VDF.Vault.Currency.Connections.Connection> ConnectToVaultAsync(ApplicationOptions appOptions, IProgress<TaskProgressReport> taskProgReport, CancellationToken taskCancellationToken/*, string confirmedUser = null, string confirmedPwd = null*/)
         {
             bool ReportProgress = taskProgReport != null;
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Start" });
             await Task.Delay(50);
 
-            string user = appOptions.VaultUser;
-            if (confirmedUser != null) user = confirmedUser;
+            //string user = appOptions.VaultUser;
+            //if (confirmedUser != null) user = confirmedUser;
 
-            string pwd = appOptions.VaultPassword;
-            if (confirmedPwd != null) pwd = confirmedPwd;
+            //string pwd = appOptions.VaultPassword;
+            //if (confirmedPwd != null) pwd = confirmedPwd;
+            
+            var results = await Task.Run(() => VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, appOptions.VaultUser, appOptions.VaultPassword,
+                                                                                         VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null));
 
-            VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, user, pwd, VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null);
+            //VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, appOptions.VaultUser, appOptions.VaultPassword, 
+            //                                                                                  VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null);
 
             if (ReportProgress) taskProgReport.Report(new TaskProgressReport() { Message = "", Timer = "Stop" });
             await Task.Delay(50);
@@ -128,19 +132,13 @@ namespace Ch.Hurni.AP_MaJ.Utilities
             else return null;
         }
 
-        internal VDF.Vault.Currency.Connections.Connection ConnectToVault(ApplicationOptions appOptions, string confirmedUser = null, string confirmedPwd = null)
+        internal (bool IsSuccess, VDF.Vault.Currency.Connections.Connection Con) CheckConnectToVault(ApplicationOptions appOptions, string confirmedUser = null, string confirmedPwd = null)
         {
-            string user = appOptions.VaultUser;
-            if (confirmedUser != null) user = confirmedUser;
-
-            string pwd = appOptions.VaultPassword;
-            if (confirmedPwd != null) pwd = confirmedPwd;
-
-            VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, user, pwd,
+            VDF.Vault.Results.LogInResult results = VDF.Vault.Library.ConnectionManager.LogIn(appOptions.VaultServer, appOptions.VaultName, confirmedUser, confirmedPwd,
                                                                                               VDF.Vault.Currency.Connections.AuthenticationFlags.Standard, null);
 
-            if (results.Success) return results.Connection;
-            else return null;
+            if (results.Success) return (true, results.Connection);
+            else return (false, null);
         }
 
         internal VDF.Vault.Currency.Connections.Connection ConnectToVault(ApplicationOptions appOptions)

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Data.Entity.Core.Mapping;
 using System.Globalization;
@@ -319,6 +320,24 @@ namespace Ch.Hurni.AP_MaJ.Classes
         //}
         //private int _itemPropSyncProcess = 5;
 
+
+        [JsonIgnore]
+        public List<string> VaultTestServerNames
+        {
+            get
+            {
+                string configFileString = ConfigurationManager.AppSettings.Get("VaultTestServerNames");
+                List<string> result = new List<string>();
+
+                if(!string.IsNullOrWhiteSpace(configFileString))
+                {
+                    result = configFileString.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                }
+
+                return result;
+
+            }
+        }
 
         public string VaultServer
         {

@@ -27,7 +27,9 @@ namespace CH.Hurni.AP_MaJ.Dialogs
         public string User { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
 
-        public VaultUserPasswordCheckDialog(string vaultServer, string vaultName, string vaultUser)
+        public bool IsProdServer { get; set; } = false;
+
+        public VaultUserPasswordCheckDialog(string vaultServer, string vaultName, string vaultUser, List<string> vaultTestServerNames)
         {
             Server = vaultServer;
             
@@ -37,9 +39,15 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
             DataContext = this;
 
+            IsProdServer = false;
+            if (!vaultTestServerNames.Any(s => s.Equals(Server, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                IsProdServer = true; 
+            }
+
             InitializeComponent();
-            
-            if (Server.ToLower().Contains("vltp")) WarningIcon.Visibility = Visibility.Visible;
+
+            //if (Server.ToLower().Contains("vltp")) WarningIcon.Visibility = Visibility.Visible;
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)

@@ -34,6 +34,8 @@ using System.IO.Compression;
 using System.Data.SQLite;
 using System.Text.Json;
 using Ch.Hurni.AP_MaJ;
+using static DevExpress.XtraPrinting.Native.ExportOptionsPropertiesNames;
+using VDF = Autodesk.DataManagement.Client.Framework;
 
 namespace CH.Hurni.AP_MaJ.Dialogs
 {
@@ -292,9 +294,11 @@ namespace CH.Hurni.AP_MaJ.Dialogs
 
                     if (currentTask.Name.Equals("VaultConnect"))
                     {
-                        while(true)
+                        if(vaultUtility.VaultConnection != null) VDF.Vault.Library.ConnectionManager.LogOut(vaultUtility.VaultConnection);
+
+                        while (true)
                         {
-                            VaultUserPasswordCheckDialog pwdCheckDialog = new VaultUserPasswordCheckDialog(AppOptions.VaultServer, AppOptions.VaultName, AppOptions.VaultUser);
+                            VaultUserPasswordCheckDialog pwdCheckDialog = new VaultUserPasswordCheckDialog(AppOptions.VaultServer, AppOptions.VaultName, AppOptions.VaultUser, AppOptions.VaultTestServerNames);
                             pwdCheckDialog.Owner = this;
                             pwdCheckDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
@@ -307,8 +311,10 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                                 taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Start" });
                                 await Task.Delay(100);
 
-                                vaultUtility.VaultConnection = vaultUtility.ConnectToVault(_appOptions, pwdCheckDialog.User, pwdCheckDialog.Password);
-                                if (vaultUtility.VaultConnection != null)
+                                (bool IsSuccess, Autodesk.DataManagement.Client.Framework.Vault.Currency.Connections.Connection Con) userCon = vaultUtility.CheckConnectToVault(_appOptions, pwdCheckDialog.User, pwdCheckDialog.Password);
+                                vaultUtility.VaultConnection = userCon.Con;
+
+                                if (userCon.IsSuccess)
                                 {
                                     currentTask.ProcessingState = StateEnum.Completed;
                                     await Task.Delay(100);
@@ -324,12 +330,35 @@ namespace CH.Hurni.AP_MaJ.Dialogs
                                     await Task.Delay(100);
                                     taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Stop" });
                                     await Task.Delay(100);
-                                    
+
                                     break;
                                 }
+
+                                //vaultUtility.VaultConnection = vaultUtility.ConnectToVault(_appOptions, pwdCheckDialog.User, pwdCheckDialog.Password);
+                                //if (vaultUtility.VaultConnection != null)
+                                //{
+                                //    currentTask.ProcessingState = StateEnum.Completed;
+                                //    await Task.Delay(100);
+                                //    taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Stop" });
+                                //    await Task.Delay(100);
+
+                                //    break;
+                                //}
+                                //else
+                                //{
+                                //    currentTask.ProcessingState = StateEnum.Error;
+                                //    TaskCancellationTokenSource.Cancel();
+                                //    await Task.Delay(100);
+                                //    taskProgReport.Report(new TaskProgressReport() { Message = "Connection au Vault...", Timer = "Stop" });
+                                //    await Task.Delay(100);
+
+                                //    break;
+                                //}
                             }
                             else
                             {
+                                vaultUtility.VaultConnection = null;
+
                                 currentTask.ProcessingState = StateEnum.Canceled;
                                 TaskCancellationTokenSource.Cancel();
 
